@@ -1,3 +1,4 @@
+#p/Creator/ui/main_window.py
 import customtkinter as ctk
 import os
 import platform
@@ -38,7 +39,7 @@ class MainWindow:
         self.root.after(100, self.load_all_icons_background)
         
         self.show_main_ui()
-
+    
     def load_all_icons_background(self):
         """Загружает иконки в фоновом режиме"""
         def load_in_thread():
@@ -52,247 +53,276 @@ class MainWindow:
         thread = threading.Thread(target=load_in_thread, daemon=True)
         thread.start()
 
-    def load_all_icons(self, parent_window=None):
+    def load_all_icons(self, icons_config=None, parent_window=None):
+        # Базовая конфигурация по умолчанию
+        default_config = {
+            "base_url": "https://raw.githubusercontent.com/Anuken/Mindustry/master/core/assets-raw/sprites/",
+            "categories": {
+                "items": {
+                    "dest_dir": "items",
+                    "files": [
+                        {"name": "copper", "filename": "items/item-copper.png"},
+                        {"name": "lead", "filename": "items/item-lead.png"},
+                        {"name": "metaglass", "filename": "items/item-metaglass.png"},
+                        {"name": "graphite", "filename": "items/item-graphite.png"},
+                        {"name": "sand", "filename": "items/item-sand.png"},
+                        {"name": "coal", "filename": "items/item-coal.png"},
+                        {"name": "titanium", "filename": "items/item-titanium.png"},
+                        {"name": "thorium", "filename": "items/item-thorium.png"},
+                        {"name": "scrap", "filename": "items/item-scrap.png"},
+                        {"name": "silicon", "filename": "items/item-silicon.png"},
+                        {"name": "plastanium", "filename": "items/item-plastanium.png"},
+                        {"name": "phase-fabric", "filename": "items/item-phase-fabric.png"},
+                        {"name": "surge-alloy", "filename": "items/item-surge-alloy.png"},
+                        {"name": "spore-pod", "filename": "items/item-spore-pod.png"},
+                        {"name": "blast-compound", "filename": "items/item-blast-compound.png"},
+                        {"name": "pyratite", "filename": "items/item-pyratite.png"}
+                    ]
+                },
+                "liquids": {
+                    "dest_dir": "liquids",
+                    "files": [
+                        {"name": "water", "filename": "items/liquid-water.png"},
+                        {"name": "oil", "filename": "items/liquid-oil.png"},
+                        {"name": "slag", "filename": "items/liquid-slag.png"},
+                        {"name": "cryofluid", "filename": "items/liquid-cryofluid.png"}
+                    ]
+                },
+                "blocks": {
+                    "dest_dir": "blocks",
+                    "files": [
+                        # Стены
+                        {"name": "copper-wall", "filename": "blocks/walls/copper-wall.png"},
+                        {"name": "copper-wall-large", "filename": "blocks/walls/copper-wall-large.png"},
+                        {"name": "titanium-wall", "filename": "blocks/walls/titanium-wall.png"},
+                        {"name": "titanium-wall-large", "filename": "blocks/walls/titanium-wall-large.png"},
+                        {"name": "thorium-wall", "filename": "blocks/walls/thorium-wall.png"},
+                        {"name": "thorium-wall-large", "filename": "blocks/walls/thorium-wall-large.png"},
+                        {"name": "surge-wall", "filename": "blocks/walls/surge-wall.png"},
+                        {"name": "surge-wall-large", "filename": "blocks/walls/surge-wall-large.png"},
+                        {"name": "plastanium-wall", "filename": "blocks/walls/plastanium-wall.png"},
+                        {"name": "plastanium-wall-large", "filename": "blocks/walls/plastanium-wall-large.png"},
+                        {"name": "phase-wall", "filename": "blocks/walls/phase-wall.png"},
+                        {"name": "phase-wall-large", "filename": "blocks/walls/phase-wall-large.png"},
+                        {"name": "shielded-wall", "filename": "blocks/walls/shielded-wall.png"},
+                        {"name": "shielded-wall-glow", "filename": "blocks/walls/shielded-wall-glow.png"},
+                        
+                        # Энергетика
+                        {"name": "solar-panel", "filename": "blocks/power/solar-panel.png"},
+                        {"name": "solar-panel-large", "filename": "blocks/power/solar-panel-large.png"},
+                        {"name": "battery", "filename": "blocks/power/battery.png"},
+                        {"name": "battery-large", "filename": "blocks/power/battery-large.png"},
+                        {"name": "battery-top", "filename": "blocks/power/battery-top.png"},
+                        {"name": "rtg-generator", "filename": "blocks/power/rtg-generator.png"},
+                        {"name": "rtg-generator-top", "filename": "blocks/power/rtg-generator-top.png"},
+                        {"name": "steam-generator", "filename": "blocks/power/steam-generator.png"},
+                        {"name": "combustion-generator", "filename": "blocks/power/combustion-generator.png"},
+                        {"name": "thorium-reactor", "filename": "blocks/power/thorium-reactor.png"},
+                        {"name": "impact-reactor", "filename": "blocks/power/impact-reactor.png"},
+                        {"name": "differential-generator", "filename": "blocks/power/differential-generator.png"},
+                        
+                        # Передача энергии
+                        {"name": "beam-node", "filename": "blocks/power/beam-node.png"},
+                        {"name": "surge-tower", "filename": "blocks/power/surge-tower.png"},
+                        {"name": "power-node", "filename": "blocks/power/power-node.png"},
+                        {"name": "power-node-large", "filename": "blocks/power/power-node-large.png"},
+
+                        #создания
+                        {"name": "cultivator", 
+                            "layers": [
+                                {"filename": "blocks/production/cultivator-bottom.png"},
+                                {"filename": "blocks/production/cultivator.png"},
+                                {"filename": "blocks/production/cultivator-top.png"}
+                            ]
+                        },
+
+                        {"name": "blast-mixer", "filename": "blocks/production/blast-mixer.png"},
+                        {"name": "pyratite-mixer", "filename": "blocks/production/pyratite-mixer.png"},
+
+                        {"name": "spore-press", 
+                            "layers": [
+                                {"filename": "blocks/production/spore-press-bottom.png"},
+                                {"filename": "blocks/production/spore-press-piston-icon.png"},
+                                {"filename": "blocks/production/spore-press.png"},
+                                {"filename": "blocks/production/spore-press-top.png"}
+                            ]
+                        },
+                        
+                        {"name": "coal-centrifuge", "filename": "blocks/production/coal-centrifuge.png"},
+                        {"name": "multi-press", "filename": "blocks/production/multi-press.png"},
+                        {"name": "silicon-crucible", "filename": "blocks/production/silicon-crucible.png"},
+                        {"name": "plastanium-compressor", "filename": "blocks/production/plastanium-compressor.png"},
+
+                        {"name": "phase-weaver", 
+                            "layers": [
+                                {"filename": "blocks/production/phase-weaver-bottom.png"},
+                                {"filename": "blocks/production/phase-weaver.png"},
+                                {"filename": "blocks/production/phase-weaver-weave.png"}
+                            ]
+                        },
+
+                        {"name": "graphite-press", "filename": "blocks/production/graphite-press.png"},
+                        {"name": "silicon-smelter", "filename": "blocks/production/silicon-smelter.png"},
+                        {"name": "kiln", "filename": "blocks/production/kiln.png"},
+
+                        {"name": "pulverizer", 
+                            "layers": [
+                                {"filename": "blocks/production/pulverizer.png"},
+                                {"filename": "blocks/production/pulverizer-rotator.png"},
+                                {"filename": "blocks/production/pulverizer-top.png"}
+                            ]
+                        },
+
+                        {"name": "melter", 
+                            "layers": [
+                                {"filename": "blocks/production/melter-bottom.png"},
+                                {"filename": "blocks/production/melter.png"}
+                            ]
+                        },
+
+                        {"name": "surge-smelter", "filename": "blocks/production/surge-smelter.png"},
+
+                        {"name": "cryofluid-mixer", 
+                            "layers": [
+                                {"filename": "blocks/production/cryofluid-mixer-bottom.png"},
+                                {"filename": "blocks/production/cryofluid-mixer.png"}
+                            ]
+                        },
+
+                        {"name": "bridge-conveyor", "filename": "blocks/distribution/bridge-conveyor.png"},
+                        {"name": "bridge-conveyor-end", "filename": "blocks/distribution/bridge-conveyor-end.png"},
+                        {"name": "bridge-conveyor-bridge", "filename": "blocks/distribution/bridge-conveyor-bridge.png"},
+                        {"name": "bridge-conveyor-arrow", "filename": "blocks/distribution/bridge-conveyor-arrow.png"},
+                    ]
+                }
+            }
+        }
+        
+        # Используем переданную конфигурацию или стандартную
+        config = icons_config if icons_config is not None else default_config
+        
+        # Базовая директория для иконок
         icons_dir = os.path.join("Creator", "icons")
         
-        # Создаем основные папки для иконок
-        items_dir = os.path.join(icons_dir, "items")
-        liquids_dir = os.path.join(icons_dir, "liquids")
-        blocks_dir = os.path.join(icons_dir, "blocks")
+        # Создаем директории для каждой категории
+        category_dirs = {}
+        for category_name, category_config in config["categories"].items():
+            category_dir = os.path.join(icons_dir, category_config["dest_dir"])
+            os.makedirs(category_dir, exist_ok=True)
+            category_dirs[category_name] = category_dir
         
-        os.makedirs(items_dir, exist_ok=True)
-        os.makedirs(liquids_dir, exist_ok=True)
-        os.makedirs(blocks_dir, exist_ok=True)
+        # Проверяем наличие всех иконок
+        print("Проверка наличия иконок...")
         
-        # Проверяем, есть ли уже иконки в соответствующих папках
-        items_exist = os.path.exists(items_dir) and len(os.listdir(items_dir)) > 0
-        liquids_exist = os.path.exists(liquids_dir) and len(os.listdir(liquids_dir)) > 0
-        blocks_exist = os.path.exists(blocks_dir) and len(os.listdir(blocks_dir)) > 0
+        missing_icons = {}
+        total_expected = 0
+        total_existing = 0
         
-        # Если все иконки уже загружены
-        if items_exist and liquids_exist and blocks_exist:
-            # ПРОВЕРКА НА ВСЕ ИМЕНА: проверяем наличие всех требуемых файлов
-            print("Проверка наличия всех иконок...")
-            
-            # Список всех ожидаемых имен
-            expected_items = ["copper", "lead", "metaglass", "graphite", "sand", "coal",
-                            "titanium", "thorium", "scrap", "silicon", "plastanium",
-                            "phase-fabric", "surge-alloy", "spore-pod", "blast-compound", "pyratite"]
-            expected_liquids = ["water", "oil", "slag", "cryofluid"]
-            expected_blocks = ["copper-wall", "copper-wall-large", "titanium-wall", "titanium-wall-large",
-                            "thorium-wall", "thorium-wall-large", "surge-wall", "surge-wall-large",
-                            "reinforced-surge-wall", "reinforced-surge-wall-large", "plastanium-wall",
-                            "plastanium-wall-large", "phase-wall", "phase-wall-large", "solar-panel",
-                            "solar-panel-large"]
-            
-            missing_items = []
-            missing_liquids = []
-            missing_blocks = []
-            
-            # Проверяем предметы
-            for item in expected_items:
-                item_path = os.path.join(items_dir, f"{item}.png")
-                if not os.path.exists(item_path):
-                    missing_items.append(item)
-            
-            # Проверяем жидкости
-            for liquid in expected_liquids:
-                liquid_path = os.path.join(liquids_dir, f"{liquid}.png")
-                if not os.path.exists(liquid_path):
-                    missing_liquids.append(liquid)
-            
-            # Проверяем блоки
-            for block in expected_blocks:
-                block_path = os.path.join(blocks_dir, f"{block}.png")
-                if not os.path.exists(block_path):
-                    missing_blocks.append(block)
-            
-            # Если все файлы на месте
-            if not missing_items and not missing_liquids and not missing_blocks:
-                print("Все иконки уже загружены и проверены")
-                return True
-            else:
-                print(f"Найдены отсутствующие файлы:")
-                if missing_items:
-                    print(f"  Предметы ({len(missing_items)}): {', '.join(missing_items)}")
-                if missing_liquids:
-                    print(f"  Жидкости ({len(missing_liquids)}): {', '.join(missing_liquids)}")
-                if missing_blocks:
-                    print(f"  Блоки ({len(missing_blocks)}): {', '.join(missing_blocks)}")
+        # Временная директория для загрузки слоев
+        temp_dir = os.path.join(icons_dir, "temp_layers")
+        os.makedirs(temp_dir, exist_ok=True)
         
-        # Конфигурация загрузки
-        download_configs = [
-            (
-                "https://raw.githubusercontent.com/Anuken/Mindustry/master/core/assets-raw/sprites/items/",
-                ["copper", "lead", "metaglass", "graphite", "sand", "coal",
-                "titanium", "thorium", "scrap", "silicon", "plastanium",
-                "phase-fabric", "surge-alloy", "spore-pod", "blast-compound", "pyratite"],
-                "items",
-                True
-            ),
-            (
-                "https://raw.githubusercontent.com/Anuken/Mindustry/master/core/assets-raw/sprites/items/",
-                ["water", "oil", "slag", "cryofluid"],
-                "liquids",
-                True
-            ),
-            (
-                "https://raw.githubusercontent.com/Anuken/Mindustry/master/core/assets-raw/sprites/blocks/",
-                {
-                    # Примеры с двумя слоями - слой 2 накладывается поверх слоя 1
-                    "copper-wall": {"layers": [["walls/copper-wall.png", 1]]},
-                    "copper-wall-large": {"layers": [["walls/copper-wall-large.png", 1]]},
-                    "titanium-wall":{"layers": [["walls/titanium-wall.png", 1]]},
-                    "titanium-wall-large":{"layers": [["walls/titanium-wall-large.png", 1]]},
-                    "thorium-wall":{"layers": [["walls/thorium-wall.png", 1]]},
-                    "thorium-wall-large":{"layers": [["walls/thorium-wall-large.png", 1]]},
-                    "surge-wall":{"layers": [["walls/surge-wall.png", 1]]},
-                    "surge-wall-large":{"layers": [["walls/surge-wall-large.png", 1]]},
-                    "reinforced-surge-wall":{"layers": [["walls/reinforced-surge-wall.png", 1]]},
-                    "reinforced-surge-wall-large":{"layers": [["walls/reinforced-surge-wall-large.png", 1]]},
-                    "plastanium-wall":{"layers": [["walls/plastanium-wall.png", 1]]},
-                    "plastanium-wall-large":{"layers": [["walls/plastanium-wall-large.png", 1]]},
-                    "phase-wall": {"layers": [["walls/phase-wall.png", 1]]},
-                    "phase-wall-large": {"layers": [["walls/phase-wall-large.png", 1]]},
-
-                    "solar-panel": {"layers": [["power/solar-panel.png", 1]]},
-                    "solar-panel-large": {"layers": [["power/solar-panel-large.png", 1]]}
-                },
-                "blocks",   
-                False
-            )
-        ]
-
-        # Подсчет общего количества иконок
-        total_icons = 0
+        for category_name, category_config in config["categories"].items():
+            category_dir = category_dirs[category_name]
+            missing_in_category = []
+            
+            for file_info in category_config["files"]:
+                total_expected += 1
+                icon_path = os.path.join(category_dir, f"{file_info['name']}.png")
+                
+                if os.path.exists(icon_path) and os.path.getsize(icon_path) > 0:
+                    total_existing += 1
+                else:
+                    missing_in_category.append(file_info)
+            
+            if missing_in_category:
+                missing_icons[category_name] = missing_in_category
+        
+        # Если все иконки уже есть
+        if total_existing == total_expected:
+            print(f"Все иконки уже загружены ({total_existing}/{total_expected})")
+            # Очищаем временную директорию
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+            return True
+        
+        # Показываем, какие иконки отсутствуют
+        if missing_icons:
+            print(f"Отсутствуют {total_expected - total_existing} иконок:")
+            for category_name, missing in missing_icons.items():
+                print(f"  {category_name} ({len(missing)}): {', '.join([m.get('name', 'unknown') for m in missing])}")
+        
+        # Подготавливаем задачи для загрузки
         download_tasks = []
-        multi_layer_tasks = []  # Для задач с несколькими слоями
+        layer_groups = {}  # Группируем слои для склейки
         
-        # Списки для отслеживания всех ожидаемых имен
-        all_expected_items = []
-        all_expected_liquids = []
-        all_expected_blocks = []
-        
-        for base_url, name_icons, dest_folder, is_item in download_configs:
-            dest_dir = os.path.join(icons_dir, dest_folder)
+        for category_name, category_config in config["categories"].items():
+            category_dir = category_dirs[category_name]
             
-            if isinstance(name_icons, dict):
-                # Для сложных структур с слоями (блоки)
-                for name, config in name_icons.items():
-                    # Добавляем в список ожидаемых блоков
-                    all_expected_blocks.append(name)
+            # Берем только отсутствующие иконки или все, если нет списка отсутствующих
+            files_to_download = missing_icons.get(category_name, category_config["files"])
+            
+            for file_info in files_to_download:
+                final_path = os.path.join(category_dir, f"{file_info['name']}.png")
+                
+                # Проверяем, есть ли слои
+                if "layers" in file_info:
+                    # Это многослойная иконка
+                    layers = file_info["layers"]
+                    layer_files = []
                     
-                    final_path = os.path.join(dest_dir, f"{name}.png")
-                    
-                    # Пропускаем если файл уже существует
-                    if os.path.exists(final_path):
-                        # ПРОВЕРКА НА ВСЕ ИМЕНА: проверяем что файл не пустой
-                        if os.path.getsize(final_path) > 0:
-                            continue
-                        else:
-                            print(f"Файл {name} пустой, перезагружаем...")
-                    
-                    layers = config.get("layers", [])
-                    num_layers = len(layers)
-                    
-                    if num_layers == 1:
-                        # Если 1 слой - просто скачиваем
-                        layer_path, layer_num = layers[0]
-                        total_icons += 1
-                        download_tasks.append({
-                            "url": base_url + layer_path,
-                            "save_path": final_path,
-                            "name": name,
-                            "dest_folder": dest_folder,
-                            "type": "simple",
-                            "layer_num": layer_num
-                        })
-                    elif num_layers >= 2:
-                        # Если 2 или больше слоев - добавляем в отдельный список
-                        layer_files = []
-                        for i, (layer_path, layer_num) in enumerate(layers):
-                            temp_filename = f"{name}_temp_layer_{layer_num}.png"
-                            temp_path = os.path.join(dest_dir, temp_filename)
-                            total_icons += 1
-                            
-                            # Сначала скачиваем все временные файлы
-                            download_tasks.append({
-                                "url": base_url + layer_path,
-                                "save_path": temp_path,
-                                "name": f"{name}_layer{layer_num}",
-                                "dest_folder": dest_folder,
-                                "type": "multi_layer_part",
-                                "layer_num": layer_num,
-                                "block_name": name,
-                                "final_path": final_path
-                            })
-                            
-                            layer_files.append((temp_path, layer_num))
+                    # Добавляем задачи для каждого слоя
+                    for i, layer in enumerate(layers):
+                        temp_layer_path = os.path.join(temp_dir, f"{file_info['name']}_layer_{i}_{os.path.basename(layer['filename'])}")
                         
-                        # Затем добавляем задачу на объединение
-                        multi_layer_tasks.append({
-                            "name": name,
-                            "layer_files": layer_files,
-                            "final_path": final_path,
-                            "dest_folder": dest_folder,
-                            "num_layers": num_layers
-                        })
-            else:
-                # Простые элементы (предметы и жидкости)
-                for name in name_icons:
-                    # Добавляем в соответствующий список
-                    if dest_folder == "items":
-                        all_expected_items.append(name)
-                    elif dest_folder == "liquids":
-                        all_expected_liquids.append(name)
+                        full_url = config["base_url"] + layer["filename"]
+                        
+                        layer_info = {
+                            "url": full_url,
+                            "save_path": temp_layer_path,
+                            "name": f"{file_info['name']}_layer_{i}",
+                            "category": category_name,
+                            "is_layer": True,
+                            "layer_index": i,
+                            "layer_config": layer
+                        }
+                        
+                        download_tasks.append(layer_info)
+                        layer_files.append((temp_layer_path, layer))
                     
-                    final_path = os.path.join(dest_dir, f"{name}.png")
+                    # Сохраняем информацию для склейки
+                    layer_groups[final_path] = {
+                        "layers": layer_files,
+                        "name": file_info["name"],
+                        "category": category_name,
+                        "size": file_info.get("size", None)
+                    }
+                else:
+                    # Одиночная иконка
+                    full_url = config["base_url"] + file_info["filename"]
                     
-                    # Пропускаем если файл уже существует
-                    if os.path.exists(final_path):
-                        # ПРОВЕРКА НА ВСЕ ИМЕНА: проверяем что файл не пустой
-                        if os.path.getsize(final_path) > 0:
-                            continue
-                        else:
-                            print(f"Файл {name} пустой, перезагружаем...")
-                    
-                    # Формируем URL в зависимости от типа
-                    if dest_folder == "liquids":
-                        filename = f"liquid-{name}.png"
-                        final_url = base_url + filename
-                    elif is_item:
-                        filename = f"item-{name}.png"
-                        final_url = base_url + filename
-                    else:
-                        filename = f"{name}.png"
-                        final_url = base_url + filename
-                    
-                    total_icons += 1
                     download_tasks.append({
-                        "url": final_url,
+                        "url": full_url,
                         "save_path": final_path,
-                        "name": name,
-                        "dest_folder": dest_folder,
-                        "type": "simple",
-                        "layer_num": 1
+                        "name": file_info["name"],
+                        "category": category_name,
+                        "is_layer": False
                     })
-
-        if total_icons == 0:
-            # ПРОВЕРКА НА ВСЕ ИМЕНА: финальная проверка после загрузки
-            print("Проверяем наличие всех файлов после загрузки...")
-            success = self.verify_all_icons_exist(items_dir, liquids_dir, blocks_dir, 
-                                                all_expected_items, all_expected_liquids, all_expected_blocks)
-            return success
-
+        
+        if not download_tasks:
+            return True
+        
         # Инициализация окна прогресса
         if parent_window:
             progress_window = ctk.CTkToplevel(parent_window)
             progress_window.title("Загрузка иконок")
-            progress_window.geometry("400x150")
+            progress_window.geometry("400x180")
             progress_window.transient(parent_window)
             progress_window.grab_set()
             
-            progress_label = ctk.CTkLabel(progress_window, text=f"Загрузка иконок...")
+            progress_label = ctk.CTkLabel(progress_window, text="Загрузка иконок...")
             progress_label.pack(pady=10)
             
             progress_bar = ctk.CTkProgressBar(progress_window, width=300)
@@ -302,21 +332,23 @@ class MainWindow:
             status_label = ctk.CTkLabel(progress_window, text="Подготовка...")
             status_label.pack(pady=5)
             
+            # Добавляем метку для текущей операции
+            operation_label = ctk.CTkLabel(progress_window, text="")
+            operation_label.pack(pady=2)
+            
             progress_window.update()
-
-        downloaded = 0
-        errors = []
         
-        def update_progress(current, total, name, folder, stage="download"):
+        downloaded = 0
+        total_to_download = len(download_tasks)
+        errors = []
+        downloaded_layers = {}
+        
+        def update_progress(current, total, name, category, operation="Загрузка"):
             if parent_window:
-                progress = (current + 1) / total
+                progress = current / total if total > 0 else 0
                 progress_bar.set(progress)
-                if stage == "download":
-                    status_label.configure(text=f"{current + 1}/{total} - {name} ({folder})")
-                    progress_label.configure(text=f"Загружается: {name}")
-                elif stage == "combine":
-                    status_label.configure(text=f"Объединение: {name}")
-                    progress_label.configure(text=f"Создание иконки: {name}")
+                status_label.configure(text=f"{current}/{total} - {name}")
+                progress_label.configure(text=f"{operation}: {name}")
                 progress_window.update()
         
         def download_file(task):
@@ -330,7 +362,7 @@ class MainWindow:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
                     
-                    # ПРОВЕРКА НА ВСЕ ИМЕНА: проверяем что файл загрузился
+                    # Проверяем, что файл загрузился корректно
                     if os.path.exists(task["save_path"]) and os.path.getsize(task["save_path"]) > 0:
                         return True, task
                     else:
@@ -340,102 +372,94 @@ class MainWindow:
             except Exception as e:
                 return False, (task, str(e))
         
-        def combine_layers(task):
-            """Объединяет слои для многослойных иконок"""
+        def merge_layers(final_path, layers_info):
+            """Склеивает несколько слоев в одно изображение"""
             try:
                 from PIL import Image
                 
-                layer_files = task["layer_files"]
-                final_path = task["final_path"]
-                num_layers = task["num_layers"]
+                # Загружаем первый слой для определения размера
+                base_image = None
+                base_size = None
                 
-                if num_layers == 2:
-                    # Для 2 слоев: слой 2 накладывается поверх слоя 1 и делается на 1 меньше
-                    layer1_path, layer1_num = layer_files[0]
-                    layer2_path, layer2_num = layer_files[1]
-                    
-                    # Проверяем что оба файла существуют
-                    if not os.path.exists(layer1_path) or not os.path.exists(layer2_path):
-                        return False, (task, "Один из слоев отсутствует")
-                    
-                    # Открываем оба изображения
-                    layer1 = Image.open(layer1_path).convert("RGBA")
-                    layer2 = Image.open(layer2_path).convert("RGBA")
-                    
-                    # Получаем размеры
-                    width1, height1 = layer1.size
-                    width2, height2 = layer2.size
-                    
-                    # Если второй слой такого же размера, уменьшаем его на 1 пиксель с каждой стороны
-                    if width1 == width2 and height1 == height2 and width1 > 2 and height1 > 2:
-                        # Создаем уменьшенную версию второго слоя
-                        new_size = (width1 - 2, height1 - 2)
-                        layer2_resized = layer2.resize(new_size, Image.Resampling.LANCZOS)
+                # Если задан целевой размер, используем его
+                target_size = layers_info.get("size")
+                
+                # Загружаем все слои
+                images = []
+                for layer_path, layer_config in layers_info["layers"]:
+                    if os.path.exists(layer_path):
+                        img = Image.open(layer_path).convert("RGBA")
                         
-                        # Создаем новое изображение с прозрачным фоном
-                        result = Image.new("RGBA", (width1, height1), (0, 0, 0, 0))
+                        # Применяем настройки слоя
+                        if "offset_x" in layer_config or "offset_y" in layer_config:
+                            # Создаем новое изображение с учетом смещения
+                            offset_x = layer_config.get("offset_x", 0)
+                            offset_y = layer_config.get("offset_y", 0)
+                            
+                            new_img = Image.new("RGBA", img.size, (0, 0, 0, 0))
+                            new_img.paste(img, (offset_x, offset_y), img)
+                            img = new_img
                         
-                        # Накладываем первый слой
-                        result.paste(layer1, (0, 0))
+                        if "alpha" in layer_config:
+                            # Изменяем прозрачность
+                            alpha = int(layer_config["alpha"] * 255)
+                            if img.mode == "RGBA":
+                                r, g, b, a = img.split()
+                                a = a.point(lambda p: p * alpha // 255)
+                                img = Image.merge("RGBA", (r, g, b, a))
                         
-                        # Накладываем уменьшенный второй слой по центру
-                        paste_x = (width1 - new_size[0]) // 2
-                        paste_y = (height1 - new_size[1]) // 2
-                        result.paste(layer2_resized, (paste_x, paste_y), layer2_resized)
-                    else:
-                        # Если размеры разные, просто накладываем как есть
-                        result = Image.new("RGBA", (width1, height1), (0, 0, 0, 0))
-                        result.paste(layer1, (0, 0))
-                        result.paste(layer2, (0, 0), layer2)
-                    
-                    # Сохраняем результат
-                    result.save(final_path, "PNG")
-                    
-                    # ПРОВЕРКА НА ВСЕ ИМЕНА: проверяем что файл создан
-                    if not os.path.exists(final_path) or os.path.getsize(final_path) == 0:
-                        return False, (task, "Итоговый файл не создан")
-                    
-                    # Удаляем временные файлы
-                    if os.path.exists(layer1_path):
-                        os.remove(layer1_path)
-                    if os.path.exists(layer2_path):
-                        os.remove(layer2_path)
-                    
+                        images.append(img)
+                        
+                        if base_size is None:
+                            base_size = img.size
+                
+                if not images:
+                    return False
+                
+                # Определяем размер итогового изображения
+                if target_size:
+                    final_size = target_size
                 else:
-                    # Для большего количества слоев - накладываем последовательно
-                    result = None
-                    for temp_path, layer_num in layer_files:
-                        if not os.path.exists(temp_path):
-                            return False, (task, f"Слой {layer_num} отсутствует")
-                        
-                        layer_img = Image.open(temp_path).convert("RGBA")
-                        
-                        if result is None:
-                            result = layer_img
-                        else:
-                            result.paste(layer_img, (0, 0), layer_img)
-                        
-                        # Удаляем временный файл
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
-                    
-                    result.save(final_path, "PNG")
+                    # Находим максимальные размеры среди всех слоев
+                    max_width = max(img.size[0] for img in images)
+                    max_height = max(img.size[1] for img in images)
+                    final_size = (max_width, max_height)
                 
-                return True, task
+                # Создаем пустое изображение для результата
+                result = Image.new("RGBA", final_size, (0, 0, 0, 0))
+                
+                # Накладываем слои в порядке возрастания (первый - нижний)
+                for img in images:
+                    # Центрируем изображение, если оно меньше итогового
+                    if img.size != final_size:
+                        new_img = Image.new("RGBA", final_size, (0, 0, 0, 0))
+                        x_offset = (final_size[0] - img.size[0]) // 2
+                        y_offset = (final_size[1] - img.size[1]) // 2
+                        new_img.paste(img, (x_offset, y_offset), img)
+                        img = new_img
+                    
+                    result = Image.alpha_composite(result, img)
+                
+                # Сохраняем результат
+                os.makedirs(os.path.dirname(final_path), exist_ok=True)
+                result.save(final_path, "PNG")
+                
+                return True
+                
             except Exception as e:
-                return False, (task, str(e))
-
+                print(f"Ошибка при склейке слоев для {final_path}: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+        
         try:
-            # Шаг 1: Загружаем все файлы
+            # Загружаем файлы
             if parent_window:
                 progress_label.configure(text="Загрузка файлов...")
-                status_label.configure(text=f"0/{total_icons}")
+                status_label.configure(text=f"0/{total_to_download}")
             
             with ThreadPoolExecutor(max_workers=4) as executor:
-                futures = {}
-                for task in download_tasks:
-                    future = executor.submit(download_file, task)
-                    futures[future] = task
+                futures = {executor.submit(download_file, task): task for task in download_tasks}
                 
                 for future in as_completed(futures):
                     task = futures[future]
@@ -443,73 +467,84 @@ class MainWindow:
                     
                     if success:
                         downloaded += 1
+                        if task.get("is_layer", False):
+                            # Сохраняем информацию о загруженном слое
+                            layer_key = f"{task['category']}_{task['name']}"
+                            downloaded_layers[layer_key] = task["save_path"]
+                        
                         if parent_window:
-                            update_progress(downloaded, total_icons, task["name"], task["dest_folder"], "download")
+                            update_progress(downloaded, total_to_download, 
+                                        task["name"], task["category"])
                     else:
                         if isinstance(result, tuple):
                             failed_task, error = result
-                            errors.append((failed_task["name"], failed_task["dest_folder"], error))
+                            errors.append((failed_task["name"], failed_task["category"], error))
                         else:
-                            errors.append((task["name"], task["dest_folder"], "Unknown error"))
+                            errors.append((task["name"], task["category"], "Unknown error"))
                         downloaded += 1
-                        if parent_window:
-                            progress_label.configure(text=f"Ошибка: {task['name']}")
             
-            # Шаг 2: Объединяем многослойные иконки
-            if multi_layer_tasks:
+            # Склеиваем слои
+            if layer_groups:
                 if parent_window:
-                    progress_label.configure(text="Объединение слоев...")
-                    status_label.configure(text=f"0/{len(multi_layer_tasks)}")
+                    progress_label.configure(text="Склейка слоев...")
+                    status_label.configure(text=f"0/{len(layer_groups)}")
                     progress_bar.set(0)
+                    progress_window.update()
                 
-                combined = 0
-                total_combine = len(multi_layer_tasks)
-                
-                with ThreadPoolExecutor(max_workers=2) as executor:
-                    combine_futures = {}
-                    for task in multi_layer_tasks:
-                        future = executor.submit(combine_layers, task)
-                        combine_futures[future] = task
+                merged_count = 0
+                for final_path, layers_info in layer_groups.items():
+                    if parent_window:
+                        update_progress(merged_count, len(layer_groups), 
+                                    layers_info["name"], layers_info["category"], 
+                                    operation="Склейка")
                     
-                    for future in as_completed(combine_futures):
-                        task = combine_futures[future]
-                        success, result = future.result()
-                        
-                        if success:
-                            combined += 1
-                            if parent_window:
-                                update_progress(combined, total_combine, task["name"], task["dest_folder"], "combine")
-                        else:
-                            failed_task, error = result
-                            errors.append((failed_task["name"], failed_task["dest_folder"], f"Combine error: {error}"))
-                            if parent_window:
-                                progress_label.configure(text=f"Ошибка объединения: {task['name']}")
-
-            # ПРОВЕРКА НА ВСЕ ИМЕНА: финальная проверка после загрузки
-            print("Финальная проверка всех загруженных иконок...")
-            success = self.verify_all_icons_exist(items_dir, liquids_dir, blocks_dir, 
-                                                all_expected_items, all_expected_liquids, all_expected_blocks)
+                    if merge_layers(final_path, layers_info):
+                        merged_count += 1
+                    else:
+                        errors.append((layers_info["name"], layers_info["category"], 
+                                    "Ошибка склейки слоев"))
             
-            if not success:
-                errors.append(("Финальная проверка", "Все файлы", "Не все файлы загружены"))
+            # Финальная проверка
+            print("Финальная проверка загруженных иконок...")
+            
+            final_existing = 0
+            final_missing = []
+            
+            for category_name, category_config in config["categories"].items():
+                category_dir = category_dirs[category_name]
+                
+                for file_info in category_config["files"]:
+                    icon_path = os.path.join(category_dir, f"{file_info['name']}.png")
+                    
+                    if os.path.exists(icon_path) and os.path.getsize(icon_path) > 0:
+                        final_existing += 1
+                    else:
+                        final_missing.append(f"{category_name}/{file_info['name']}")
+            
+            if final_missing:
+                errors.append(("Финальная проверка", "Все категории", 
+                            f"Отсутствуют {len(final_missing)} иконок: {', '.join(final_missing[:5])}..."))
+            
+            # Очищаем временную директорию
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
             
             # Вывод ошибок, если они есть
             if errors:
-                error_msg = "\n".join(f"{name} ({folder}): {error}" for name, folder, error in errors)
+                error_msg = "\n".join(f"{name} ({category}): {error}" for name, category, error in errors)
                 print(f"Ошибки загрузки:\n{error_msg}")
                 if parent_window:
-                    messagebox.showwarning("Ошибки загрузки", f"Не удалось загрузить некоторые иконки:\n{error_msg}")
-
+                    messagebox.showwarning("Ошибки загрузки", 
+                                        f"Не удалось загрузить некоторые иконки:\n{error_msg}")
+            
             if parent_window:
                 progress_label.configure(text="Загрузка завершена!")
-                progress_window.after(2000, progress_window.destroy())
+                progress_window.after(2000, progress_window.destroy)
             
-            print(f"Иконки успешно загружены в папки:")
-            print(f"- Items: {items_dir}")
-            print(f"- Liquids: {liquids_dir}")
-            print(f"- Blocks: {blocks_dir}")
-            
-            return success
+            print(f"Иконки успешно загружены: {final_existing}/{total_expected}")
+            return len(errors) == 0
         
         except Exception as e:
             error_msg = f"Критическая ошибка: {str(e)}"
@@ -517,12 +552,17 @@ class MainWindow:
             import traceback
             traceback.print_exc()
             
-            if parent_window:
-                if 'progress_label' in locals():
-                    progress_label.configure(text=error_msg)
+            # Очищаем временную директорию
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+            
+            if parent_window and 'progress_window' in locals():
+                progress_label.configure(text=error_msg)
                 messagebox.showerror("Ошибка", error_msg)
             return False
-
+        
     def verify_all_icons_exist(self, items_dir, liquids_dir, blocks_dir, expected_items, expected_liquids, expected_blocks):
         """
         Проверяет наличие всех ожидаемых файлов
@@ -986,7 +1026,7 @@ class MainWindow:
         self.mod_folder = mod_dir
         self.clear_window()
         
-        from mod_editor import ModEditor
+        from .mod_editor import ModEditor
         editor = ModEditor(self.root, self.mod_folder, self)
         editor.open_mod_editor()
 
@@ -994,7 +1034,7 @@ class MainWindow:
         self.mod_folder = mod_folder
         self.clear_window()
         
-        from creator_editor import CreatorEditor
+        from .creator_editor import CreatorEditor
         creator = CreatorEditor(self.root, self.mod_folder, self)
         creator.open_creator()
 

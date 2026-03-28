@@ -1,3 +1,4 @@
+#p/Creator/ui/mod_editor.py
 import customtkinter as ctk
 import shutil
 import requests
@@ -22,7 +23,7 @@ class ModEditor:
             ("author", "Автор мода:", "text"),
             ("description", "Описание мода:", "text"),
             ("version", "Версия мода (например: 1.0):", "text"),
-            ("minGameVersion", "Минимальная версия игры (например: 154):", "number")
+            ("minGameVersion", "Минимальная версия игры:", "number")
         ]
         self.param_values = {}
         
@@ -384,14 +385,14 @@ public class {mod_name_camel}JavaMod extends Mod{{
                 entry.insert(0, "1.0")
             elif param_name == "minGameVersion" and not current_value:
                 entry.delete(0, 'end')
-                entry.insert(0, "154")
+                entry.insert(0, "156")
         
         elif param_type == "number":
             entry = ctk.CTkEntry(self.root, width=400, font=("Arial", 14))
             if current_value:
                 entry.insert(0, current_value)
             else:
-                entry.insert(0, "154")
+                entry.insert(0, "156")
             entry.pack(pady=10)
         
         # Кнопки
@@ -494,7 +495,7 @@ description: "{self.param_values.get('description', 'Empty mod template')}"
 version: "{self.param_values.get('version', '1.0')}"
 
 #the minimum game build required to run this mod
-minGameVersion: "{self.param_values.get('minGameVersion', '154')}"
+minGameVersion: "{self.param_values.get('minGameVersion', '156')}"
 
 #this is a java mod
 java: true
@@ -523,14 +524,14 @@ author: "Your Name"
 main: "{main_class_path}"
 description: "Empty mod template"
 version: 1.0
-minGameVersion: 154
+minGameVersion: 156
 java: true
 hidden: false"""
         
         (self.mod_folder / "mod.hjson").write_text(hjson_content, encoding='utf-8')
     
     def go_to_creator(self):
-        from creator_editor import CreatorEditor
+        from .creator_editor import CreatorEditor
         creator = CreatorEditor(self.root, self.mod_folder, self.main_app)
         creator.open_creator()
     
