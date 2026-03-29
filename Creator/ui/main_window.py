@@ -193,6 +193,9 @@ class MainWindow:
                         {"name": "bridge-conveyor-end", "filename": "blocks/distribution/bridge-conveyor-end.png"},
                         {"name": "bridge-conveyor-bridge", "filename": "blocks/distribution/bridge-conveyor-bridge.png"},
                         {"name": "bridge-conveyor-arrow", "filename": "blocks/distribution/bridge-conveyor-arrow.png"},
+                        {"name": "bridge-conduit", "filename": "blocks/liquid/bridge-conduit.png"},
+                        {"name": "phase-conduit", "filename": "blocks/liquid/phase-conduit.png"},
+                        {"name": "phase-conveyor", "filename": "blocks/distribution/phase-conveyor.png"},
                     ]
                 }
             }

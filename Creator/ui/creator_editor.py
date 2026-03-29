@@ -58,7 +58,7 @@ class CreatorEditor:
             
             for path in possible_paths:
                 if path.exists():
-                    print(f"Загружаю иконку: {path}")
+                    #print(f"Загружаю иконку: {path}")
                     img = Image.open(path)
                     img = img.resize(size, Image.Resampling.LANCZOS)
                     return ctk.CTkImage(img)
@@ -3256,7 +3256,7 @@ public class ModLiquid {{
                 "class": "CircularBridge", 
                 "icon": "", 
                 "display": "Мост", 
-                "sprite_folder": "bridge"},
+                "sprite_folder": "bridges"},
         }
         
         def search_blocks(block_type, config):

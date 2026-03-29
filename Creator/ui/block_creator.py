@@ -699,7 +699,8 @@ class BlockCreator:
             ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", "📡 Энерг. башни"),
             ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", "🔌 Энерг. узлы"),
             ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", "🛡️ Щитовые стены"),
-            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "🏭 Заводы")
+            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "🏭 Заводы"),
+            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", "Мосты")
         ]
         
         for folder, file_path, display_prefix in block_files:
@@ -747,7 +748,7 @@ class BlockCreator:
         blocks_dir = Path("creator/icons/blocks")
         
         # Черный список для фильтрации
-        blacklist_blocks = ["beam-node", "shielded-wall"]
+        blacklist_blocks = ["beam-node", "shielded-wall", "bridge-conveyor-arrow", "bridge-conveyor-bridge", "bridge-conveyor-end"]
         blacklist_suffixes = [
             "-top", "-bottom", "-left", "-right", "-back", "-front",
             "-glow", "-overlay", "-mask", "-shadow", "-effect",
@@ -982,46 +983,45 @@ class BlockCreator:
         """Загружает иконку для блока"""
         try:
             icon_path = None
-            
+
             if block_type == "mod":
-                # Для модовых блоков - ищем в папке мода
-                # Пробуем разные варианты путей
-                possible_paths = [
-                    # В assets/sprites/blocks/[folder]/[block_name].png
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "walls" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "batterys" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "solar_panels" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "consume_generators" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "beam_nodes" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "power_nodes" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "shield_walls" / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "generic_crafter" / f"{block_name}.png",
-                    
-                    # В sprites/blocks/[folder]/[block_name].png (без assets)
-                    Path(self.mod_folder) / "sprites" / "blocks" / "walls" / f"{block_name}.png",
-                    Path(self.mod_folder) / "sprites" / "blocks" / "batterys" / f"{block_name}.png",
-                    Path(self.mod_folder) / "sprites" / "blocks" / "solar_panels" / f"{block_name}.png",
-                    
-                    # В подпапке с именем блока
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "walls" / block_name / f"{block_name}.png",
-                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / "batterys" / block_name / f"{block_name}.png",
-                ]
-                
-                for path in possible_paths:
-                    if path.exists():
-                        icon_path = path
-                        #print(f"Найдена иконка для модового блока {block_name}: {path}")
+                # Список папок для модовых блоков
+                BLOCKS_PATHS = ["walls", "batterys", "solar_panels", "consume_generators",
+                            "beam_nodes", "power_nodes", "shield_walls", "generic_crafter",
+                            "bridges"]
+
+                # Перебираем все возможные папки
+                for folder in BLOCKS_PATHS:
+                    # Формируем возможные пути для текущей папки
+                    possible_paths = [
+                        # В assets/sprites/blocks/[folder]/[block_name].png
+                        Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / f"{block_name}.png",
+                        # В sprites/blocks/[folder]/[block_name].png (без assets)
+                        Path(self.mod_folder) / "sprites" / "blocks" / folder / f"{block_name}.png",
+                        #В подпапке с именем блока
+                        Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / block_name / f"{block_name}.png"
+                    ]
+
+                    # Проверяем каждый путь
+                    for path in possible_paths:
+                        if path.exists():
+                            icon_path = path
+                            #print(f"Найдена иконка для модового блока {block_name}: {path}")
+                            break
+
+                    # Если иконка найдена, прерываем поиск по остальным папкам
+                    if icon_path:
                         break
-                        
+
             else:  # vanilla
-                # Для ванильных блоков - ищем в creator/icons/blocks
+                # Для ванильных блоков — ищем в creator/icons/blocks
                 icon_filename = icon_info if icon_info else block_name
-                
+
                 # Убираем "Blocks." если есть
                 if icon_filename.startswith("Blocks."):
                     icon_filename = icon_filename.replace("Blocks.", "")
-                
-                # Пробуем разные варианты имен
+
+                # Пробуем разные варианты имён
                 possible_names = [
                     icon_filename,
                     icon_filename.lower(),
@@ -1030,32 +1030,32 @@ class BlockCreator:
                     icon_filename.replace("-", ""),
                     icon_filename.lower().replace("wall", ""),
                 ]
-                
+
                 # Добавляем варианты с суффиксами
-                for name in possible_names[:]:  # Копируем список чтобы не изменять его во время итерации
-                    possible_names.append(f"{name}-icon")
-                    possible_names.append(f"{name}-block")
-                
+                extended_names = []
                 for name in possible_names:
+                    extended_names.append(name)
+                    extended_names.append(f"{name}-icon")
+                    extended_names.append(f"{name}-block")
+
+                for name in extended_names:
                     test_path = Path("creator/icons/blocks") / f"{name}.png"
                     if test_path.exists():
                         icon_path = test_path
                         #print(f"Найдена иконка для ванильного блока {block_name}: {test_path}")
                         break
-            
+
+            # Загрузка и обработка изображения
             if icon_path and icon_path.exists():
-                # Загружаем и изменяем размер изображения
                 img = Image.open(icon_path)
                 img = img.resize((48, 48), Image.Resampling.LANCZOS)
-                
-                # Конвертируем в PhotoImage для CTkImage
                 ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(48, 48))
                 icon_label.configure(image=ctk_img, text="")
             else:
                 # Если иконка не найдена, показываем эмодзи
                 print(f"Иконка не найдена для {block_name}, используем эмодзи {block_emoji}")
                 icon_label.configure(text=block_emoji, image=None)
-                
+
         except Exception as e:
             print(f"Ошибка загрузки иконки для {block_name}: {e}")
             icon_label.configure(text=block_emoji, image=None)
@@ -1146,7 +1146,7 @@ class BlockCreator:
                 return False
             
             texture_name = self.format_to_lower_camel(block_name)
-            target_dir = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / target_folder
+            target_dir = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / target_folder / texture_name
             target_dir.mkdir(parents=True, exist_ok=True)
             
             base_size = 32
@@ -1179,7 +1179,7 @@ class BlockCreator:
                     
                     target_path = target_dir / target_filename
                     img.save(target_path)
-                    print(f"Сохранена текстура: {target_path}")
+                    #print(f"Сохранена текстура: {target_path}")
                     
                 except Exception as e:
                     print(f"Ошибка при обработке {config['template']}: {e}")
@@ -1387,297 +1387,361 @@ class BlockCreator:
         """Создает файл CircularBridge.java для кастомного типа блока"""
         
         # Формируем имя пакета (нижний регистр)
-        package_name = self.mod_name.lower() if self.mod_name else "mymod"
+        package_name = self.mod_name.lower() if self.mod_name else self.mod_name
         
         # Содержимое файла с правильными плейсхолдерами
         content = f"""package {package_name}.custom_types.blocks.bridge;
 
-    import arc.Core;
-    import arc.graphics.g2d.Draw;
-    import arc.graphics.g2d.Lines;
-    import arc.graphics.g2d.TextureRegion;
-    import arc.math.Angles;
-    import arc.math.Mathf;
-    import arc.math.geom.Point2;
-    import arc.struct.Seq;
-    import arc.util.Tmp;
-    import static mindustry.Vars.tilesize;
-    import static mindustry.Vars.world;
-    import mindustry.core.Renderer;
-    import mindustry.gen.Building;
-    import mindustry.graphics.Drawf;
-    import mindustry.graphics.Layer;
-    import mindustry.graphics.Pal;
-    import mindustry.input.Placement;
-    import mindustry.type.Item;
-    import mindustry.ui.Bar;
-    import mindustry.world.Tile;
-    import mindustry.world.blocks.distribution.ItemBridge;
-    import mindustry.world.meta.Stat;
-    import mindustry.world.meta.StatUnit;
+import arc.Core;
+import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.Lines;
+import arc.graphics.g2d.TextureRegion;
+import arc.math.Angles;
+import arc.math.Mathf;
+import arc.math.geom.Geometry;
+import arc.math.geom.Point2;
+import arc.struct.Seq;
+import arc.util.Time;
+import arc.util.Tmp;
+import static mindustry.Vars.tilesize;
+import static mindustry.Vars.world;
+import mindustry.core.Renderer;
+import mindustry.gen.Building;
+import mindustry.graphics.Drawf;
+import mindustry.graphics.Layer;
+import mindustry.graphics.Pal;
+import mindustry.input.Placement;
+import mindustry.type.Item;
+import mindustry.ui.Bar;
+import mindustry.world.Tile;
+import mindustry.world.blocks.distribution.ItemBridge;
+import mindustry.world.meta.Stat;
+import mindustry.world.meta.StatUnit;
 
-    public class CircularBridge extends ItemBridge {{
+public class CircularBridge extends ItemBridge {{
+    
+    public TextureRegion topRegion;
+    public float itemsPerSecond = 10f;
+    public float powerUsage = 0f;
+    public int blockHealth = 100;
+    public float blockbuildTime = 60f;
+    public boolean circu = true;
+
+    public CircularBridge(String name) {{
+        super(name);
         
-        public TextureRegion topRegion;
-        public float itemsPerSecond = 10f;
-        public float powerUsage = 0f;
-        public int blockHealth = 100;
-        public float blockbuildTime = 60f;
+        allowDiagonal = circu; // Разрешаем диагонали только если circu = true
+        range = 8;
+        bridgeWidth = 8;
+        itemCapacity = 20;
+        
+        // Устанавливаем здоровье через родительское поле
+        health = blockHealth;
+        buildTime = blockbuildTime;
+    }}
 
-        public CircularBridge(String name) {{
-            super(name);
-            
-            allowDiagonal = true;
-            range = 8;
-            bridgeWidth = 8;
-            itemCapacity = 20;
-            
-            health = blockHealth;
-            buildTime = blockbuildTime;
-        }}
-
-        @Override
-        public void load() {{
-            super.load();
-            topRegion = Core.atlas.find(name + "-top");
+    @Override
+    public void load() {{
+        super.load();
+        topRegion = Core.atlas.find(name + "-top");
+    }}
+    
+    @Override
+    public void init() {{
+        transportTime = 60f / itemsPerSecond;
+        
+        // Настройка энергопотребления
+        if (powerUsage > 0) {{
+            hasPower = true;
+            consumesPower = true;
+            outputsPower = false;
+            consumePower(powerUsage / 60f);
+        }} else {{
+            hasPower = false;
+            consumesPower = false;
+            outputsPower = false;
         }}
         
-        @Override
-        public void init() {{
-            transportTime = 60f / itemsPerSecond;
-            
-            if (powerUsage > 0) {{
-                hasPower = true;
-                consumesPower = true;
-                outputsPower = false;
-                consumePower(powerUsage / 60f);
-            }} else {{
-                hasPower = false;
-                consumesPower = false;
-                outputsPower = false;
-            }}
-            
-            super.init();
-        }}
+        super.init();
+    }}
 
-        @Override
-        public boolean positionsValid(int x1, int y1, int x2, int y2) {{
+    @Override
+    public boolean positionsValid(int x1, int y1, int x2, int y2) {{
+        if (circu) {{
+            // Круговой режим - проверяем расстояние по прямой
             return Mathf.dst(x1, y1, x2, y2) <= range;
+        }} else {{
+            // Крестовой режим - только кардинальные направления
+            if (x1 == x2) {{
+                return Math.abs(y1 - y2) <= range;
+            }} else if (y1 == y2) {{
+                return Math.abs(x1 - x2) <= range;
+            }} else {{
+                return false;
+            }}
+        }}
+    }}
+
+    @Override
+    public void drawPlace(int x, int y, int rotation, boolean valid) {{
+        if (circu) {{
+            // Круговой режим - рисуем круг
+            Drawf.dashCircle(x * tilesize, y * tilesize, range * tilesize, Pal.placing);
+        }} else {{
+            // Крестовой режим - рисуем линии по 4 направлениям
+            for(int i = 0; i < 4; i++){{
+                Drawf.dashLine(Pal.placing,
+                x * tilesize + Geometry.d4[i].x * (tilesize / 2f + 2),
+                y * tilesize + Geometry.d4[i].y * (tilesize / 2f + 2),
+                x * tilesize + Geometry.d4[i].x * (range) * tilesize,
+                y * tilesize + Geometry.d4[i].y * (range) * tilesize);
+            }}
         }}
 
+        Tile link = findLink(x, y);
+
+        if (link != null && positionsValid(x, y, link.x, link.y)) {{
+            Draw.color(Pal.placing);
+            Lines.stroke(2f);
+            
+            float x1 = x * tilesize;
+            float y1 = y * tilesize;
+            float x2 = link.x * tilesize;
+            float y2 = link.y * tilesize;
+            
+            Lines.line(x1, y1, x2, y2);
+            
+            Draw.rect("bridge-arrow", (x1 + x2) / 2f, (y1 + y2) / 2f, Angles.angle(x2, y2, x1, y1));
+        }}
+        Draw.reset();
+    }}
+
+    @Override
+    public void changePlacementPath(Seq<Point2> points, int rotation) {{
+        if (circu) {{
+            // Круговой режим - используем евклидово расстояние
+            Placement.calculateNodes(points, this, rotation, 
+                (point, other) -> Mathf.dst(point.x, point.y, other.x, other.y) <= range);
+        }} else {{
+            // Крестовой режим - используем манхэттенское расстояние по кардиналям
+            Placement.calculateNodes(points, this, rotation, 
+                (point, other) -> Math.max(Math.abs(point.x - other.x), Math.abs(point.y - other.y)) <= range);
+        }}
+    }}
+
+    @Override
+    public void setStats() {{
+        super.setStats();
+        stats.add(Stat.range, range, StatUnit.blocks);
+    }}
+
+    @Override
+    public void setBars() {{
+        super.setBars();
+        
+        // Добавляем бар энергии только если нужно
+        if (powerUsage > 0) {{
+            addBar("power", (CircularBridgeBuild entity) -> 
+                new Bar(
+                    () -> Core.bundle.format("bar.power", (int)(entity.getPowerStatus() * 100f)),
+                    () -> Pal.powerBar,
+                    () -> entity.getPowerStatus()
+                )
+            );
+        }}
+    }}
+
+    public class CircularBridgeBuild extends ItemBridgeBuild {{
+        
+        public float getPowerStatus() {{
+            if (powerUsage == 0) return 1f;
+            if (power == null) return 0f;
+            return power.status;
+        }}
+        
         @Override
-        public void drawPlace(int x, int y, int rotation, boolean valid) {{
-            Drawf.dashCircle(x * tilesize, y * tilesize, range * tilesize, Pal.placing);
-
-            Tile link = findLink(x, y);
-
-            if (link != null && Mathf.dst(link.x, link.y, x, y) <= range) {{
-                Draw.color(Pal.placing);
-                Lines.stroke(2f);
-                
-                float x1 = x * tilesize;
-                float y1 = y * tilesize;
-                float x2 = link.x * tilesize;
-                float y2 = link.y * tilesize;
-                
-                Lines.line(x1, y1, x2, y2);
-                
-                Draw.rect("bridge-arrow", (x1 + x2) / 2f, (y1 + y2) / 2f, Angles.angle(x2, y2, x1, y1));
+        public void drawConfigure() {{
+            if (circu) {{
+                Drawf.dashCircle(x, y, range * tilesize, Pal.placing);
+            }} else {{
+                for(int i = 1; i <= range; i++){{
+                    for(int j = 0; j < 4; j++){{
+                        Tile other = tile.nearby(Geometry.d4[j].x * i, Geometry.d4[j].y * i);
+                        // Check if other tile exists and link is valid
+                        if(other != null && linkValid(tile, other)){{
+                            // Check if other.build exists before accessing pos()
+                            boolean linked = other.build != null && other.pos() == link;
+                            Drawf.select(other.drawx(), other.drawy(),
+                                other.block().size * tilesize / 2f + 2f + (linked ? 0f : Mathf.absin(Time.time, 4f, 1f)), 
+                                linked ? Pal.place : Pal.breakInvalid);
+                        }}
+                    }}
+                }}
             }}
+            super.drawConfigure();
+            
+            // Показываем статус энергии если нужно
+            if (powerUsage > 0) {{
+                drawPowerStatus();
+            }}
+        }}
+                
+        private void drawPowerStatus() {{
+            float size = 2f;
+            float percent = getPowerStatus();
+            
+            // Рисуем фон
+            Draw.color(Pal.gray);
+            Draw.rect("status-bar-middle", x, y + tilesize * 2f, size, 1f);
+            
+            // Рисуем заполнение
+            Draw.color(percent > 0 ? Pal.powerBar : Pal.remove);
+            Draw.rect("status-bar-middle", 
+                x - (1f - percent) * size / 2f, 
+                y + tilesize * 2f, 
+                size * percent, 1f);
+            
             Draw.reset();
         }}
 
         @Override
-        public void changePlacementPath(Seq<Point2> points, int rotation) {{
-            Placement.calculateNodes(points, this, rotation, 
-                (point, other) -> Mathf.dst(point.x, point.y, other.x, other.y) <= range);
+        public void draw() {{
+            // Основной блок всегда рисуется полностью видимым
+            Draw.rect(region, x, y);
+            
+            if (topRegion != null && topRegion.found()) {{
+                Draw.z(Layer.blockOver);
+                Draw.rect(topRegion, x, y);
+            }}
+
+            Draw.z(Layer.power);
+
+            Building other = world.build(link);
+            if (other == null || !linkValid(tile, other.tile)) {{
+                Draw.reset();
+                return;
+            }}
+            
+            if (Mathf.zero(Renderer.bridgeOpacity)) return;
+
+            float angle = Angles.angle(x, y, other.x, other.y);
+            
+            // Определяем коэффициент прозрачности для элементов моста
+            float bridgeAlpha = Renderer.bridgeOpacity;
+            if (powerUsage > 0 && getPowerStatus() <= 0.01f) {{
+                bridgeAlpha = Renderer.bridgeOpacity * 0.3f; // 30% от обычной прозрачности моста
+            }}
+            
+            // Применяем прозрачность только к элементам моста
+            Draw.alpha(bridgeAlpha);
+            
+            Draw.rect(endRegion, x, y, angle + 90);
+            Draw.rect(endRegion, other.x, other.y, angle - 90);
+
+            Lines.stroke(bridgeWidth);
+            
+            Tmp.v1.set(x, y).sub(other.x, other.y).setLength(tilesize/2f).scl(-1f);
+            
+            Lines.line(bridgeRegion,
+                x + Tmp.v1.x,
+                y + Tmp.v1.y,
+                other.x - Tmp.v1.x,
+                other.y - Tmp.v1.y, false);
+
+            drawArrows(other.tile, angle, bridgeAlpha);
+            
+            Draw.color();
+            Draw.reset();
+        }}
+        
+        private void drawArrows(Tile other, float angle, float bridgeAlpha) {{
+            float dst = Mathf.dst(x, y, other.worldx(), other.worldy());
+            int arrows = Math.max(1, (int)(dst / tilesize * 1.5f));
+            
+            float startX = x + Tmp.v1.x;
+            float startY = y + Tmp.v1.y;
+            float endX = other.worldx() - Tmp.v1.x;
+            float endY = other.worldy() - Tmp.v1.y;
+            
+            // Стрелки тускнеют если мало энергии
+            float powerFactor = getPowerStatus();
+            
+            for (int a = 0; a < arrows; a++) {{
+                float progress = (float)(a + 0.5f) / arrows;
+                float cx = Mathf.lerp(startX, endX, progress);
+                float cy = Mathf.lerp(startY, endY, progress);
+                
+                Draw.alpha(Mathf.absin(a - time / arrowTimeScl, arrowPeriod, 1f) * warmup * bridgeAlpha * powerFactor);
+                Draw.rect(arrowRegion, cx, cy, angle);
+            }}
         }}
 
         @Override
-        public void setStats() {{
-            super.setStats();
-            stats.add(Stat.range, range, StatUnit.blocks);
+        public void updateTransport(Building other) {{
+            // Если нет потребления энергии, работаем всегда
+            if (powerUsage == 0) {{
+                super.updateTransport(other);
+                return;
+            }}
+            
+            // Проверяем наличие энергии
+            if (getPowerStatus() <= 0.01f) {{
+                return; // Недостаточно энергии
+            }}
+            
+            transportCounter += delta();
+            while(transportCounter >= transportTime) {{
+                Item item = items.take();
+                if (item != null && other.acceptItem(this, item)) {{
+                    other.handleItem(this, item);
+                    moved = true;
+                }} else if (item != null) {{
+                    items.add(item, 1);
+                }}
+                transportCounter -= transportTime;
+            }}
         }}
 
         @Override
-        public void setBars() {{
-            super.setBars();
+        public boolean onConfigureBuildTapped(Building other) {{
+            if (other == null) return true;
             
-            if (powerUsage > 0) {{
-                addBar("power", (CircularBridgeBuild entity) -> 
-                    new Bar(
-                        () -> Core.bundle.format("bar.power", (int)(entity.getPowerStatus() * 100f)),
-                        () -> Pal.powerBar,
-                        () -> entity.getPowerStatus()
-                    )
-                );
+            if (other instanceof CircularBridgeBuild) {{
+                CircularBridgeBuild b = (CircularBridgeBuild) other;
+                if (b.link == pos()) {{
+                    configure(other.pos());
+                    other.configure(-1);
+                    return false;
+                }}
             }}
+
+            if (other.tile != null && linkValid(tile, other.tile)) {{
+                if (link == other.pos()) {{
+                    configure(-1);
+                    other.configure(-1);
+                }} else {{
+                    configure(other.pos());
+                }}
+                return false;
+            }}
+            return true;
         }}
-
-        public class CircularBridgeBuild extends ItemBridgeBuild {{
-            
-            public float getPowerStatus() {{
-                if (powerUsage == 0) return 1f;
-                if (power == null) return 0f;
-                return power.status;
-            }}
-            
-            @Override
-            public void drawConfigure() {{
-                Drawf.dashCircle(x, y, range * tilesize, Pal.placing);
-                super.drawConfigure();
-                
-                if (powerUsage > 0) {{
-                    drawPowerStatus();
-                }}
-            }}
-            
-            private void drawPowerStatus() {{
-                float size = 2f;
-                float percent = getPowerStatus();
-                
-                Draw.color(Pal.gray);
-                Draw.rect("status-bar-middle", x, y + tilesize * 2f, size, 1f);
-                
-                Draw.color(percent > 0 ? Pal.powerBar : Pal.remove);
-                Draw.rect("status-bar-middle", 
-                    x - (1f - percent) * size / 2f, 
-                    y + tilesize * 2f, 
-                    size * percent, 1f);
-                
-                Draw.reset();
-            }}
-
-            @Override
-            public void draw() {{
-                Draw.rect(region, x, y);
-                
-                if (topRegion != null && topRegion.found()) {{
-                    Draw.z(Layer.blockOver);
-                    Draw.rect(topRegion, x, y);
-                }}
-
-                Draw.z(Layer.power);
-
-                Building other = world.build(link);
-                if (other == null || !linkValid(tile, other.tile)) {{
-                    Draw.reset();
-                    return;
-                }}
-                
-                if (Mathf.zero(Renderer.bridgeOpacity)) return;
-
-                float angle = Angles.angle(x, y, other.x, other.y);
-                
-                float bridgeAlpha = Renderer.bridgeOpacity;
-                if (powerUsage > 0 && getPowerStatus() <= 0.01f) {{
-                    bridgeAlpha = Renderer.bridgeOpacity * 0.3f;
-                }}
-                
-                Draw.alpha(bridgeAlpha);
-                
-                Draw.rect(endRegion, x, y, angle + 90);
-                Draw.rect(endRegion, other.x, other.y, angle - 90);
-
-                Lines.stroke(bridgeWidth);
-                
-                Tmp.v1.set(x, y).sub(other.x, other.y).setLength(tilesize/2f).scl(-1f);
-                
-                Lines.line(bridgeRegion,
-                    x + Tmp.v1.x,
-                    y + Tmp.v1.y,
-                    other.x - Tmp.v1.x,
-                    other.y - Tmp.v1.y, false);
-
-                drawArrows(other.tile, angle, bridgeAlpha);
-                
-                Draw.color();
-                Draw.reset();
-            }}
-            
-            private void drawArrows(Tile other, float angle, float bridgeAlpha) {{
-                float dst = Mathf.dst(x, y, other.worldx(), other.worldy());
-                int arrows = Math.max(1, (int)(dst / tilesize * 1.5f));
-                
-                float startX = x + Tmp.v1.x;
-                float startY = y + Tmp.v1.y;
-                float endX = other.worldx() - Tmp.v1.x;
-                float endY = other.worldy() - Tmp.v1.y;
-                
-                float powerFactor = getPowerStatus();
-                
-                for (int a = 0; a < arrows; a++) {{
-                    float progress = (float)(a + 0.5f) / arrows;
-                    float cx = Mathf.lerp(startX, endX, progress);
-                    float cy = Mathf.lerp(startY, endY, progress);
-                    
-                    Draw.alpha(Mathf.absin(a - time / arrowTimeScl, arrowPeriod, 1f) * warmup * bridgeAlpha * powerFactor);
-                    Draw.rect(arrowRegion, cx, cy, angle);
-                }}
-            }}
-
-            @Override
-            public void updateTransport(Building other) {{
-                if (powerUsage == 0) {{
-                    super.updateTransport(other);
-                    return;
-                }}
-                
-                if (getPowerStatus() <= 0.01f) {{
-                    return;
-                }}
-                
-                transportCounter += delta();
-                while(transportCounter >= transportTime) {{
-                    Item item = items.take();
-                    if (item != null && other.acceptItem(this, item)) {{
-                        other.handleItem(this, item);
-                        moved = true;
-                    }} else if (item != null) {{
-                        items.add(item, 1);
-                    }}
-                    transportCounter -= transportTime;
-                }}
-            }}
-
-            @Override
-            public boolean onConfigureBuildTapped(Building other) {{
-                if (other == null) return true;
-                
-                if (other instanceof CircularBridgeBuild) {{
-                    CircularBridgeBuild b = (CircularBridgeBuild) other;
-                    if (b.link == pos()) {{
-                        configure(other.pos());
-                        other.configure(-1);
-                        return false;
-                    }}
-                }}
-
-                if (other.tile != null && linkValid(tile, other.tile)) {{
-                    if (link == other.pos()) {{
-                        configure(-1);
-                        other.configure(-1);
-                    }} else {{
-                        configure(other.pos());
-                    }}
-                    return false;
-                }}
-                return true;
-            }}
-            
-            @Override
-            public boolean acceptItem(Building source, Item item) {{
-                if (powerUsage == 0) {{
-                    return super.acceptItem(source, item);
-                }}
-                
-                if (getPowerStatus() <= 0.01f) {{
-                    return false;
-                }}
+        
+        @Override
+        public boolean acceptItem(Building source, Item item) {{
+            // Если нет потребления энергии, всегда принимаем
+            if (powerUsage == 0) {{
                 return super.acceptItem(source, item);
             }}
+            
+            // Проверяем наличие энергии
+            if (getPowerStatus() <= 0.01f) {{
+                return false; // Недостаточно энергии
+            }}
+            return super.acceptItem(source, item);
         }}
-    }}"""
+    }}
+}}"""
         
         # Создаем файл
         created_files = self.create_files(
@@ -1687,10 +1751,7 @@ class BlockCreator:
             path=str(self.get_absolute_path(f"src/{self.mod_name.lower()}/custom_types/blocks/bridge"))
         )
         
-        if created_files:
-            print(f"✅ CircularBridge.java успешно создан: {created_files[0]}")
-        else:
-            print(f"⚠️ CircularBridge.java не был создан (возможно, уже существует)")
+        print(f"✅ CircularBridge.java успешно создан: {created_files[0]}")
         
         return created_files
 
@@ -1806,7 +1867,7 @@ class BlockCreator:
             
             # Проверяем, существует ли файл
             if os.path.exists(full_path):
-                print(f"⚠️ Файл уже существует: {full_path}")
+                #print(f"⚠️ Файл уже существует: {full_path}")
                 # Пропускаем создание, если файл существует
                 # Но можно добавить опцию перезаписи
                 continue
@@ -8630,7 +8691,7 @@ public class {NAME} {{
                 range = {range_raw};
                 itemsPerSecond = {items_per_second_raw};
                 itemCapacity = {capacity_raw};
-                allowDiagonal = {circular_value};
+                circu = {circular_value};
 
                 localizedName = Core.bundle.get("{var_name}.name", "OH NO");
                 description = Core.bundle.get("{var_name}.description", "OH NO");"""
@@ -9266,6 +9327,7 @@ public class {NAME} {{
         
         editor_window.protocol("WM_DELETE_WINDOW", on_closing)
 
+    #(лутше не трогать open_block_selector )
     def open_block_selector(self, display_var, internal_var, type_var, icon_label, path_label, icon_path_var=None):
         """Открывает окно выбора блока для исследования
         icon_path_var: опциональная переменная для хранения пути к текстуре блока"""
@@ -9322,7 +9384,7 @@ public class {NAME} {{
         
         # ЧЕРНЫЙ СПИСОК БЛОКОВ - блоки, которые нужно исключить из отображения
         blacklist_blocks = [
-            "beam-node", "shielded-wall"
+            "beam-node", "shielded-wall",
         ]
         
         # Черный список для текстур, которые нужно исключить
@@ -9336,7 +9398,7 @@ public class {NAME} {{
             "-a", "-b", "-c", "-d",
             "_top", "_bottom", "_left", "_right",
             "_glow", "_overlay", "_mask",
-            "_1", "_2", "_3", "_4", "_5"
+            "_1", "_2", "_3", "_4", "_5",
         ]
         
         # Список исключений - файлы, которые не являются блоками
@@ -9344,7 +9406,7 @@ public class {NAME} {{
             "item-", "liquid-", "ui-", "icon-",
             "background", "white", "black", "transparent",
             "error", "missing", "unknown", "empty",
-            "block-icon", "block-background"
+            "block-icon", "block-background",
         ]
         
         def kebab_to_camel(name):
@@ -9384,7 +9446,7 @@ public class {NAME} {{
                 
                 # Проверка на черный список блоков
                 if filename in blacklist_blocks:
-                    print(f"Блок {filename} в черном списке - пропускаем")
+                    #print(f"Блок {filename} в черном списке - пропускаем")
                     continue
                 
                 # Проверяем на частичное совпадение с черным списком
@@ -9393,19 +9455,19 @@ public class {NAME} {{
                     for block in blacklist_blocks:
                         if block in filename and len(block) > 3:  # Игнорируем слишком короткие
                             skip = True
-                            print(f"Блок {filename} содержит {block} из черного списка - пропускаем")
+                            #print(f"Блок {filename} содержит {block} из черного списка - пропускаем")
                             break
                     if skip:
                         continue
                 
                 # Проверяем на черный список по суффиксам
                 if any(filename.endswith(suffix) for suffix in blacklist_suffixes):
-                    print(f"Блок {filename} имеет исключаемый суффикс - пропускаем")
+                    #print(f"Блок {filename} имеет исключаемый суффикс - пропускаем")
                     continue
                 
                 # Проверяем на точное совпадение с исключениями
                 if any(filename.startswith(exact) or filename == exact for exact in blacklist_exact):
-                    print(f"Блок {filename} в списке исключений - пропускаем")
+                    #print(f"Блок {filename} в списке исключений - пропускаем")
                     continue
                 
                 # Игнорируем файлы, которые явно не являются блоками
@@ -9457,7 +9519,7 @@ public class {NAME} {{
             
             # Сортируем по имени
             vanilla_blocks.sort(key=lambda x: x[1])
-            print(f"Найдено {len(vanilla_blocks)} ванильных блоков")
+            #print(f"Найдено {len(vanilla_blocks)} ванильных блоков")
             #print("Примеры преобразования имен:")
             #for i, (internal, display, _, original, _) in enumerate(vanilla_blocks[:5]):
                 #print(f"  {original} -> {internal} (для Blocks.{internal})")
@@ -9498,7 +9560,8 @@ public class {NAME} {{
                         search_folders = [
                             "walls", "batterys", "solar_panels", 
                             "consume_generators", "beam_nodes", 
-                            "power_nodes", "shield_walls"
+                            "power_nodes", "shield_walls", "bridges",
+                            "generic_crafters"
                         ]
                     
                     # Ищем в двух вариантах путей
@@ -9778,7 +9841,8 @@ public class {NAME} {{
             ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", "📡 Энерг. башни"),
             ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", "🔌 Энерг. узлы"),
             ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", "🛡️ Щитовые стены"),
-            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "Заводы")
+            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "Заводы"),
+            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", "Мосты")
         ]
         
         for folder, file_path, display_prefix in block_files:
