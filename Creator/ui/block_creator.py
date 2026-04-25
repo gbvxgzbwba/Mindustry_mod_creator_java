@@ -756,7 +756,7 @@ class BlockCreator:
     def _get_vanilla_blocks(self):
         """Получает список ванильных блоков"""
         vanilla_blocks = []
-        blocks_dir = Path("creator/icons/blocks")
+        blocks_dir = Path(resource_path("Creator/icons/blocks"))
         
         # Черный список для фильтрации
         blacklist_blocks = ["beam-node", "shielded-wall", "bridge-conveyor-arrow", "bridge-conveyor-bridge", "bridge-conveyor-end"]
@@ -1086,7 +1086,7 @@ class BlockCreator:
             bool: успешно ли скопирована текстура
         """
         try:
-            templates_dir = Path("creator/icons/blocks")
+            templates_dir = Path(resource_path("Creator/icons/blocks"))
             if not templates_dir.exists():
                 print(f"Папка с шаблонами не найдена: {templates_dir}")
                 return False
@@ -1152,7 +1152,7 @@ class BlockCreator:
             bool: успешно ли скопированы все текстуры
         """
         try:
-            templates_dir = Path("creator/icons/blocks")
+            templates_dir = Path(resource_path("Creator/icons/blocks"))
             if not templates_dir.exists():
                 return False
             
@@ -10025,7 +10025,6 @@ public class {NAME} {{
         
         editor_window.protocol("WM_DELETE_WINDOW", on_closing)
 
-    #(лутше не трогать open_block_selector )
     def open_block_selector(self, display_var, internal_var, type_var, icon_label, path_label, icon_path_var=None):
         """Открывает окно выбора блока для исследования
         icon_path_var: опциональная переменная для хранения пути к текстуре блока"""
@@ -10135,7 +10134,7 @@ public class {NAME} {{
         
         # Сканируем папку blocks для ванильных текстур
         vanilla_blocks = []
-        blocks_dir = Path("creator/icons/blocks")
+        blocks_dir = Path(resource_path("creator/icons/blocks"))
         
         if blocks_dir.exists():
             print(f"Сканируем папку: {blocks_dir}")
@@ -10285,7 +10284,7 @@ public class {NAME} {{
                     icon_filename = icon_name if icon_name else block_name
                     
                     # Проверяем в creator/icons/blocks
-                    test_path = Path("creator/icons/blocks") / f"{icon_filename}.png"
+                    test_path = Path(resource_path("Creator/icons/blocks")) / f"{icon_filename}.png"
                     if test_path.exists():
                         icon_path = test_path
                     else:
@@ -10298,7 +10297,7 @@ public class {NAME} {{
                             icon_filename.lower()
                         ]
                         for variant in variants:
-                            test_path = Path("creator/icons/blocks") / f"{variant}.png"
+                            test_path = Path(resource_path("Creator/icons/blocks")) / f"{variant}.png"
                             if test_path.exists():
                                 icon_path = test_path
                                 break

@@ -1157,7 +1157,7 @@ class CreatorEditor:
                     return False
                 
                 # Выбираем иконку
-                icon = os.path.join("Creator/icons/items/copper.png")
+                icon = resource_path("Creator/icons/items/copper.png")
                 
                 # Путь назначения в папке мода
                 # Используем отформатированное имя в нижнем регистре
