@@ -9,6 +9,17 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 from tkinter import colorchooser
 
+import sys
+import os
+
+def resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 class BlockCreator:
     """Класс с функциями создания блоков в Java-стиле"""
     
@@ -1756,6 +1767,11 @@ public class CircularBridge extends ItemBridge {{
         return created_files
 
 #----------ФУНКЦИИ СОЗДАНИЯ----------
+    PATEH_FOLDER = [
+        "consume_generators", "walls", "solar_panels",
+        "batterys", "beam_nodes", "power_nodes", "shield_walls",
+        "generic_crafter", "bridges", "conveyors"
+    ]
 
     #CUSTOM TYPE LOAD
     def create_files(self, content, name, file_type, path):
@@ -1886,13 +1902,8 @@ public class CircularBridge extends ItemBridge {{
     #BLOCKS
     def create_wall(self):
         """Создает или добавляет новую стену в walls/Walls.java"""
-        
-        # Константы для стены
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "Wall"
         CATEDOR = "defense"
@@ -2516,13 +2527,8 @@ public class {NAME} {{
 
     def create_battery(self):
         """Создает или добавляет новую батарею в battery/Batterys.java"""
-        
-        # Константы для батареи
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "Battery"
         CATEDOR = "power"
@@ -3178,11 +3184,7 @@ public class {NAME} {{
         """Создает или добавляет новую солнечную панель в solar_panels/SolarPanels.java"""
         
         # Константы для солнечной панели
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "SolarGenerator"
         CATEDOR = "power"
@@ -3839,11 +3841,7 @@ public class {NAME} {{
         """Создает или добавляет новую экранированную стену в shield_walls/ShieldWalls.java"""
         
         # Константы для экранированной стены
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "ShieldWall"
         CATEDOR = "defense"
@@ -4594,11 +4592,7 @@ public class {NAME} {{
         """Создает или добавляет новый узел питания в power_nodes/PowerNodes.java"""
         
         # Константы для узла питания
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "PowerNode"
         CATEDOR = "power"
@@ -5426,11 +5420,7 @@ public class {NAME} {{
         """Создает или добавляет новый лучевой узел в beam_nodes/BeamNodes.java"""
         
         # Константы для лучевого узла
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "BeamNode"
         CATEDOR = "power"
@@ -6229,11 +6219,7 @@ public class {NAME} {{
         """Создает или добавляет новый генератор в consume_generators/ConsumeGenerators.java"""
         
         # Константы для генератора
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "ConsumeGenerator"
         CATEDOR = "power"
@@ -7110,11 +7096,7 @@ public class {NAME} {{
         """Создает или добавляет новый завод в generic_crafter/GenericCrafters.java"""
         
         # Константы для завода
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "GenericCrafter"
         CATEDOR = "crafting"
@@ -8166,11 +8148,7 @@ public class {NAME} {{
         """Создает или добавляет новый мост в bridges/Bridges.java"""
         
         # Константы для моста
-        PATEH_FOLDER = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter", "bridges"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "CircularBridge"
         CATEDOR = "distribution"
@@ -8931,6 +8909,726 @@ public class {NAME} {{
         self.build_items = []
         self.research_items = []
 
+    def create_conveyor(self):
+        """Создает или добавляет новый мост в bridges/Bridges.java"""
+        
+        # Константы для моста
+        PATEH_FOLDER = self.PATEH_FOLDER
+
+        CATENAME = "Conveyor"
+        CATEDOR = "distribution"
+        CONVEYOR00 = "conveyor-0-0.png"
+        CONVEYOR01 = "conveyor-0-1.png"
+        CONVEYOR02 = "conveyor-0-2.png"
+        CONVEYOR03 = "conveyor-0-3.png"
+        CONVEYOR10 = "conveyor-1-0.png"
+        CONVEYOR11 = "conveyor-1-1.png"
+        CONVEYOR12 = "conveyor-1-2.png"
+        CONVEYOR13 = "conveyor-1-3.png"
+        CONVEYOR20 = "conveyor-2-0.png"
+        CONVEYOR21 = "conveyor-2-1.png"
+        CONVEYOR22 = "conveyor-2-2.png"
+        CONVEYOR23 = "conveyor-2-3.png"
+        CONVEYOR30 = "conveyor-3-0.png"
+        CONVEYOR31 = "conveyor-3-1.png"
+        CONVEYOR32 = "conveyor-3-2.png"
+        CONVEYOR33 = "conveyor-3-3.png"
+        CONVEYOR40 = "conveyor-4-0.png"
+        CONVEYOR41 = "conveyor-4-1.png"
+        CONVEYOR42 = "conveyor-4-2.png"
+        CONVEYOR43 = "conveyor-4-3.png"
+        BL_NAME_2 = "Конвеер"
+        BL_CR_NAME = "Конвеер"
+        BL_NAME = "Конвеера"
+        ENTRY_NAME1 = "conveyor"
+        NAME = "Conveyors"
+        FOLDER = "conveyors"
+        
+        # Очищаем окно
+        self.clear_window()
+        
+        # Основной фрейм с прокруткой
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        scroll_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            width=500,
+            height=700,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            title_frame,
+            text="Создание моста",
+            font=("Arial", 24, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=10)
+        
+        # === Карточка для основной информации ===
+        info_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        info_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            info_card,
+            text="Основная информация",
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        # Поле ввода названия
+        name_frame = ctk.CTkFrame(info_card, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            name_frame,
+            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            font=("Arial", 16),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_name = ctk.CTkEntry(
+            name_frame,
+            width=400,
+            height=40,
+            placeholder_text=f"{ENTRY_NAME1} name",
+            font=("Arial", 15),
+            border_width=2,
+            corner_radius=8,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_name.pack(fill="x", pady=(0, 5))
+        
+        # === Функции валидации ===
+        def validate_float_input(value):
+            if value == "" or value == ".":
+                return True
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            try:
+                return float(value) <= 5000.00
+            except ValueError:
+                return False
+
+        def validate_int_input(value):
+            if value == "":
+                return True
+            if not value.isdigit():
+                return False
+            return int(value) <= 999999
+
+        vcmd_float = (self.root.register(validate_float_input), '%P')
+        vcmd_int = (self.root.register(validate_int_input), '%P')
+
+        # === Карточка для свойств ===
+        properties_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        properties_card.pack(fill="x", pady=(0, 20))
+
+        ctk.CTkLabel(
+            properties_card,
+            text=f"Свойства {BL_NAME}",
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Грид для свойств
+        properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
+        properties_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Здоровье
+        hp_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        hp_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            hp_frame,
+            text="Прочность (health):",
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_hp = ctk.CTkEntry(
+            hp_frame,
+            width=180,
+            height=38,
+            placeholder_text="400",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_hp.pack(fill="x")
+
+        # Скорость стройки
+        speed_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        speed_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            speed_frame,
+            text="Скорость стройки (buildTime):",
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_speed = ctk.CTkEntry(
+            speed_frame,
+            width=180,
+            height=38,
+            placeholder_text="1",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_speed.pack(fill="x")
+
+        # Размер (фиксирован для моста)
+        size_info_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        size_info_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            size_info_frame,
+            text="Размер (size): 1 (фиксировано для конвеера)",
+            font=("Arial", 15),
+            text_color="#FFA500"
+        ).pack(anchor="w", pady=(0, 5))
+
+        # Предметы в секунду
+        items_per_second_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        items_per_second_frame.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            items_per_second_frame,
+            text="Предметы в секунду (itemsPerSecond):",
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_items_per_second = ctk.CTkEntry(
+            items_per_second_frame,
+            width=180,
+            height=38,
+            placeholder_text="5",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_items_per_second.pack(fill="x")
+
+        # Вместимость
+        capacity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        capacity_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            capacity_frame,
+            text="Вместимость (itemCapacity):",
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_capacity = ctk.CTkEntry(
+            capacity_frame,
+            width=180,
+            height=38,
+            placeholder_text="3",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_capacity.pack(fill="x")
+
+        # === Always Unlocked с индикатором ===
+        always_unlocked_var = ctk.BooleanVar(value=False)
+        always_unlocked_status = ctk.CTkLabel(properties_card, text="", font=("Arial", 12))
+
+        # === КАРТОЧКА ДЛЯ ПРЕДМЕТОВ СТРОИТЕЛЬСТВА ===
+        build_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        build_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            build_card,
+            text="🔨 Предметы для строительства",
+            font=("Arial", 18, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
+        build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_label = ctk.CTkLabel(
+            build_items_frame,
+            textvariable=build_items_var,
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=400
+        )
+        build_items_label.pack(anchor="w", pady=(5, 0))
+        
+        ctk.CTkButton(
+            build_items_frame,
+            text="📋 Выбрать предметы для строительства",
+            command=lambda: self.open_items_editor(build_items_var, "build"),
+            height=35,
+            font=("Arial", 13),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=6
+        ).pack(anchor="w", pady=(0, 5))
+
+        # === КАРТОЧКА ДЛЯ ИССЛЕДОВАНИЯ ===
+        research_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        
+        # Переменные для исследования
+        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_internal_var = tk.StringVar(value="")
+        selected_block_type_var = tk.StringVar(value="")
+        block_icon_label = ctk.CTkLabel(properties_card, text="🌉", font=("Arial", 30))
+        block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
+        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+
+        # Используем универсальную функцию
+        always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
+            always_unlocked_var=always_unlocked_var,
+            research_card=research_card,
+            always_unlocked_status=always_unlocked_status,
+            build_card=build_card,
+            selected_block_var=selected_block_var,
+            selected_block_internal_var=selected_block_internal_var,
+            selected_block_type_var=selected_block_type_var,
+            block_icon_label=block_icon_label,
+            block_path_label=block_path_label,
+            research_items_var=research_items_var,
+            on_block_selected_callback=None
+        )
+
+        # === Статус ===
+        status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        status_frame.pack(fill="x", pady=(0, 20))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            font=("Arial", 14),
+            wraplength=450,
+            justify="left",
+            text_color="#E0E0E0"
+        )
+        status_label.pack()
+
+        # === Фрейм для кнопок ===
+        button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=20)
+
+        # === Основная функция создания моста ===
+        def process_bridge():
+            original_name = entry_name.get().strip()
+            
+            if not original_name:
+                status_label.configure(
+                    text="❌ Ошибка: Введите название конвеера!", 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Проверка для always_unlocked = false
+            is_valid, error_msg = self.validate_research(
+                always_unlocked_var=always_unlocked_var,
+                research_items=self.research_items if hasattr(self, 'research_items') else [],
+                selected_block_internal_var=selected_block_internal_var
+            )
+            
+            if not is_valid:
+                status_label.configure(text=error_msg, text_color="#F44336")
+                return
+            
+            if not hasattr(self, 'build_items') or not self.build_items:
+                status_label.configure(
+                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Форматируем имя
+            constructor_name = self.format_to_lower_camel(original_name)
+            if not constructor_name:
+                status_label.configure(
+                    text="❌ Ошибка: Некорректное название!", 
+                    text_color="#F44336"
+                )
+                return
+
+            # Проверяем, существует ли уже такое имя
+            if self.check_block_name_exists(original_name, PATEH_FOLDER):
+                status_label.configure(
+                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Копируем текстуры (для моста их 4)
+            texture_configs = [
+                # Группа 0
+                {"template": CONVEYOR00, "suffix": "-0-0"},
+                {"template": CONVEYOR01, "suffix": "-0-1"},
+                {"template": CONVEYOR02, "suffix": "-0-2"},
+                {"template": CONVEYOR03, "suffix": "-0-3"},
+                
+                # Группа 1
+                {"template": CONVEYOR10, "suffix": "-1-0"},
+                {"template": CONVEYOR11, "suffix": "-1-1"},
+                {"template": CONVEYOR12, "suffix": "-1-2"},
+                {"template": CONVEYOR13, "suffix": "-1-3"},
+                
+                # Группа 2
+                {"template": CONVEYOR20, "suffix": "-2-0"},
+                {"template": CONVEYOR21, "suffix": "-2-1"},
+                {"template": CONVEYOR22, "suffix": "-2-2"},
+                {"template": CONVEYOR23, "suffix": "-2-3"},
+                
+                # Группа 3
+                {"template": CONVEYOR30, "suffix": "-3-0"},
+                {"template": CONVEYOR31, "suffix": "-3-1"},
+                {"template": CONVEYOR32, "suffix": "-3-2"},
+                {"template": CONVEYOR33, "suffix": "-3-3"},
+                
+                # Группа 4
+                {"template": CONVEYOR40, "suffix": "-4-0"},
+                {"template": CONVEYOR41, "suffix": "-4-1"},
+                {"template": CONVEYOR42, "suffix": "-4-2"},
+                {"template": CONVEYOR43, "suffix": "-4-3"},
+            ]
+            
+            texture_copied = self.copy_block_textures_multi(
+                block_name=original_name,
+                size_multiplier=1,
+                target_folder=FOLDER,
+                texture_configs=texture_configs
+            )
+            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            
+            # Получаем значения свойств
+            hp_value = entry_hp.get().strip() or "400"
+            speed_raw = entry_speed.get().strip() or "1"
+            items_per_second_raw_no = entry_items_per_second.get().strip() or "5"
+            capacity_raw = entry_capacity.get().strip() or "3"
+
+            items_per_second_raw = float(items_per_second_raw_no) / 60
+            
+            hp_value = str(int(float(hp_value)))
+            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+            
+            # Получаем кастомные предметы
+            custom_items = self.get_custom_items()
+            var_name = constructor_name
+            
+            # Формируем код для предметов строительства
+            build_itemstack_code = ""
+            build_items_list = []
+            if hasattr(self, 'build_items') and self.build_items:
+                item_counts = {}
+                for item in self.build_items:
+                    item_counts[item] = item_counts.get(item, 0) + 1
+                
+                item_parts = []
+                for item_name, count in item_counts.items():
+                    code_name = self.get_item_code_name(item_name, custom_items)
+                    item_parts.append(f"{code_name}, {count}")
+                    build_items_list.append((item_name, count))
+                
+                build_itemstack_code = f"\n            requirements(Category.{CATEDOR},\n                ItemStack.with({', '.join(item_parts)}));"
+            
+            # Формируем свойства моста
+            properties = f"""    health = {hp_value};
+                size = 1;
+                buildTime = {speed_raw};
+                alwaysUnlocked = {always_unlocked_value};
+                buildVisibility = BuildVisibility.shown;
+                category = Category.{CATEDOR};{build_itemstack_code}
+                speed = {items_per_second_raw};
+                displayedSpeed = {items_per_second_raw_no};
+                itemCapacity = {capacity_raw};
+
+                localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                description = Core.bundle.get("{var_name}.description", "OH NO");"""
+            
+            # Пути к файлам
+            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+            block_registration_path = self.get_absolute_path(f"src/{mod_name_lower}/init/blocks/{FOLDER}/{NAME}.java")
+            main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
+            
+            # Создаем родительскую папку
+            block_registration_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Читаем или создаем файл регистрации блоков
+            try:
+                with open(block_registration_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                content = f"""package {mod_name_lower}.init.blocks.{FOLDER};
+
+import arc.graphics.Color;
+import arc.Core;
+import mindustry.type.ItemStack;
+import mindustry.type.Category;
+import mindustry.world.Block;
+import mindustry.world.blocks.{CATEDOR}.{CATENAME};
+import mindustry.world.meta.BuildVisibility;
+import mindustry.content.Items;
+import mindustry.Vars;
+import {mod_name_lower}.init.items.ModItems;
+
+public class {NAME} {{
+    public static {CATENAME};
+                                                
+    public static void Load() {{
+        // Регистрация блоков
+    }}
+}}"""
+            
+            bridge_exists = var_name in content
+            tree_file_created = False
+            main_file_updated = False
+            
+            if not bridge_exists:
+                # Добавляем переменную блока
+                if f"public static {CATENAME};" in content:
+                    content = content.replace(
+                        f"public static {CATENAME};",
+                        f"public static {CATENAME} {var_name};"
+                    )
+                elif f"public static {CATENAME} " in content:
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if f"public static {CATENAME} " in line and var_name not in line:
+                            lines[i] = line.rstrip(';') + f", {var_name};"
+                            content = '\n'.join(lines)
+                            break
+                
+                # Добавляем инициализацию блока
+                load_start = content.find("public static void Load() {")
+                if load_start != -1:
+                    open_brace = content.find('{', load_start)
+                    if open_brace != -1:
+                        insert_pos = open_brace + 1
+                        indent = "        "
+                        bridge_code = f'\n{indent}{var_name} = new {CATENAME}("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        content = content[:insert_pos] + bridge_code + content[insert_pos:]
+                
+                # Сохраняем файл
+                with open(block_registration_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # Обновляем главный файл мода
+                try:
+                    with open(main_mod_path, 'r', encoding='utf-8') as file:
+                        main_content = file.read()
+                    
+                    # Добавляем импорт
+                    import_statement = f"import {mod_name_lower}.init.blocks.{FOLDER}.{NAME};"
+                    if import_statement not in main_content:
+                        import_add_pos = main_content.find("//import_add")
+                        if import_add_pos != -1:
+                            insert_pos = import_add_pos + len("//import_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                    
+                    # Добавляем вызов Load
+                    load_statement = f"{NAME}.Load();"
+                    if load_statement not in main_content:
+                        registration_add_pos = main_content.find("//Registration_add")
+                        if registration_add_pos != -1:
+                            insert_pos = registration_add_pos + len("//Registration_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                    
+                    with open(main_mod_path, 'w', encoding='utf-8') as file:
+                        file.write(main_content)
+                    
+                    main_file_updated = True
+                    
+                    # Создаем файл дерева технологий, если Always Unlocked = false
+                    if not always_unlocked_var.get():
+                        research_items_list = []
+                        if hasattr(self, 'research_items') and self.research_items:
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                research_items_list.append((item_name, count))
+                        
+                        research_block = selected_block_internal_var.get()
+                        
+                        # Используем универсальную функцию
+                        tree_file_created = self.create_tech_tree_file_universal(
+                            block_var_name=var_name,
+                            block_constructor_name=constructor_name,
+                            research_block=research_block,
+                            research_items=research_items_list,
+                            block_type="conveyor",
+                            folder_name=FOLDER,
+                            class_name="ConveyorTree"
+                        )
+                        
+                        if tree_file_created:
+                            self.update_main_mod_file_universal(
+                                import_path=f"{mod_name_lower}.content.ConveyorTree",
+                                load_statement="ConveyorTree.Load();"
+                            )
+                    
+                    # Формируем сообщение о результате
+                    status_messages = [
+                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
+                        f'📝 Имя в игре: "{constructor_name}"',
+                        f"{texture_status}",
+                    ]
+                    
+                    # Добавляем информацию о Always Unlocked
+                    if always_unlocked_var.get():
+                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                    else:
+                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                    
+                    status_messages.extend([
+                        f"📊 Свойства {BL_NAME}:",
+                        f"  • ❤️ Здоровье: {hp_value}",
+                        f"  • ⚡ Скорость стройки: {speed_raw}",
+                        f"  • 📦 Предметов/сек: {items_per_second_raw}",
+                        f"  • 💾 Вместимость: {capacity_raw}"
+                    ])
+                    
+                    if build_items_list:
+                        items_list = []
+                        for item_name, count in build_items_list:
+                            if item_name in custom_items:
+                                items_list.append(f"ModItems.{item_name} ×{count}")
+                            else:
+                                display_name = item_name.replace('-', ' ').title()
+                                items_list.append(f"{display_name} ×{count}")
+                        
+                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                    
+                    if not always_unlocked_var.get():
+                        if hasattr(self, 'research_items') and self.research_items:
+                            research_list = []
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                if item_name in custom_items:
+                                    research_list.append(f"ModItems.{item_name} ×{count}")
+                                else:
+                                    display_name = item_name.replace('-', ' ').title()
+                                    research_list.append(f"{display_name} ×{count}")
+                            
+                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                        
+                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        
+                        if tree_file_created:
+                            status_messages.append(f"  • 🌳 ConveyorTree.java создан и добавлен в main (ConveyorTree.Load())")
+                        else:
+                            status_messages.append(f"  • ⚠️ ConveyorTree.java не создан")
+                    
+                    if main_file_updated:
+                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                    
+                    status_text = "\n".join(status_messages)
+                    status_label.configure(text=status_text, text_color="#4CAF50")
+                    
+                except Exception as e:
+                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                status_label.configure(text=f"⚠️ {BL_NAME_2} '{var_name}' уже существует", text_color="#FF9800")
+            
+            self.root.after(5000, lambda: status_label.configure(text=""))
+
+        # === Кнопки действий ===
+        buttons_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=f"Создать {BL_CR_NAME}",
+            command=process_bridge,
+            height=45,
+            width=200,
+            font=("Arial", 16, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text="← Назад",
+            command=self.back_to_main,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        # Инициализация переменных
+        self.build_items = []
+        self.research_items = []
+
 #----------ФУНКЦИИ 2----------
     def open_editor_with_target(self, selected_var, item_type, target):
         """
@@ -9385,6 +10083,11 @@ public class {NAME} {{
         # ЧЕРНЫЙ СПИСОК БЛОКОВ - блоки, которые нужно исключить из отображения
         blacklist_blocks = [
             "beam-node", "shielded-wall",
+            "conveyor-0-0", "conveyor-0-1", "conveyor-0-2", "conveyor-0-3",
+            "conveyor-1-0", "conveyor-1-1", "conveyor-1-2", "conveyor-1-3",
+            "conveyor-2-0", "conveyor-2-1", "conveyor-2-2", "conveyor-2-3",
+            "conveyor-3-0", "conveyor-3-1", "conveyor-3-2", "conveyor-3-3",
+            "conveyor-4-0", "conveyor-4-1", "conveyor-4-2", "conveyor-4-3",
         ]
         
         # Черный список для текстур, которые нужно исключить
@@ -10023,7 +10726,7 @@ public class {NAME} {{
                         ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 16)).pack()
                 else:
                     # Иконка ванильного предмета
-                    icon_path = Path("creator/icons/items") / f"{item_name.lower()}.png"
+                    icon_path = Path(resource_path("Creator/icons/items")) / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
                         img = img.resize((32, 32), Image.Resampling.LANCZOS)
@@ -10364,7 +11067,7 @@ public class {NAME} {{
                         else:
                             ctk.CTkLabel(icon_frame, text="💧", font=("Arial", 14)).pack()
                 else:
-                    icon_path = Path("creator/icons") / icon_dir / f"{item_name.lower()}.png"
+                    icon_path = Path(resource_path("Creator/icons")) / icon_dir / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
                         img = img.resize((32, 32), Image.Resampling.LANCZOS)
@@ -10698,7 +11401,7 @@ public class {NAME} {{
                     if not icon_found:
                         ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 14)).pack()
                 else:
-                    icon_path = Path("creator/icons/items") / f"{item_name.lower()}.png"
+                    icon_path = Path(resource_path("Creator/icons/items")) / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
                         img = img.resize((32, 32), Image.Resampling.LANCZOS)

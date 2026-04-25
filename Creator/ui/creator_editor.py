@@ -1,7 +1,7 @@
 #p/Creator/ui/creator_editor.py
 import customtkinter as ctk
 import tkinter as tk
-import os, re
+import os, re, json
 import platform
 import subprocess
 import threading
@@ -12,6 +12,16 @@ from pathlib import Path
 from tkinter import messagebox
 from datetime import datetime
 import time
+import sys
+import os
+
+def resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class CreatorEditor:
     def __init__(self, root, mod_folder, main_app): 
@@ -23,7 +33,6 @@ class CreatorEditor:
         # Используем Path для кроссплатформенности
         self.TP_source_folder = Path(mod_folder) / "build" / "libs"
         self.TP_filename = f"{self.mod_name}Desktop.jar"
-        self.TP_target_folder = Path("Mods")
         self.TP_new_name = f"{self.mod_name}.jar"
         
         # Флаг для отслеживания состояния компиляции
@@ -31,6 +40,10 @@ class CreatorEditor:
         
         # Для хранения окна прогресса
         self.progress_window = None
+
+        # Загружаем настройки
+        self.settings_file = Path("Creator/settings.json")
+        self.settings = self.load_settings()
     
         # Инициализация создания блоков
         try:
@@ -50,7 +63,7 @@ class CreatorEditor:
             
             # Пробуем разные пути
             possible_paths = [
-                Path("creator/icons") / filename,
+                Path(resource_path("Creator/icons")) / filename,
                 Path("icons") / filename,
                 Path(".") / filename,
                 Path(__file__).parent.parent / "icons" / filename,
@@ -100,6 +113,34 @@ class CreatorEditor:
             img = Image.new('RGB', size, color='#363636')
             return ctk.CTkImage(img)
 
+    def load_settings(self):
+        """Загружает настройки из файла"""
+        default_settings = {
+            "language": "ru",
+            "save_folder": "mods"
+        }
+        
+        appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+        settings_dir = Path(appdata) / "MindustryModCreator"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        self.settings_file = settings_dir / "settings.json"
+
+        if self.settings_file.exists():
+            try:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    # Добавляем недостающие ключи
+                    for key, value in default_settings.items():
+                        if key not in settings:
+                            settings[key] = value
+                    return settings
+            except Exception as e:
+                print(f"Ошибка загрузки настроек: {e}")
+                return default_settings
+        else:
+            self.save_settings(default_settings)
+            return default_settings
+        
     # Функции-обертки для блоков
     def create_wall(self):
         """Создание стены (обертка)"""
@@ -131,7 +172,7 @@ class CreatorEditor:
             self.block_creator.create_consume_generator()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания генератора панели пока не доступен")
+            messagebox.showinfo("Информация", "Модуль создания генератора пока не доступен")
     
     def create_beam_node(self):
         """Создание стены (обертка)"""
@@ -139,7 +180,7 @@ class CreatorEditor:
             self.block_creator.create_beam_node()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания энергитического башни панели пока не доступен")
+            messagebox.showinfo("Информация", "Модуль создания энергитического башни пока не доступен")
     
     def create_power_node(self):
         """Создание стены (обертка)"""
@@ -147,7 +188,7 @@ class CreatorEditor:
             self.block_creator.create_power_node()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания энергитического узла панели пока не доступен")
+            messagebox.showinfo("Информация", "Модуль создания энергитического узла пока не доступен")
     
     def create_shield_wall(self):
         """Создание стены (обертка)"""
@@ -155,7 +196,7 @@ class CreatorEditor:
             self.block_creator.create_shield_wall()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания Экранированой стены узла панели пока не доступен")
+            messagebox.showinfo("Информация", "Модуль создания Экранированой стены пока не доступен")
     
     def create_generic_crafter(self):
         """Создание стены (обертка)"""
@@ -163,7 +204,7 @@ class CreatorEditor:
             self.block_creator.create_generic_crafter()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания Завода стены узла панели пока не доступен")
+            messagebox.showinfo("Информация", "Модуль создания Завода пока не доступен")
     
     def create_bridge(self):
         """Создание стены (обертка)"""
@@ -171,25 +212,45 @@ class CreatorEditor:
             self.block_creator.create_bridge()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания Завода стены узла панели пока не доступен")
-            
+            messagebox.showinfo("Информация", "Модуль создания моста пока не доступен")
+
+    def create_conveyor(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_conveyor()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo("Информация", "Модуль создания конвеера пока не доступен")
+
     # ===================
     def move_and_rename_file(self):
         """
         Функция для перемещения и переименования файла
         """
         source_path = self.TP_source_folder / self.TP_filename
-
-        print(self.TP_filename)
+        
+        print(f"Исходный файл: {source_path}")
         
         if not source_path.exists():
             print(f"Файл не найден: {source_path}")
             return False
         
-        self.TP_target_folder.mkdir(exist_ok=True)
+        # Получаем путь сохранения из настроек
+        save_folder = self.settings.get("save_folder", "mods")
+        self.TP_target_folder = Path(save_folder)
+        
+        # Создаем папку назначения
+        self.TP_target_folder.mkdir(parents=True, exist_ok=True)
+        
+        # Целевой путь
         target_path = self.TP_target_folder / self.TP_new_name
         
         try:
+            # Если файл уже существует, удаляем его
+            if target_path.exists():
+                target_path.unlink()
+            
+            # Перемещаем файл
             shutil.move(str(source_path), str(target_path))
             print(f"Файл перемещен: {source_path} -> {target_path}")
             return True
@@ -205,7 +266,8 @@ class CreatorEditor:
             success = self.move_and_rename_file()
             
             if success:
-                messagebox.showinfo("Успех", f"Файл перемещен в Mods/{self.TP_new_name}")
+                save_folder = self.settings.get("save_folder", "mods")
+                messagebox.showinfo("Успех", f"Файл перемещен в {save_folder}/{self.TP_new_name}")
             else:
                 messagebox.showwarning("Предупреждение", "Не удалось переместить файл. Возможно, он не найден.")
         except Exception as e:
@@ -1076,7 +1138,7 @@ class CreatorEditor:
                 formatted_name = format_to_lower_camel(item_name)
                 
                 # Путь к папке с иконками
-                icons_dir = Path("creator/icons/items")
+                icons_dir = Path(resource_path("Creator/icons/items"))
                 
                 # Проверяем существование папки
                 if not icons_dir.exists():
@@ -1934,7 +1996,7 @@ public class ModItems {{
                 formatted_name = format_to_lower_camel(liquid_name)
                 
                 # Путь к папке с иконками
-                icons_dir = Path("creator/icons/liquids")
+                icons_dir = Path(resource_path("Creator/icons/liquids"))
                 
                 # Проверяем существование папки
                 if not icons_dir.exists():
@@ -2460,7 +2522,8 @@ public class ModLiquid {{
             ("Энергитический узел", "blocks/power-node.png", self.create_power_node),
             ("Экранированую стену", "blocks/shielded-wall.png", self.create_shield_wall),
             ("Завод", "blocks/kiln.png", self.create_generic_crafter),
-            ("мост", "blocks/bridge-conveyor.png", self.create_bridge)
+            ("мост", "blocks/bridge-conveyor.png", self.create_bridge),
+            ("конвеер", "blocks/conveyor-0-0.png", self.create_conveyor)
         ]
 
         blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -2653,6 +2716,11 @@ public class ModLiquid {{
                 "class": "CircularBridge",
                 "path": "src/{mod_name}/init/blocks/bridges/Bridges.java"
             },
+            {
+                "type": "conveyor",
+                "class": "Conveyor",
+                "path": "src/{mod_name}/init/blocks/conveyors/Conveyors.java"
+            }
         ]
         
         # ==== ФУНКЦИЯ АВТОМАТИЧЕСКОГО ПОИСКА ====
@@ -3257,6 +3325,12 @@ public class ModLiquid {{
                 "icon": "", 
                 "display": "Мост", 
                 "sprite_folder": "bridges"},
+            "conveyor": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/conveyors/Conveyors.java"],
+                "class": "Conveyor",
+                "icon": "",
+                "display": "Конвеер",
+                "sprite_folder": "conveyors"}
         }
         
         def search_blocks(block_type, config):
@@ -3280,11 +3354,21 @@ public class ModLiquid {{
                             for match in re.findall(pattern, content):
                                 for block_name in [b.strip() for b in (match.split(',') if isinstance(match, str) else [match])]:
                                     if block_name and block_name not in [b[1] for b in found_blocks]:
-                                        sprite_paths = [
-                                            Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
-                                            Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
-                                            Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
-                                        ]
+                                        # Определяем пути к спрайтам в зависимости от типа блока
+                                        if block_type == "conveyor":
+                                            # Для конвееров используем формат {texture}-0-0.png
+                                            sprite_paths = [
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
+                                            ]
+                                        else:
+                                            # Для остальных блоков стандартный формат
+                                            sprite_paths = [
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
+                                            ]
                                         
                                         sprite_found = any(p.exists() for p in sprite_paths)
                                         found_blocks.append((block_type, block_name, sprite_found))
@@ -3492,11 +3576,19 @@ public class ModLiquid {{
                     if has_sprite:
                         try:
                             from PIL import Image
-                            sprite_paths = [
-                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
-                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
-                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
-                            ]
+                            # Определяем пути к спрайтам в зависимости от типа блока
+                            if block_type == "conveyor":
+                                sprite_paths = [
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
+                                ]
+                            else:
+                                sprite_paths = [
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
+                                ]
                             
                             found_img = False
                             for sprite_path in sprite_paths:

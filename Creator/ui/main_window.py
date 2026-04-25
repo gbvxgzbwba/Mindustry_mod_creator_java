@@ -9,6 +9,7 @@ import requests
 import zipfile
 import tarfile
 import io
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tkinter import messagebox
@@ -18,6 +19,14 @@ import re
 # Проверяем ОС для импорта winreg
 if platform.system() == "Windows":
     import winreg
+
+def resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class MainWindow:
     def __init__(self):
@@ -31,7 +40,13 @@ class MainWindow:
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
         
-        Path("Creator/mods").mkdir(parents=True, exist_ok=True)
+        # Загружаем настройки
+        self.settings_file = Path("Creator/settings.json")
+        self.settings = self.load_settings()
+        
+        # Используем путь из настроек или по умолчанию
+        save_folder = self.settings.get("save_folder", "mods")
+        Path(save_folder).mkdir(parents=True, exist_ok=True)
         
         # Проверяем Java при запуске
         self.find_and_setup_java()
@@ -41,6 +56,133 @@ class MainWindow:
         
         self.show_main_ui()
     
+    def load_settings(self):
+        """Загружает настройки из файла"""
+        default_settings = {
+            "language": "ru",
+            "save_folder": "mods"
+        }
+
+        appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+        settings_dir = Path(appdata) / "MindustryModCreator"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        self.settings_file = settings_dir / "settings.json"
+
+        if self.settings_file.exists():
+            try:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    # Добавляем недостающие ключи
+                    for key, value in default_settings.items():
+                        if key not in settings:
+                            settings[key] = value
+                    return settings
+            except Exception as e:
+                print(f"Ошибка загрузки настроек: {e}")
+                return default_settings
+        else:
+            self.save_settings(default_settings)
+            return default_settings
+    
+    def save_settings(self, settings=None):
+        """Сохраняет настройки в файл"""
+        if settings is None:
+            settings = self.settings
+        
+        try:
+            self.settings_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"Ошибка сохранения настроек: {e}")
+            return False
+    
+    def open_settings_window(self):
+        """Открывает окно настроек"""
+        settings_window = ctk.CTkToplevel(self.root)
+        settings_window.title("Настройки")
+        settings_window.geometry("400x300")
+        settings_window.transient(self.root)
+        settings_window.grab_set()
+        
+        # Центрируем окно
+        settings_window.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (400 // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (300 // 2)
+        settings_window.geometry(f"400x300+{x}+{y}")
+        
+        # Язык
+        ctk.CTkLabel(settings_window, text="Язык / Language:", font=("Arial", 14)).pack(pady=(20, 5))
+        language_var = ctk.StringVar(value=self.settings.get("language", "ru"))
+        language_combo = ctk.CTkComboBox(
+            settings_window,
+            values=["ru"],
+            variable=language_var,
+            width=200
+        )
+        language_combo.pack(pady=5)
+        
+        # Папка сохранения
+        ctk.CTkLabel(settings_window, text="Папка сохранения модов:", font=("Arial", 14)).pack(pady=(20, 5))
+
+        appdata_roaming = os.getenv('APPDATA')
+        
+        # Словарь для отображения: текст для пользователя -> реальный путь
+        folder_options = {
+            "Программа": "mods",
+            "Игра Steam": r"C:\Program Files (x86)\Steam\steamapps\common\Mindustry\saves\mods",
+            "Игра Free": os.path.join(appdata_roaming, "Mindustry", "mods") if appdata_roaming else "mods"
+        }
+        
+        # Получаем текущий путь и находим соответствующий отображаемый текст
+        current_path = self.settings.get("save_folder", "mods")
+        display_value = current_path
+        for display_text, path in folder_options.items():
+            if path == current_path:
+                display_value = display_text
+                break
+        else:
+            # Если текущий путь не найден в словаре, используем первый вариант
+            display_value = list(folder_options.keys())[0]
+        
+        display_var = ctk.StringVar(value=display_value)
+        
+        folder_combo = ctk.CTkComboBox(
+            settings_window,
+            values=list(folder_options.keys()),
+            variable=display_var,
+            width=250
+        )
+        folder_combo.pack(pady=5)
+        
+        # Кнопки
+        button_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
+        button_frame.pack(pady=30)
+        
+        def save_settings():
+            # Сохраняем настройки
+            selected_display = display_var.get()
+            save_path = folder_options[selected_display]
+            
+            self.settings["language"] = language_var.get()
+            self.settings["save_folder"] = save_path
+            self.save_settings()
+            
+            # Создаём папку если её нет
+            try:
+                Path(save_path).mkdir(parents=True, exist_ok=True)
+                messagebox.showinfo("Успех", f"Настройки сохранены\nПапка: {save_path}")
+                settings_window.destroy()
+                
+                # Обновляем интерфейс
+                self.show_main_ui()
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Не удалось создать папку:\n{save_path}\n\nОшибка: {e}")
+        
+        ctk.CTkButton(button_frame, text="Сохранить", command=save_settings, width=120).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text="Отмена", command=settings_window.destroy, width=120).pack(side="left", padx=10)
+
     def find_and_setup_java(self):
         """Находит или устанавливает Java 17"""
         #print("\n" + "="*50)
@@ -604,6 +746,30 @@ class MainWindow:
                         {"name": "bridge-conduit", "filename": "blocks/liquid/bridge-conduit.png"},
                         {"name": "phase-conduit", "filename": "blocks/liquid/phase-conduit.png"},
                         {"name": "phase-conveyor", "filename": "blocks/distribution/phase-conveyor.png"},
+
+                        #КОНВЕЕРНЫЫЫ
+                        {"name": "armored-conveyor-0-0", "filename": "blocks/distribution/conveyors/armored-conveyor-0-0.png"},
+                        {"name": "titanium-conveyor-0-0", "filename": "blocks/distribution/conveyors/titanium-conveyor-0-0.png"},
+                        {"name": "conveyor-0-0", "filename": "blocks/distribution/conveyors/conveyor-0-0.png"},
+                        {"name": "conveyor-0-1", "filename": "blocks/distribution/conveyors/conveyor-0-0.png"},
+                        {"name": "conveyor-0-2", "filename": "blocks/distribution/conveyors/conveyor-0-0.png"},
+                        {"name": "conveyor-0-3", "filename": "blocks/distribution/conveyors/conveyor-0-0.png"},
+                        {"name": "conveyor-1-0", "filename": "blocks/distribution/conveyors/conveyor-1-0.png"},
+                        {"name": "conveyor-1-1", "filename": "blocks/distribution/conveyors/conveyor-1-1.png"},
+                        {"name": "conveyor-1-2", "filename": "blocks/distribution/conveyors/conveyor-1-2.png"},
+                        {"name": "conveyor-1-3", "filename": "blocks/distribution/conveyors/conveyor-1-3.png"},
+                        {"name": "conveyor-2-0", "filename": "blocks/distribution/conveyors/conveyor-2-0.png"},
+                        {"name": "conveyor-2-1", "filename": "blocks/distribution/conveyors/conveyor-2-1.png"},
+                        {"name": "conveyor-2-2", "filename": "blocks/distribution/conveyors/conveyor-2-2.png"},
+                        {"name": "conveyor-2-3", "filename": "blocks/distribution/conveyors/conveyor-2-3.png"},
+                        {"name": "conveyor-3-0", "filename": "blocks/distribution/conveyors/conveyor-3-0.png"},
+                        {"name": "conveyor-3-1", "filename": "blocks/distribution/conveyors/conveyor-3-1.png"},
+                        {"name": "conveyor-3-2", "filename": "blocks/distribution/conveyors/conveyor-3-2.png"},
+                        {"name": "conveyor-3-3", "filename": "blocks/distribution/conveyors/conveyor-3-3.png"},
+                        {"name": "conveyor-4-0", "filename": "blocks/distribution/conveyors/conveyor-4-0.png"},
+                        {"name": "conveyor-4-1", "filename": "blocks/distribution/conveyors/conveyor-4-1.png"},
+                        {"name": "conveyor-4-2", "filename": "blocks/distribution/conveyors/conveyor-4-2.png"},
+                        {"name": "conveyor-4-3", "filename": "blocks/distribution/conveyors/conveyor-4-3.png"},
                     ]
                 }
             }
@@ -612,7 +778,7 @@ class MainWindow:
         config = icons_config if icons_config is not None else default_config
         
         # Базовая директория для иконок
-        icons_dir = os.path.join("Creator", "icons")
+        icons_dir = os.path.join(resource_path("Creator"), "icons")
         
         # Создаем директории для каждой категории
         category_dirs = {}
@@ -884,6 +1050,19 @@ class MainWindow:
         """Показывает основной интерфейс"""
         self.clear_window()
         
+        # Верхняя панель с кнопкой настроек
+        top_frame = ctk.CTkFrame(self.root, height=50)
+        top_frame.pack(side="top", fill="x", padx=5, pady=5)
+        
+        settings_btn = ctk.CTkButton(
+            top_frame,
+            text="⚙ Настройки",
+            width=100,
+            height=35,
+            command=self.open_settings_window
+        )
+        settings_btn.pack(side="right", padx=10, pady=5)
+        
         # Левая панель со списком модов
         left_frame = ctk.CTkFrame(self.root, width=300)
         left_frame.pack(side="left", fill="y", padx=5, pady=5)
@@ -992,7 +1171,7 @@ class MainWindow:
             messagebox.showerror("Ошибка", "Введите имя мода!")
             return
         
-        mod_dir = Path("Creator/mods") / mod_name
+        mod_dir = Path(self.settings.get("save_folder", "Creator/mods")) / mod_name
         
         if mod_dir.exists():
             if not messagebox.askyesno("Подтверждение", f"Мод '{mod_name}' уже существует. Перезаписать?"):
