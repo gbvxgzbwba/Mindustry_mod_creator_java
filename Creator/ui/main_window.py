@@ -1171,7 +1171,7 @@ class MainWindow:
             messagebox.showerror("Ошибка", "Введите имя мода!")
             return
         
-        mod_dir = Path(self.settings.get("save_folder", "Creator/mods")) / mod_name
+        mod_dir = Path("Creator/mods") / mod_name
         
         if mod_dir.exists():
             if not messagebox.askyesno("Подтверждение", f"Мод '{mod_name}' уже существует. Перезаписать?"):
