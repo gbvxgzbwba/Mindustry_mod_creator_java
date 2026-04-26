@@ -1766,6 +1766,8 @@ public class CircularBridge extends ItemBridge {{
         
         return created_files
 
+        #CircularBridge
+
 #----------ФУНКЦИИ СОЗДАНИЯ----------
     PATEH_FOLDER = [
         "consume_generators", "walls", "solar_panels",
@@ -9391,7 +9393,7 @@ public class {NAME} {{
                 alwaysUnlocked = {always_unlocked_value};
                 buildVisibility = BuildVisibility.shown;
                 category = Category.{CATEDOR};{build_itemstack_code}
-                speed = {items_per_second_raw};
+                speed = {items_per_second_raw}f;
                 displayedSpeed = {items_per_second_raw_no};
                 itemCapacity = {capacity_raw};
 

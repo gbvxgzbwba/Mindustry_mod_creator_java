@@ -3252,8 +3252,439 @@ public class ModLiquid {{
         
         return False  # Имя свободно
 
+    def show_context_menu(self, element_name, element_type, x, y, folder_path=None):
+        """Показывает контекстное меню для элемента с функциями print и delete"""
+        
+        # Создаем всплывающее окно
+        menu_window = ctk.CTkToplevel(self.root)
+        menu_window.title(f"Действия для {element_name}")
+        menu_window.geometry("450x450")
+        menu_window.resizable(False, False)
+        
+        # Позиционируем окно рядом с курсором
+        menu_window.geometry(f"+{x+10}+{y+10}")
+        
+        # Делаем окно поверх всех
+        menu_window.attributes('-topmost', True)
+        menu_window.grab_set()
+        
+        # Основной фрейм
+        main_frame = ctk.CTkFrame(menu_window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Заголовок
+        ctk.CTkLabel(
+            main_frame,
+            text=f"Выберите действие для: {element_name}",
+            font=("Arial", 14, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=(0, 15))
+        
+        # Информация о типе элемента
+        type_text = "📦 Предмет" if element_type == "item" else \
+                    "💧 Жидкость" if element_type == "liquid" else \
+                    "🧱 Блок"
+        
+        ctk.CTkLabel(
+            main_frame,
+            text=type_text,
+            font=("Arial", 12),
+            text_color="#888888"
+        ).pack(pady=(0, 15))
+        
+        # Разделитель
+        ctk.CTkFrame(main_frame, height=2, fg_color="#404040").pack(fill="x", pady=10)
+        
+        # Фрейм для кнопок действий
+        actions_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        actions_frame.pack(fill="both", expand=True)
+        
+        def format_to_lower_camel(text):
+            """Преобразует текст в lowerCamelCase"""
+            if not text or not isinstance(text, str):
+                return ""
+            text = text.replace('-', ' ').replace('_', ' ')
+            words = text.strip().split()
+            if not words:
+                return ""
+            result = words[0].lower()
+            for word in words[1:]:
+                if word:
+                    result += word.capitalize()
+            return result
+        
+        # Функция для удаления (вся логика внутри)
+        def action_delete():
+            """Полное удаление элемента"""
+            
+            # Подтверждение удаления
+            result = messagebox.askyesno(
+                "Подтверждение удаления",
+                f"Вы уверены, что хотите удалить элемент '{element_name}'?\n\n"
+                f"Будут удалены:\n"
+                f"• Все текстуры элемента\n"
+                f"• Код в Java файлах\n\n"
+                f"⚠️ Это действие необратимо!",
+                icon='warning'
+            )
+            
+            if not result:
+                return
+            
+            menu_window.destroy()
+            
+            try:
+                import re
+                mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+                formatted_name = format_to_lower_camel(element_name)
+                deleted_items = []
+                errors = []
+                warnings = []
+                
+                # ========== ПРОВЕРКА НАЛИЧИЯ В ДЕРЕВЕ ТЕХНОЛОГИЙ ==========
+                if element_type not in ["item", "liquid"]:
+                    tree_files = {
+                        "wall": "WallsTree",
+                        "battery": "BatteryTree",
+                        "solar_panel": "SolarTree",
+                        "generator": "ConsumeGeneratorTree",
+                        "beam_node": "BeamNodeTree",
+                        "power_node": "PowerNodeTree",
+                        "shield_wall": "ShieldWallTree",
+                        "generic_crafter": "GenericCrafterTree",
+                        "conveyor": "ConveyorTree",
+                        "circular_bridge": "BridgesTree"
+                    }
+                    
+                    if element_type in tree_files:
+                        tree_class = tree_files[element_type]
+                        tree_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "content" / f"{tree_class}.java"
+                        
+                        if tree_file_path.exists():
+                            with open(tree_file_path, 'r', encoding='utf-8') as f:
+                                tree_content = f.read()
+                            
+                            if formatted_name in tree_content:
+                                warnings.append(f"⚠️ Блок найден в дереве технологий ({tree_class}.java)")
+                                warnings.append(f"   Рекомендуется сначала удалить его из дерева вручную")
+                                
+                                result2 = messagebox.askyesno(
+                                    "Предупреждение",
+                                    f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
+                                    f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
+                                    f"Продолжить удаление (только текстуры и Java код)?",
+                                    icon='warning'
+                                )
+                                
+                                if not result2:
+                                    return
+                
+                # ========== 1. УДАЛЕНИЕ ТЕКСТУР ==========
+                texture_count = 0
+                search_paths = []
+                
+                if element_type == "item":
+                    search_paths = [
+                        Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.png",
+                        Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.jpg",
+                        Path(self.mod_folder) / "sprites" / "items" / f"{formatted_name}.png",
+                    ]
+                elif element_type == "liquid":
+                    search_paths = [
+                        Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.png",
+                        Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.jpg",
+                        Path(self.mod_folder) / "sprites" / "liquids" / f"{formatted_name}.png",
+                    ]
+                else:
+                    block_folders = {
+                        "wall": "walls",
+                        "battery": "batterys",
+                        "solar_panel": "solar_panels",
+                        "generator": "consume_generators",
+                        "beam_node": "beam_nodes",
+                        "power_node": "power_nodes",
+                        "shield_wall": "shield_walls",
+                        "generic_crafter": "generic_crafter",
+                        "bridge": "bridges",
+                        "conveyor": "conveyors",
+                        "circular_bridge": "bridges"
+                    }
+                    target_folder = folder_path or block_folders.get(element_type, "")
+                    
+                    if target_folder:
+                        base_dir = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / target_folder
+                        if base_dir.exists():
+                            # Для жидкостного моста и моста ищем файлы с разными суффиксами
+                            if element_type in ["circular_bridge", "circular_bridge_liquid"]:
+                                # Ищем все файлы, начинающиеся с имени блока
+                                for file in base_dir.glob(f"{formatted_name}*.*"):
+                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                        search_paths.append(file)
+                                # Проверяем подпапку
+                                sub_dir = base_dir / formatted_name
+                                if sub_dir.exists():
+                                    for file in sub_dir.glob(f"*.*"):
+                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                            search_paths.append(file)
+                            else:
+                                # Обычные блоки
+                                for file in base_dir.glob(f"{formatted_name}.png"):
+                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                        search_paths.append(file)
+                                sub_dir = base_dir / formatted_name
+                                if sub_dir.exists():
+                                    for file in sub_dir.glob(f"*.*"):
+                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                            search_paths.append(file)
+                
+                for path in search_paths:
+                    if path and path.exists():
+                        path.unlink()
+                        texture_count += 1
+                
+                for path in search_paths:
+                    if path and path.parent.exists() and not any(path.parent.iterdir()):
+                        path.parent.rmdir()
+                
+                if texture_count > 0:
+                    deleted_items.append(f"🖼️ Удалено текстур: {texture_count}")
+                else:
+                    errors.append(f"⚠️ Текстуры не найдены")
+                
+                # ========== 2. УДАЛЕНИЕ ИЗ JAVA ФАЙЛА ==========
+                java_deleted = False
+                
+                if element_type == "item":
+                    items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
+                    if items_file_path.exists():
+                        with open(items_file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        original = content
+                        
+                        # Удаляем инициализацию
+                        pattern = rf'{formatted_name}\s*=\s*new\s+Item\("[^"]*"\)\s*\{{\s*[^}}]*\s*\}}\s*;'
+                        content = re.sub(pattern, '', content, flags=re.DOTALL)
+                        
+                        # Удаляем из объявления
+                        lines = content.split('\n')
+                        new_lines = []
+                        for line in lines:
+                            if 'public static Item' in line and formatted_name in line:
+                                if ',' in line:
+                                    match = re.search(r'public static Item\s+(.+?);', line)
+                                    if match:
+                                        vars_str = match.group(1)
+                                        var_list = [v.strip() for v in vars_str.split(',')]
+                                        remaining_vars = [v for v in var_list if v != formatted_name]
+                                        if remaining_vars:
+                                            indent = ' ' * (len(line) - len(line.lstrip()))
+                                            new_line = f"{indent}public static Item {', '.join(remaining_vars)};"
+                                            new_lines.append(new_line)
+                            else:
+                                new_lines.append(line)
+                        content = '\n'.join(new_lines)
+                        
+                        if content != original:
+                            with open(items_file_path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            java_deleted = True
+                            
+                elif element_type == "liquid":
+                    liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquids.java"
+                    if not liquids_file_path.exists():
+                        liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquid.java"
+                    
+                    if liquids_file_path.exists():
+                        with open(liquids_file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        original = content
+                        
+                        pattern = rf'{formatted_name}\s*=\s*new\s+Liquid\("[^"]*"\)\s*\{{\s*[^}}]*\s*\}}\s*;'
+                        content = re.sub(pattern, '', content, flags=re.DOTALL)
+                        
+                        lines = content.split('\n')
+                        new_lines = []
+                        for line in lines:
+                            if 'public static Liquid' in line and formatted_name in line:
+                                if ',' in line:
+                                    match = re.search(r'public static Liquid\s+(.+?);', line)
+                                    if match:
+                                        vars_str = match.group(1)
+                                        var_list = [v.strip() for v in vars_str.split(',')]
+                                        remaining_vars = [v for v in var_list if v != formatted_name]
+                                        if remaining_vars:
+                                            indent = ' ' * (len(line) - len(line.lstrip()))
+                                            new_line = f"{indent}public static Liquid {', '.join(remaining_vars)};"
+                                            new_lines.append(new_line)
+                            else:
+                                new_lines.append(line)
+                        content = '\n'.join(new_lines)
+                        
+                        if content != original:
+                            with open(liquids_file_path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            java_deleted = True
+                            
+                else:
+                    # Удаление из файла блоков
+                    block_files = {
+                        "wall": ("Walls", "walls"),
+                        "battery": ("Batterys", "batterys"),
+                        "solar_panel": ("SolarPanels", "solar_panels"),
+                        "generator": ("ConsumeGenerators", "consume_generators"),
+                        "beam_node": ("BeamNodes", "beam_nodes"),
+                        "power_node": ("PowerNodes", "power_nodes"),
+                        "shield_wall": ("ShieldWalls", "shield_walls"),
+                        "generic_crafter": ("GenericCrafters", "generic_crafter"),
+                        "bridge": ("Bridges", "bridges"),
+                        "conveyor": ("Conveyors", "conveyors"),
+                        "circular_bridge": ("Bridges", "bridges")
+                    }
+                    
+                    if element_type in block_files:
+                        class_name, folder_name = block_files[element_type]
+                        block_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "blocks" / folder_name / f"{class_name}.java"
+                        
+                        if block_file_path.exists():
+                            with open(block_file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            
+                            original_content = content
+                            
+                            # Определяем тип блока
+                            block_type_match = re.search(r'public static\s+(\w+)\s+', content)
+                            block_type_name = block_type_match.group(1) if block_type_match else "Conveyor"
+                            
+                            # 1. Удаляем блок инициализации
+                            lines = content.split('\n')
+                            start_line = -1
+                            end_line = -1
+                            brace_count = 0
+                            in_block = False
+                            
+                            for i, line in enumerate(lines):
+                                if not in_block and re.search(rf'{formatted_name}\s*=\s*new\s+{block_type_name}\s*\(', line):
+                                    start_line = i
+                                    in_block = True
+                                    brace_count = 0
+                                
+                                if in_block:
+                                    brace_count += line.count('{') - line.count('}')
+                                    if '};' in line and brace_count == 0:
+                                        end_line = i
+                                        break
+                            
+                            if start_line != -1 and end_line != -1:
+                                new_lines = lines[:start_line] + lines[end_line + 1:]
+                                content = '\n'.join(new_lines)
+                            
+                            # 2. Удаляем из строки объявления
+                            lines = content.split('\n')
+                            new_lines = []
+                            for line in lines:
+                                if re.search(rf'public static\s+{block_type_name}\s+.*{formatted_name}', line):
+                                    if ',' in line:
+                                        match = re.search(rf'public static\s+{block_type_name}\s+(.+?);', line)
+                                        if match:
+                                            vars_str = match.group(1)
+                                            var_list = [v.strip() for v in vars_str.split(',')]
+                                            remaining_vars = [v for v in var_list if v != formatted_name]
+                                            if remaining_vars:
+                                                indent = ' ' * (len(line) - len(line.lstrip()))
+                                                new_line = f"{indent}public static {block_type_name} {', '.join(remaining_vars)};"
+                                                new_lines.append(new_line)
+                                    else:
+                                        continue
+                                else:
+                                    new_lines.append(line)
+                            content = '\n'.join(new_lines)
+                            
+                            # 3. Очищаем пустые строки
+                            lines = content.split('\n')
+                            cleaned_lines = []
+                            prev_empty = False
+                            for line in lines:
+                                is_empty = line.strip() == ''
+                                if is_empty and prev_empty:
+                                    continue
+                                cleaned_lines.append(line)
+                                prev_empty = is_empty
+                            content = '\n'.join(cleaned_lines)
+                            
+                            # Сохраняем изменения
+                            if content != original_content:
+                                with open(block_file_path, 'w', encoding='utf-8') as f:
+                                    f.write(content)
+                                java_deleted = True
+                                print(f"Обновлен файл: {block_file_path}")
+                
+                if java_deleted:
+                    deleted_items.append(f"📦 Удален из Java файла")
+                else:
+                    errors.append(f"⚠️ Не удалось удалить из Java файла")
+                
+                # ========== 3. РЕЗУЛЬТАТ ==========
+                if warnings:
+                    messagebox.showwarning("Внимание", "\n".join(warnings))
+                
+                if errors:
+                    status_text = f"⚠️ Удаление элемента '{element_name}' выполнено с ошибками:\n\n"
+                    status_text += "✅ Успешно:\n" + "\n".join(deleted_items) + "\n\n❌ Ошибки:\n" + "\n".join(errors)
+                    messagebox.showwarning("Предупреждение", status_text)
+                else:
+                    status_text = f"✅ Элемент '{element_name}' успешно удален!\n\n"
+                    status_text += "\n".join(deleted_items)
+                    messagebox.showinfo("Успех", status_text)
+                
+                # Обновляем отображение
+                self.open_creator()
+                
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Не удалось удалить элемент: {str(e)}")
+
+        # Кнопка Delete
+        delete_btn = ctk.CTkButton(
+            actions_frame,
+            text="🗑️ Удалить элемент",
+            command=action_delete,
+            height=45,
+            font=("Arial", 14),
+            fg_color="#F44336",
+            hover_color="#D32F2F",
+            corner_radius=10
+        )
+        delete_btn.pack(fill="x", pady=8)
+        
+        # Разделитель
+        ctk.CTkFrame(main_frame, height=1, fg_color="#404040").pack(fill="x", pady=10)
+        
+        # Закрыть
+        close_btn = ctk.CTkButton(
+            main_frame,
+            text="Закрыть",
+            command=menu_window.destroy,
+            height=35,
+            font=("Arial", 12),
+            fg_color="#424242",
+            hover_color="#616161"
+        )
+        close_btn.pack(side="bottom", fill="x", pady=(10, 0))
+        
+        # Привязываем нажатие Escape для закрытия
+        def on_escape(event):
+            menu_window.destroy()
+        
+        menu_window.bind("<Escape>", on_escape)
+
+    def on_element_right_click(self, event, element_name, element_type, widget, folder_path=None):
+        """Обработчик правого клика по элементу"""
+        x = event.x_root
+        y = event.y_root
+        self.show_context_menu(element_name, element_type, x, y, folder_path)
+        return "break"
+
     def setup_content_panel(self, right_frame):
-        """Настройка панели контента - отображение существующего контента"""
+        """Настройка панели контента - отображение существующего контента с ПКМ меню"""
         scroll_frame = ctk.CTkScrollableFrame(right_frame, fg_color="#2b2b2b")
         scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
@@ -3314,22 +3745,22 @@ public class ModLiquid {{
                 "display": "Экранированная стена", 
                 "sprite_folder": "shield_walls"},
             "generic_crafter": {
-                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafter.java"], 
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafters/GenericCrafters.java"], 
                 "class": "GenericCrafter", 
                 "icon": "🏭", 
                 "display": "Завод", 
-                "sprite_folder": "generic_crafter"},
+                "sprite_folder": "generic_crafters"},
             "circular_bridge": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/bridges/Bridges.java"], 
                 "class": "CircularBridge", 
-                "icon": "", 
+                "icon": "🌉", 
                 "display": "Мост", 
                 "sprite_folder": "bridges"},
             "conveyor": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/conveyors/Conveyors.java"],
                 "class": "Conveyor",
-                "icon": "",
-                "display": "Конвеер",
+                "icon": "➡️", 
+                "display": "Конвейер", 
                 "sprite_folder": "conveyors"}
         }
         
@@ -3356,14 +3787,12 @@ public class ModLiquid {{
                                     if block_name and block_name not in [b[1] for b in found_blocks]:
                                         # Определяем пути к спрайтам в зависимости от типа блока
                                         if block_type == "conveyor":
-                                            # Для конвееров используем формат {texture}-0-0.png
                                             sprite_paths = [
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
                                                 Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
                                             ]
                                         else:
-                                            # Для остальных блоков стандартный формат
                                             sprite_paths = [
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
@@ -3396,7 +3825,6 @@ public class ModLiquid {{
             
             # Кнопка настроек (вместо всех категорий)
             def show_settings_window():
-                # Получаем корневое окно через winfo_toplevel()
                 parent_window = self.root.winfo_toplevel()
                 
                 settings_window = ctk.CTkToplevel(parent_window)
@@ -3405,47 +3833,38 @@ public class ModLiquid {{
                 settings_window.transient(parent_window)
                 settings_window.grab_set()
                 
-                # Центрируем окно
                 settings_window.update_idletasks()
                 x = (settings_window.winfo_screenwidth() // 2) - (500 // 2)
                 y = (settings_window.winfo_screenheight() // 2) - (450 // 2)
                 settings_window.geometry(f'+{x}+{y}')
                 
-                # Заголовок
                 ctk.CTkLabel(settings_window, text="Выберите типы контента для отображения", 
                             font=("Arial", 16, "bold")).pack(pady=15)
                 
-                # Фрейм с сеткой чекбоксов
                 checkboxes_frame = ctk.CTkScrollableFrame(settings_window, fg_color="#2b2b2b", 
                                                         corner_radius=10)
                 checkboxes_frame.pack(fill="both", expand=True, padx=20, pady=10)
                 
-                # Словарь для хранения переменных чекбоксов
                 type_vars = {}
                 all_types = sorted(set(b[0] for b in all_content))
                 
-                # Функция для применения фильтра
                 def apply_settings():
                     selected = [t for t, var in type_vars.items() if var.get()]
                     self.selected_types = set(selected) if selected else set(all_types)
                     update_filter_from_settings()
                     settings_window.destroy()
                 
-                # Функция для отмены
                 def cancel_settings():
                     settings_window.destroy()
                 
-                # Функция для выбора всех
                 def select_all():
                     for var in type_vars.values():
                         var.set(True)
                 
-                # Функция для снятия всех
                 def deselect_all():
                     for var in type_vars.values():
                         var.set(False)
                 
-                # Создаем сетку чекбоксов
                 cards_per_row = 3
                 current_row_frame = None
                 
@@ -3454,7 +3873,6 @@ public class ModLiquid {{
                         current_row_frame = ctk.CTkFrame(checkboxes_frame, fg_color="transparent")
                         current_row_frame.pack(fill="x", pady=5)
                     
-                    # Карточка для типа
                     card = ctk.CTkFrame(current_row_frame, width=140, height=100, 
                                     fg_color="#363636", corner_radius=10,
                                     border_width=1, border_color="#404040")
@@ -3465,19 +3883,14 @@ public class ModLiquid {{
                     display_name = config.get("display", block_type)
                     icon = config.get("icon", "📦")
                     
-                    # Иконка
                     ctk.CTkLabel(card, text=icon, font=("Arial", 24)).pack(pady=8)
-                    
-                    # Название
                     ctk.CTkLabel(card, text=display_name, font=("Arial", 11, "bold"), 
                                 wraplength=120).pack()
                     
-                    # Количество элементов
                     count = sum(1 for item in all_content if item[0] == block_type)
                     ctk.CTkLabel(card, text=f"{count} шт.", font=("Arial", 9), 
                                 text_color="#AAAAAA").pack()
                     
-                    # Чекбокс
                     var = tk.BooleanVar(value=block_type in self.selected_types)
                     type_vars[block_type] = var
                     
@@ -3485,11 +3898,9 @@ public class ModLiquid {{
                                         fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
                     cb.place(relx=0.9, rely=0.1, anchor="center")
                 
-                # Кнопки управления
                 btn_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
                 btn_frame.pack(fill="x", padx=20, pady=15)
                 
-                # Левая группа кнопок
                 left_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
                 left_btn_frame.pack(side="left")
                 
@@ -3498,7 +3909,6 @@ public class ModLiquid {{
                 ctk.CTkButton(left_btn_frame, text="✗ Сбросить все", command=deselect_all,
                             fg_color="#424242", width=100, height=32).pack(side="left", padx=2)
                 
-                # Правая группа кнопок
                 right_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
                 right_btn_frame.pack(side="right")
                 
@@ -3507,13 +3917,11 @@ public class ModLiquid {{
                 ctk.CTkButton(right_btn_frame, text="Отмена", command=cancel_settings,
                             fg_color="#AD4038", width=100, height=32).pack(side="left", padx=2)
             
-            # Кнопка настроек (единственная кнопка в фильтре)
             settings_btn = ctk.CTkButton(filter_frame, text="⚙️ Настройки", width=120, height=32, 
                                         font=("Arial", 12), fg_color="#397E3C",
                                         command=show_settings_window)
             settings_btn.pack(side="left", padx=5)
             
-            # Индикатор выбранных категорий
             def update_filter_label():
                 if len(self.selected_types) == len(set(b[0] for b in all_content)):
                     filter_label.configure(text="Все категории")
@@ -3528,7 +3936,6 @@ public class ModLiquid {{
                                     font=("Arial", 11), text_color="#AAAAAA")
             filter_label.pack(side="left", padx=10)
             
-            # Адаптивная сетка карточек
             cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             cards_container.pack(fill="both", expand=True)
             
@@ -3540,14 +3947,11 @@ public class ModLiquid {{
                 return cards_per_row, CARD_WIDTH, CARD_HEIGHT
             
             def update_filter_from_settings():
-                # Очищаем контейнер
                 for widget in cards_container.winfo_children():
                     widget.destroy()
                 
-                # Фильтруем контент по выбранным типам
                 filtered_content = [item for item in all_content if item[0] in self.selected_types]
                 
-                # Обновляем текст индикатора
                 update_filter_label()
                 
                 if not filtered_content:
@@ -3576,7 +3980,6 @@ public class ModLiquid {{
                     if has_sprite:
                         try:
                             from PIL import Image
-                            # Определяем пути к спрайтам в зависимости от типа блока
                             if block_type == "conveyor":
                                 sprite_paths = [
                                     Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
@@ -3596,7 +3999,8 @@ public class ModLiquid {{
                                     try:
                                         img = Image.open(sprite_path).resize((50, 50), Image.Resampling.LANCZOS)
                                         ctk_img = ctk.CTkImage(img)
-                                        ctk.CTkLabel(card, image=ctk_img, text="").pack(pady=8)
+                                        img_label = ctk.CTkLabel(card, image=ctk_img, text="")
+                                        img_label.pack(pady=8)
                                         found_img = True
                                         break
                                     except Exception as img_error:
@@ -3614,13 +4018,25 @@ public class ModLiquid {{
                     else:
                         ctk.CTkLabel(card, text=default_icon, font=("Arial", 24)).pack(pady=8)
                     
-                    ctk.CTkLabel(card, text=block_name, font=("Arial", 11, "bold"), 
-                                wraplength=CARD_WIDTH-20).pack()
+                    name_label = ctk.CTkLabel(card, text=block_name, font=("Arial", 11, "bold"), 
+                                wraplength=CARD_WIDTH-20)
+                    name_label.pack()
+                    
                     ctk.CTkLabel(card, text=config.get("display", block_type), 
                                 font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
-                    ctk.CTkLabel(card, text="🖼️" if has_sprite else "❌", 
+                    
+                    sprite_status = ctk.CTkLabel(card, text="🖼️" if has_sprite else "❌", 
                                 font=("Arial", 10), 
-                                text_color="#4CAF50" if has_sprite else "#F44336").pack()
+                                text_color="#4CAF50" if has_sprite else "#F44336")
+                    sprite_status.pack()
+                    
+                    # Привязываем ПКМ ко всей карточке
+                    def make_right_click_handler(name=block_name, type_name=block_type):
+                        return lambda event: self.on_element_right_click(event, name, type_name, card)
+                    
+                    card.bind("<Button-3>", make_right_click_handler())
+                    name_label.bind("<Button-3>", make_right_click_handler())
+                    sprite_status.bind("<Button-3>", make_right_click_handler())
             
             def on_resize(event):
                 if cards_container.winfo_children():
@@ -3628,7 +4044,6 @@ public class ModLiquid {{
             
             cards_container.bind("<Configure>", on_resize)
             
-            # Первоначальное отображение
             update_filter_from_settings()
         else:
             ctk.CTkLabel(scroll_frame, text="📭 Нет созданного контента", font=("Arial", 16), text_color="#888888").pack(pady=50)
