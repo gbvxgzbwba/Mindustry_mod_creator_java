@@ -15,6 +15,7 @@ from pathlib import Path
 from tkinter import messagebox
 import sys
 import re
+from Creator.utils.lang_system import LangT
 
 # Проверяем ОС для импорта winreg
 if platform.system() == "Windows":
@@ -78,7 +79,7 @@ class MainWindow:
                             settings[key] = value
                     return settings
             except Exception as e:
-                print(f"Ошибка загрузки настроек: {e}")
+                print(LangT("Ошибка загрузки настроек:") + str(e))
                 return default_settings
         else:
             self.save_settings(default_settings)
@@ -95,13 +96,13 @@ class MainWindow:
                 json.dump(settings, f, ensure_ascii=False, indent=4)
             return True
         except Exception as e:
-            print(f"Ошибка сохранения настроек: {e}")
+            print(LangT("Ошибка сохранения настроек:") + str(e))
             return False
     
     def open_settings_window(self):
         """Открывает окно настроек"""
         settings_window = ctk.CTkToplevel(self.root)
-        settings_window.title("Настройки")
+        settings_window.title(LangT("Настройки"))
         settings_window.geometry("400x300")
         settings_window.transient(self.root)
         settings_window.grab_set()
@@ -124,15 +125,15 @@ class MainWindow:
         language_combo.pack(pady=5)
         
         # Папка сохранения
-        ctk.CTkLabel(settings_window, text="Папка сохранения модов:", font=("Arial", 14)).pack(pady=(20, 5))
+        ctk.CTkLabel(settings_window, text=LangT("Папка сохранения модов:"), font=("Arial", 14)).pack(pady=(20, 5))
 
         appdata_roaming = os.getenv('APPDATA')
         
         # Словарь для отображения: текст для пользователя -> реальный путь
         folder_options = {
-            "Программа": "mods",
-            "Игра Steam": r"C:\Program Files (x86)\Steam\steamapps\common\Mindustry\saves\mods",
-            "Игра Free": os.path.join(appdata_roaming, "Mindustry", "mods") if appdata_roaming else "mods"
+            LangT("Программа"): "mods",
+            LangT("Игра Steam"): r"C:\Program Files (x86)\Steam\steamapps\common\Mindustry\saves\mods",
+            LangT("Игра Free"): os.path.join(appdata_roaming, "Mindustry", "mods") if appdata_roaming else "mods"
         }
         
         # Получаем текущий путь и находим соответствующий отображаемый текст
@@ -172,16 +173,19 @@ class MainWindow:
             # Создаём папку если её нет
             try:
                 Path(save_path).mkdir(parents=True, exist_ok=True)
-                messagebox.showinfo("Успех", f"Настройки сохранены\nПапка: {save_path}")
+                messagebox.showinfo(LangT("Успех"), LangT("Настройки сохранены\nПапка: {save_path}").format(save_path=save_path))
                 settings_window.destroy()
                 
                 # Обновляем интерфейс
                 self.show_main_ui()
             except Exception as e:
-                messagebox.showerror("Ошибка", f"Не удалось создать папку:\n{save_path}\n\nОшибка: {e}")
+                messagebox.showerror(
+                    LangT("Ошибка"), 
+                    LangT("Не удалось создать папку:\n{save_path}\n\nОшибка: {e}").format(save_path=save_path, e=e)
+                )
         
-        ctk.CTkButton(button_frame, text="Сохранить", command=save_settings, width=120).pack(side="left", padx=10)
-        ctk.CTkButton(button_frame, text="Отмена", command=settings_window.destroy, width=120).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text=LangT("Сохранить"), command=save_settings, width=120).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text=LangT("Отмена"), command=settings_window.destroy, width=120).pack(side="left", padx=10)
 
     def find_and_setup_java(self):
         """Находит или устанавливает Java 17"""
@@ -193,7 +197,7 @@ class MainWindow:
         java_found = self.find_java_17_in_all_paths()
         
         if java_found:
-            print(f"✓ JDK 17 найдена: {self.java_path}")
+            print(LangT("✓ JDK 17 найдена:") + self.java_path)
             #print(f"  Версия: {self.java_version}")
             
             # Проверяем JAVA_HOME
@@ -201,8 +205,8 @@ class MainWindow:
             return True
         
         # 2. Если Java не найдена, устанавливаем
-        print("✗ JDK 17 не найдена в системе")
-        print("Начинается установка...")
+        print(LangT("✗ JDK 17 не найдена в системе"))
+        print(LangT("Начинается установка..."))
         self.install_java_17()
         return False
     
@@ -284,7 +288,7 @@ class MainWindow:
             return
         
         # Если JAVA_HOME не правильный или отсутствует
-        print(f"JAVA_HOME: {current_java_home if current_java_home else 'не установлен'}")
+        print(f"JAVA_HOME: {current_java_home if current_java_home else LangT("не установлен")}")
         print(f"Устанавливаем JAVA_HOME: {self.java_path}")
         
         if platform.system() == "Windows":
@@ -318,10 +322,10 @@ class MainWindow:
                 
                 # Уведомляем систему
                 self.broadcast_environment_change()
-                print("✓ JAVA_HOME установлен")
+                print(LangT("✓ JAVA_HOME установлен"))
                 
             except Exception as e:
-                print(f"Ошибка при установке JAVA_HOME: {e}")
+                print(LangT("Ошибка при установке JAVA_HOME:") + str(e))
     
     def install_java_17(self):
         """Устанавливает Java 17"""
@@ -332,11 +336,11 @@ class MainWindow:
         if has_admin_rights:
             # Есть права администратора - устанавливаем в Program Files
             install_path = Path(program_files_java) / "jdk-17"
-            print(f"Установка в Program Files: {install_path}")
+            print(LangT("Установка в Program Files:") + str(install_path))
         else:
             # Нет прав - устанавливаем в C:/mmc_java
             install_path = Path("C:/mmc_java")
-            print(f"Установка в C:/mmc_java: {install_path}")
+            print(LangT("Установка в C:/mmc_java:") + str(install_path))
         
         # Создаем окно прогресса и начинаем установку
         self.show_java_download_ui(install_path)
@@ -347,7 +351,7 @@ class MainWindow:
                 temp_dir = Path(os.environ.get('TEMP', 'C:\\temp'))
                 temp_dir.mkdir(exist_ok=True)
                 
-                self.root.after(0, lambda: self.update_progress(0.1, "Подготовка к установке..."))
+                self.root.after(0, lambda: self.update_progress(0.1, LangT("Подготовка к установке...")))
                 
                 # Создаем папку установки
                 install_path.mkdir(parents=True, exist_ok=True)
@@ -355,7 +359,7 @@ class MainWindow:
                 # URL для скачивания JDK 17
                 jdk_url = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.12_7.zip"
                 
-                self.root.after(0, lambda: self.update_progress(0.2, "Скачивание JDK 17..."))
+                self.root.after(0, lambda: self.update_progress(0.2, LangT("Скачивание JDK 17...")))
                 
                 # Скачиваем файл
                 response = requests.get(jdk_url, stream=True, timeout=60)
@@ -373,9 +377,9 @@ class MainWindow:
                             if total_size > 0:
                                 progress = 0.2 + (downloaded / total_size * 0.6)
                                 self.root.after(0, lambda p=progress: self.update_progress(p, 
-                                    f"Скачивание: {downloaded/1024/1024:.1f}MB / {total_size/1024/1024:.1f}MB"))
+                                    LangT("Скачивание:")+ f"{downloaded/1024/1024:.1f}MB / {total_size/1024/1024:.1f}MB"))
                 
-                self.root.after(0, lambda: self.update_progress(0.8, "Распаковка JDK..."))
+                self.root.after(0, lambda: self.update_progress(0.8, LangT("Распаковка JDK...")))
                 
                 # Распаковываем архив
                 with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
@@ -397,7 +401,7 @@ class MainWindow:
                 except:
                     pass
                 
-                self.root.after(0, lambda: self.update_progress(0.9, "Настройка окружения..."))
+                self.root.after(0, lambda: self.update_progress(0.9, LangT("Настройка окружения...")))
                 
                 # Проверяем установку
                 java_exe = install_path / "bin" / "java.exe"
@@ -405,17 +409,17 @@ class MainWindow:
                     self.java_path = str(install_path)
                     self.java_version = self.get_java_version(str(java_exe))
                     
-                    self.root.after(0, lambda: self.update_progress(1.0, "Установка завершена!"))
+                    self.root.after(0, lambda: self.update_progress(1.0, LangT("Установка завершена!")))
                     
                     # Устанавливаем JAVA_HOME
                     self.root.after(500, lambda: self.set_java_home_after_install())
                     
                 else:
-                    self.root.after(0, lambda: self.show_java_error("JDK не установилась корректно"))
+                    self.root.after(0, lambda: self.show_java_error(LangT("JDK не установилась корректно")))
                     self.root.after(3000, self.show_main_ui)
                     
             except Exception as e:
-                self.root.after(0, lambda: self.show_java_error(f"Ошибка: {str(e)[:200]}"))
+                self.root.after(0, lambda: self.show_java_error(LangT("Ошибка:")+ f"{str(e)[:200]}"))
                 self.root.after(3000, self.show_main_ui)
         
         thread = threading.Thread(target=download_thread, daemon=True)
@@ -426,7 +430,7 @@ class MainWindow:
         if not self.java_path:
             return
         
-        print(f"Устанавливаем JAVA_HOME: {self.java_path}")
+        print(LangT("Устанавливаем JAVA_HOME:") + self.java_path)
         
         if platform.system() == "Windows":
             try:
@@ -461,17 +465,17 @@ class MainWindow:
                 self.broadcast_environment_change()
                 
                 messagebox.showinfo(
-                    "Успех",
-                    f"JDK 17 успешно установлена!\n\n"
-                    f"Путь: {self.java_path}\n"
-                    f"Версия: {self.java_version}\n\n"
-                    f"JAVA_HOME установлен."
+                    LangT("Успех"),
+                    LangT("JDK 17 успешно установлена!\n\n") +
+                    LangT("Путь:") + self.java_path + "\n" +
+                    LangT("Версия:") + self.java_version + "\n\n" +
+                    LangT("JAVA_HOME установлен.")
                 )
                 
                 self.show_main_ui()
                 
             except Exception as e:
-                messagebox.showerror("Ошибка", f"Не удалось установить JAVA_HOME: {e}")
+                messagebox.showerror(LangT("Ошибка"), LangT("Не удалось установить JAVA_HOME:")+ f"{e}")
                 self.show_main_ui()
     
     def find_java_in_path(self):
@@ -603,9 +607,9 @@ class MainWindow:
         def load_in_thread():
             try:
                 self.load_all_icons(None)
-                print("Иконки успешно загружены")
+                print(LangT("Иконки успешно загружены"))
             except Exception as e:
-                print(f"Ошибка при загрузке иконок: {e}")
+                print(LangT("Ошибка при загрузке иконок:")+ f"{e}")
         
         thread = threading.Thread(target=load_in_thread, daemon=True)
         thread.start()
@@ -788,7 +792,7 @@ class MainWindow:
             category_dirs[category_name] = category_dir
         
         # Проверяем наличие всех иконок
-        print("Проверка наличия иконок...")
+        print(LangT("Проверка наличия иконок..."))
         
         missing_icons = {}
         total_expected = 0
@@ -812,7 +816,7 @@ class MainWindow:
         
         # Если все иконки уже есть
         if total_existing == total_expected:
-            print(f"Все иконки уже загружены ({total_existing}/{total_expected})")
+            print(LangT("Все иконки уже загружены")+ f"({total_existing}/{total_expected})")
             return True
         
         # Подготавливаем задачи для загрузки
@@ -868,19 +872,19 @@ class MainWindow:
         # Создаем окно прогресса если есть parent_window
         if parent_window:
             progress_window = ctk.CTkToplevel(parent_window)
-            progress_window.title("Загрузка иконок")
+            progress_window.title(LangT("Загрузка иконок"))
             progress_window.geometry("400x150")
             progress_window.transient(parent_window)
             progress_window.grab_set()
             
-            progress_label = ctk.CTkLabel(progress_window, text="Загрузка иконок...")
+            progress_label = ctk.CTkLabel(progress_window, text=LangT("Загрузка иконок..."))
             progress_label.pack(pady=10)
             
             progress_bar = ctk.CTkProgressBar(progress_window, width=300)
             progress_bar.pack(pady=10)
             progress_bar.set(0)
             
-            status_label = ctk.CTkLabel(progress_window, text="Подготовка...")
+            status_label = ctk.CTkLabel(progress_window, text=LangT("Подготовка..."))
             status_label.pack(pady=5)
             
             progress_window.update()
@@ -889,7 +893,7 @@ class MainWindow:
         total_to_download = len(download_tasks)
         errors = []
         
-        def update_progress(current, total, name, operation="Загрузка"):
+        def update_progress(current, total, name, operation=LangT("Загрузка")):
             if parent_window:
                 progress = current / total if total > 0 else 0
                 progress_bar.set(progress)
@@ -910,7 +914,7 @@ class MainWindow:
                     if os.path.exists(task["save_path"]) and os.path.getsize(task["save_path"]) > 0:
                         return True, task
                     else:
-                        return False, (task, "Файл не загружен или пустой")
+                        return False, (task, LangT("Файл не загружен или пустой"))
                 else:
                     return False, (task, f"HTTP {response.status_code}")
             except Exception as e:
@@ -950,7 +954,7 @@ class MainWindow:
                 return True
                 
             except Exception as e:
-                print(f"Ошибка при склейке слоев: {e}")
+                print(LangT("Ошибка при склейке слоев:")+ f"{e}")
                 return False
         
         try:
@@ -983,7 +987,7 @@ class MainWindow:
                     if merge_layers(final_path, layers_info):
                         merged_count += 1
                     else:
-                        errors.append((layers_info["name"], layers_info["category"], "Ошибка склейки"))
+                        errors.append((layers_info["name"], layers_info["category"], LangT("Ошибка склейки")))
             
             # Очищаем временную директорию
             try:
@@ -994,38 +998,38 @@ class MainWindow:
             if errors and parent_window:
                 error_msg = "\n".join(f"{name}: {error}" for name, _, error in errors[:5])
                 if len(errors) > 5:
-                    error_msg += f"\n... и еще {len(errors)-5} ошибок"
-                messagebox.showwarning("Ошибки загрузки", f"Не удалось загрузить некоторые иконки:\n{error_msg}")
+                    error_msg += LangT("\n... и еще")+ f"{len(errors)-5}"+ LangT("ошибок")
+                messagebox.showwarning(LangT("Ошибки загрузки"), LangT("Не удалось загрузить некоторые иконки:")+f"\n{error_msg}")
             
             if parent_window:
                 progress_window.after(2000, progress_window.destroy)
             
-            print(f"Иконки загружены: {downloaded}/{total_to_download}")
+            print(LangT("Иконки загружены:")+ f"{downloaded}/{total_to_download}")
             return len(errors) == 0
             
         except Exception as e:
             if parent_window and 'progress_window' in locals():
                 progress_window.destroy()
-            print(f"Ошибка загрузки иконок: {e}")
+            print(LangT("Ошибка загрузки иконок:")+ f"{e}")
             return False
     
     def show_java_download_ui(self, install_path):
         """Показывает UI для скачивания Java"""
         self.clear_window()
         
-        ctk.CTkLabel(self.root, text="Установка Java JDK 17", font=("Arial", 20, "bold")).pack(pady=50)
-        ctk.CTkLabel(self.root, text="Java JDK 17 не найдена. Устанавливаю...", 
+        ctk.CTkLabel(self.root, text=LangT("Установка Java JDK 17"), font=("Arial", 20, "bold")).pack(pady=50)
+        ctk.CTkLabel(self.root, text=LangT("Java JDK 17 не найдена. Устанавливаю..."), 
                     font=("Arial", 16)).pack(pady=20)
-        ctk.CTkLabel(self.root, text=f"Путь установки: {install_path}", 
+        ctk.CTkLabel(self.root, text=LangT("Путь установки:")+ f"{install_path}", 
                     font=("Arial", 12)).pack(pady=5)
-        ctk.CTkLabel(self.root, text="Пожалуйста, подождите", 
+        ctk.CTkLabel(self.root, text=LangT("Пожалуйста, подождите"), 
                     font=("Arial", 14)).pack(pady=10)
         
         self.progress_bar = ctk.CTkProgressBar(self.root, width=400)
         self.progress_bar.pack(pady=20)
         self.progress_bar.set(0)
         
-        self.status_label = ctk.CTkLabel(self.root, text="Подготовка...", font=("Arial", 12))
+        self.status_label = ctk.CTkLabel(self.root, text=LangT("Подготовка..."), font=("Arial", 12))
         self.status_label.pack(pady=10)
     
     def update_progress(self, value, status):
@@ -1042,7 +1046,7 @@ class MainWindow:
         try:
             self.update_progress(0, message)
             self.root.update()
-            messagebox.showerror("Ошибка установки JDK", message)
+            messagebox.showerror(LangT("Ошибка установки JDK"), message)
         except:
             pass
     
@@ -1056,7 +1060,7 @@ class MainWindow:
         
         settings_btn = ctk.CTkButton(
             top_frame,
-            text="⚙ Настройки",
+            text=LangT("⚙ Настройки"),
             width=100,
             height=35,
             command=self.open_settings_window
@@ -1094,14 +1098,14 @@ class MainWindow:
         form_frame = ctk.CTkFrame(parent, fg_color="transparent")
         form_frame.pack(pady=30)
         
-        ctk.CTkLabel(form_frame, text="Имя папки мода:", font=("Arial", 14)).pack(pady=3)
+        ctk.CTkLabel(form_frame, text=LangT("Имя папки мода:"), font=("Arial", 14)).pack(pady=3)
         
         self.mod_name_entry = ctk.CTkEntry(form_frame, width=280, height=35, font=("Arial", 13))
         self.mod_name_entry.pack(pady=8)
         
         ctk.CTkButton(
             form_frame,
-            text="Создать",
+            text=LangT("Создать"),
             width=200,
             height=45,
             font=("Arial", 14, "bold"),
@@ -1114,17 +1118,17 @@ class MainWindow:
         """Панель для установки Java"""
         ctk.CTkLabel(parent, text="Mindustry Java Mod Creator", font=("Arial", 20, "bold")).pack(pady=30)
         
-        ctk.CTkLabel(parent, text="Требуется JDK 17", font=("Arial", 16)).pack(pady=10)
+        ctk.CTkLabel(parent, text=LangT("Требуется JDK 17"), font=("Arial", 16)).pack(pady=10)
         
         info_frame = ctk.CTkFrame(parent, fg_color="transparent")
         info_frame.pack(pady=20)
         
-        ctk.CTkLabel(info_frame, text="Для создания модов требуется установить JDK 17.", 
+        ctk.CTkLabel(info_frame, text=LangT("Для создания модов требуется установить JDK 17."), 
                     font=("Arial", 12)).pack(pady=5)
         
         ctk.CTkButton(
             parent,
-            text="Установить JDK 17",
+            text=LangT("Установить JDK 17"),
             width=250,
             height=50,
             font=("Arial", 15, "bold"),
@@ -1135,7 +1139,7 @@ class MainWindow:
     
     def setup_mods_list(self, parent):
         """Настраивает список модов"""
-        ctk.CTkLabel(parent, text="Созданные моды", font=("Arial", 16, "bold")).pack(pady=10)
+        ctk.CTkLabel(parent, text=LangT("Созданные моды"), font=("Arial", 16, "bold")).pack(pady=10)
         
         scroll_frame = ctk.CTkScrollableFrame(parent, height=500)
         scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -1149,7 +1153,7 @@ class MainWindow:
                     mods.append(item)
         
         if not mods:
-            ctk.CTkLabel(scroll_frame, text="Нет модов", font=("Arial", 12)).pack(pady=20)
+            ctk.CTkLabel(scroll_frame, text=LangT("Нет модов"), font=("Arial", 12)).pack(pady=20)
         else:
             for mod_folder in sorted(mods, key=lambda x: x.name):
                 btn = ctk.CTkButton(
@@ -1168,13 +1172,13 @@ class MainWindow:
         mod_name = self.mod_name_entry.get().strip()
         
         if not mod_name:
-            messagebox.showerror("Ошибка", "Введите имя мода!")
+            messagebox.showerror(LangT("Ошибка"), LangT("Введите имя мода!"))
             return
         
         mod_dir = Path("Creator/mods") / mod_name
         
         if mod_dir.exists():
-            if not messagebox.askyesno("Подтверждение", f"Мод '{mod_name}' уже существует. Перезаписать?"):
+            if not messagebox.askyesno(LangT("Подтверждение"), LangT("Мод ")+f"'{mod_name}'"+LangT(" уже существует. Перезаписать?")):
                 return
             shutil.rmtree(mod_dir)
         

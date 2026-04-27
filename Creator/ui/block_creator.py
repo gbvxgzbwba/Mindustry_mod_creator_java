@@ -53,6 +53,13 @@ class BlockCreator:
         self.current_fuel_type = None
         self.current_fuel_var = None
 
+    #block folder
+    PATEH_FOLDER = [
+        "consume_generators", "walls", "solar_panels",
+        "batterys", "beam_nodes", "power_nodes", "shield_walls",
+        "generic_crafter", "bridges", "conveyors"
+    ]
+
 #----------ФУНКЦИИ----------
     def get_absolute_path(self, relative_path):
         """Возвращает абсолютный путь относительно папки мода"""
@@ -1216,11 +1223,7 @@ class BlockCreator:
         formatted_name = self.format_to_lower_camel(name)
         
         # Стандартные папки для проверки
-        standard_folders = [
-            "consume_generators", "walls", "solar_panels",
-            "batterys", "beam_nodes", "power_nodes", "shield_walls",
-            "generic_crafter"
-        ]
+        standard_folders = self.PATEH_FOLDER
         
         # Используем переданные папки или стандартные
         folders_to_check = additional_folders if additional_folders else standard_folders
@@ -1769,11 +1772,6 @@ public class CircularBridge extends ItemBridge {{
         #CircularBridge
 
 #----------ФУНКЦИИ СОЗДАНИЯ----------
-    PATEH_FOLDER = [
-        "consume_generators", "walls", "solar_panels",
-        "batterys", "beam_nodes", "power_nodes", "shield_walls",
-        "generic_crafter", "bridges", "conveyors"
-    ]
 
     #CUSTOM TYPE LOAD
     def create_files(self, content, name, file_type, path):

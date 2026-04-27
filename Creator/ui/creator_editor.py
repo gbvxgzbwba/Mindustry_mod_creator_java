@@ -14,6 +14,7 @@ from datetime import datetime
 import time
 import sys
 import os
+from Creator.utils.lang_system import LangT
 
 def resource_path(relative_path):
     """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
@@ -71,7 +72,6 @@ class CreatorEditor:
             
             for path in possible_paths:
                 if path.exists():
-                    #print(f"Загружаю иконку: {path}")
                     img = Image.open(path)
                     img = img.resize(size, Image.Resampling.LANCZOS)
                     return ctk.CTkImage(img)
@@ -140,7 +140,14 @@ class CreatorEditor:
         else:
             self.save_settings(default_settings)
             return default_settings
-        
+    
+    #block folder
+    PATEH_FOLDER = [
+        "consume_generators", "walls", "solar_panels",
+        "batterys", "beam_nodes", "power_nodes", "shield_walls",
+        "generic_crafter", "bridges", "conveyors"
+    ]
+    
     # Функции-обертки для блоков
     def create_wall(self):
         """Создание стены (обертка)"""
@@ -148,7 +155,7 @@ class CreatorEditor:
             self.block_creator.create_wall()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания стен пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания стен пока не доступен"))
 
     def create_solar_panel(self):
         """Создание стены (обертка)"""
@@ -156,7 +163,7 @@ class CreatorEditor:
             self.block_creator.create_solar_panel()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания солнечной панели пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания солнечной панели пока не доступен"))
     
     def create_battery(self):
         """Создание стены (обертка)"""
@@ -164,7 +171,7 @@ class CreatorEditor:
             self.block_creator.create_battery()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания батареи панели пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания батареи пока не доступен"))
 
     def create_consume_generator(self):
         """Создание стены (обертка)"""
@@ -172,7 +179,7 @@ class CreatorEditor:
             self.block_creator.create_consume_generator()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания генератора пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания генератора пока не доступен"))
     
     def create_beam_node(self):
         """Создание стены (обертка)"""
@@ -180,7 +187,7 @@ class CreatorEditor:
             self.block_creator.create_beam_node()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания энергитического башни пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания энергетической башни пока не доступен"))
     
     def create_power_node(self):
         """Создание стены (обертка)"""
@@ -188,7 +195,7 @@ class CreatorEditor:
             self.block_creator.create_power_node()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания энергитического узла пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания энергетического узла пока не доступен"))
     
     def create_shield_wall(self):
         """Создание стены (обертка)"""
@@ -196,7 +203,7 @@ class CreatorEditor:
             self.block_creator.create_shield_wall()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания Экранированой стены пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания экранированной стены пока не доступен"))
     
     def create_generic_crafter(self):
         """Создание стены (обертка)"""
@@ -204,7 +211,7 @@ class CreatorEditor:
             self.block_creator.create_generic_crafter()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания Завода пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания завода пока не доступен"))
     
     def create_bridge(self):
         """Создание стены (обертка)"""
@@ -212,7 +219,7 @@ class CreatorEditor:
             self.block_creator.create_bridge()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания моста пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания моста пока не доступен"))
 
     def create_conveyor(self):
         """Создание стены (обертка)"""
@@ -220,7 +227,7 @@ class CreatorEditor:
             self.block_creator.create_conveyor()
         else:
             print("Ошибка: block_creator не инициализирован")
-            messagebox.showinfo("Информация", "Модуль создания конвеера пока не доступен")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания конвейера пока не доступен"))
 
     # ===================
     def move_and_rename_file(self):
@@ -267,23 +274,23 @@ class CreatorEditor:
             
             if success:
                 save_folder = self.settings.get("save_folder", "mods")
-                messagebox.showinfo("Успех", f"Файл перемещен в {save_folder}/{self.TP_new_name}")
+                messagebox.showinfo(LangT("Успех"), LangT(f"Файл перемещен в {save_folder}/{self.TP_new_name}"))
             else:
-                messagebox.showwarning("Предупреждение", "Не удалось переместить файл. Возможно, он не найден.")
+                messagebox.showwarning(LangT("Предупреждение"), LangT("Не удалось переместить файл. Возможно, он не найден."))
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка при перемещении: {e}")
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при перемещении: {e}"))
 
     def compile_mod(self):
         """Запуск компиляции в отдельном потоке с окном логов"""
         if self.compiling:
-            messagebox.showwarning("Внимание", "Компиляция уже выполняется")
+            messagebox.showwarning(LangT("Внимание"), LangT("Компиляция уже выполняется"))
             return
         
         self.compiling = True
         
         # Создаем окно для логов
         log_window = ctk.CTkToplevel(self.root)
-        log_window.title(f"Компиляция {self.mod_name}")
+        log_window.title(LangT(f"Компиляция {self.mod_name}"))
         log_window.geometry("800x600")
         log_window.minsize(600, 400)
         
@@ -303,12 +310,12 @@ class CreatorEditor:
         def copy_logs():
             log_window.clipboard_clear()
             log_window.clipboard_append(log_text.get("1.0", "end-1c"))
-            copy_btn.configure(text="✅ Скопировано!", state="disabled")
-            log_window.after(1500, lambda: copy_btn.configure(text="📋 Копировать", state="normal"))
+            copy_btn.configure(text=LangT("✅ Скопировано!"), state="disabled")
+            log_window.after(1500, lambda: copy_btn.configure(text=LangT("📋 Копировать"), state="normal"))
         
         copy_btn = ctk.CTkButton(
             button_frame,
-            text="📋 Копировать",
+            text=LangT("📋 Копировать"),
             command=copy_logs,
             width=120,
             height=30,
@@ -335,7 +342,7 @@ class CreatorEditor:
         # Кнопка закрытия (изначально неактивна)
         close_btn = ctk.CTkButton(
             log_frame,
-            text="Закрыть",
+            text=LangT("Закрыть"),
             state="disabled",
             command=log_window.destroy,
             height=35,
@@ -375,7 +382,7 @@ class CreatorEditor:
             2. Tree.Load(); - должен быть в самом низу
             3. Все остальные строки - между ними
             """
-            print("\n📝 Анализ файла...")
+            print(LangT("\n📝 Анализ файла..."))
             lines = file_content.split('\n')
             
             # Находим маркер //Registration_add
@@ -386,10 +393,10 @@ class CreatorEditor:
                     break
             
             if registration_marker_line == -1:
-                print("⚠️ Маркер //Registration_add не найден")
+                print(LangT("⚠️ Маркер //Registration_add не найден"))
                 return file_content
             
-            print(f"✅ Найден маркер //Registration_add на строке {registration_marker_line + 1}")
+            print(LangT(f"✅ Найден маркер //Registration_add на строке {registration_marker_line + 1}"))
             
             # Ищем строки после маркера до конца метода или пустой строки
             start_line = registration_marker_line + 1
@@ -403,10 +410,10 @@ class CreatorEditor:
                     break
             
             if start_line >= end_line:
-                print(f"⚠️ Блок после маркера пуст (строки {start_line}-{end_line})")
+                print(LangT(f"⚠️ Блок после маркера пуст (строки {start_line}-{end_line})"))
                 return file_content
             
-            print(f"📦 Найден блок строк {start_line + 1}-{end_line + 1}")
+            print(LangT(f"📦 Найден блок строк {start_line + 1}-{end_line + 1}"))
             
             # Собираем все строки в блоке
             moditems_line = None
@@ -421,20 +428,20 @@ class CreatorEditor:
                 if stripped:  # Только непустые строки
                     if "ModItems.Load();" in stripped:
                         moditems_line = (i, line)
-                        print(f"  🔹 Найден ModItems.Load() на строке {i + 1}")
+                        print(LangT(f"  🔹 Найден ModItems.Load() на строке {i + 1}"))
                     elif "ModLiquid.Load();" in stripped:
                         modliquid_line = (i, line)
-                        print(f"  🔹 Найден ModLiquid.Load() на строке {i + 1}")
+                        print(LangT(f"  🔹 Найден ModLiquid.Load() на строке {i + 1}"))
                     elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", "BatteryTree.Load();", "SolarTree.Load();", "ShieldTree.Load();", "PowerNodeTree.Load();", "BeamTree.Load();", "GeneratorTree.Load();", "CrafterTree.Load();"]):
                         tree_line = (i, line)
-                        print(f"  🔻 Найден Tree.Load() на строке {i + 1}")
+                        print(LangT(f"  🔻 Найден Tree.Load() на строке {i + 1}"))
                     else:
                         other_lines.append((i, line))
-                        print(f"  🔸 Обычная строка [{i + 1}]: {stripped}")
+                        print(LangT(f"  🔸 Обычная строка [{i + 1}]: {stripped}"))
             
             # Если не найдено ни одного из нужных методов
             if moditems_line is None and modliquid_line is None and tree_line is None and not other_lines:
-                print("⚠️ В блоке нет строк для сортировки")
+                print(LangT("⚠️ В блоке нет строк для сортировки"))
                 return file_content
             
             # Определяем, нужно ли что-то менять
@@ -445,18 +452,18 @@ class CreatorEditor:
                 moditems_pos, _ = moditems_line
                 if moditems_pos != start_line and (modliquid_line is None or moditems_pos != start_line + 1):
                     changes_needed = True
-                    print("❌ ModItems не на правильной позиции")
+                    print(LangT("❌ ModItems не на правильной позиции"))
             
             if modliquid_line:
                 modliquid_pos, _ = modliquid_line
                 if moditems_line:
                     if modliquid_pos != start_line + 1:
                         changes_needed = True
-                        print("❌ ModLiquid не на правильной позиции")
+                        print(LangT("❌ ModLiquid не на правильной позиции"))
                 else:
                     if modliquid_pos != start_line:
                         changes_needed = True
-                        print("❌ ModLiquid не на правильной позиции")
+                        print(LangT("❌ ModLiquid не на правильной позиции"))
             
             # Проверяем позицию Tree - должна быть последней
             if tree_line:
@@ -464,14 +471,14 @@ class CreatorEditor:
                 max_other_pos = max([pos for pos, _ in other_lines]) if other_lines else start_line - 1
                 if tree_pos <= max_other_pos:
                     changes_needed = True
-                    print(f"❌ Tree не внизу (позиция {tree_pos + 1}, последняя обычная строка {max_other_pos + 1})")
+                    print(LangT(f"❌ Tree не внизу (позиция {tree_pos + 1}, последняя обычная строка {max_other_pos + 1})"))
             
             if not changes_needed:
-                print("✅ Порядок уже правильный")
+                print(LangT("✅ Порядок уже правильный"))
                 return file_content
             
             # СОРТИРУЕМ
-            print("\n🔄 Выполняется сортировка...")
+            print(LangT("\n🔄 Выполняется сортировка..."))
             
             sorted_lines = []
             
@@ -479,31 +486,31 @@ class CreatorEditor:
             if moditems_line:
                 _, line_str = moditems_line
                 sorted_lines.append(line_str)
-                print(f"  📌 ModItems на позицию 1")
+                print(LangT("  📌 ModItems на позицию 1"))
             
             # 2. ModLiquid (если есть)
             if modliquid_line:
                 _, line_str = modliquid_line
                 sorted_lines.append(line_str)
-                print(f"  📌 ModLiquid на позицию {2 if moditems_line else 1}")
+                print(LangT(f"  📌 ModLiquid на позицию {2 if moditems_line else 1}"))
             
             # 3. Все остальные (кроме Tree) - сортируем по алфавиту
             other_texts = [line for _, line in other_lines]
             other_texts.sort(key=lambda x: x.strip().lower())
             sorted_lines.extend(other_texts)
             if other_texts:
-                print(f"  📌 {len(other_texts)} обычных строк (отсортированы)")
+                print(LangT(f"  📌 {len(other_texts)} обычных строк (отсортированы)"))
             
             # 4. Tree (в самом конце)
             if tree_line:
                 _, tree_str = tree_line
                 sorted_lines.append(tree_str)
-                print(f"  📌 Tree в конец")
+                print(LangT("  📌 Tree в конец"))
             
             # Создаем новый список строк
             new_lines = lines[:start_line] + sorted_lines + lines[end_line:]
             
-            print("✅ Сортировка завершена")
+            print(LangT("✅ Сортировка завершена"))
             return '\n'.join(new_lines)
         
         def compile_thread():
@@ -511,23 +518,23 @@ class CreatorEditor:
                 original_cwd = os.getcwd()
                 
                 log_to_window("="*60, "HEADER")
-                log_to_window("🚀 НАЧАЛО КОМПИЛЯЦИИ", "HEADER")
+                log_to_window(LangT("🚀 НАЧАЛО КОМПИЛЯЦИИ"), "HEADER")
                 log_to_window("="*60, "HEADER")
-                log_to_window(f"📁 Мод: {self.mod_name}", "INFO")
-                log_to_window(f"📂 Папка: {self.mod_folder}", "INFO")
+                log_to_window(LangT(f"📁 Мод: {self.mod_name}"), "INFO")
+                log_to_window(LangT(f"📂 Папка: {self.mod_folder}"), "INFO")
                 
                 # ПЕРЕД ВСЕМ - сортируем строки в главном файле
                 mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
                 main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
                 
-                log_to_window(f"\n📄 Проверка файла: {main_mod_path}", "HEADER")
+                log_to_window(LangT(f"\n📄 Проверка файла: {main_mod_path}"), "HEADER")
                 
                 if main_mod_path.exists():
                     try:
                         with open(main_mod_path, 'r', encoding='utf-8') as file:
                             content = file.read()
                         
-                        log_to_window(f"📊 Размер файла: {len(content)} символов", "INFO")
+                        log_to_window(LangT(f"📊 Размер файла: {len(content)} символов"), "INFO")
                         
                         # Сортируем строки после //Registration_add
                         sorted_content = sort_registration_lines(content)
@@ -535,18 +542,18 @@ class CreatorEditor:
                         if sorted_content != content:
                             with open(main_mod_path, 'w', encoding='utf-8') as file:
                                 file.write(sorted_content)
-                            log_to_window("✅ Файл обновлен: строки отсортированы", "SUCCESS")
+                            log_to_window(LangT("✅ Файл обновлен: строки отсортированы"), "SUCCESS")
                         else:
-                            log_to_window("✅ Файл уже в правильном порядке", "SUCCESS")
+                            log_to_window(LangT("✅ Файл уже в правильном порядке"), "SUCCESS")
                             
                     except Exception as e:
-                        log_to_window(f"❌ Ошибка при обработке файла: {e}", "ERROR")
+                        log_to_window(LangT(f"❌ Ошибка при обработке файла: {e}"), "ERROR")
                 else:
-                    log_to_window(f"⚠️ Файл не найден: {main_mod_path}", "WARNING")
+                    log_to_window(LangT(f"⚠️ Файл не найден: {main_mod_path}"), "WARNING")
                 
                 # ТЕПЕРЬ переходим в папку мода и компилируем
                 log_to_window("\n" + "="*60, "HEADER")
-                log_to_window("⚙️ ЗАПУСК GRADLE", "HEADER")
+                log_to_window(LangT("⚙️ ЗАПУСК GRADLE"), "HEADER")
                 log_to_window("="*60, "HEADER")
                 
                 os.chdir(str(self.mod_folder))
@@ -554,10 +561,10 @@ class CreatorEditor:
                 gradle_script = "gradlew.bat" if platform.system() == "Windows" else "./gradlew"
                 
                 if not Path(gradle_script).exists():
-                    log_to_window(f"❌ {gradle_script} не найден в папке мода!", "ERROR")
+                    log_to_window(LangT(f"❌ {gradle_script} не найден в папке мода!"), "ERROR")
                     self.root.after(0, lambda: messagebox.showerror(
-                        "Ошибка", 
-                        f"{gradle_script} не найден в папке мода!"
+                        LangT("Ошибка"), 
+                        LangT(f"{gradle_script} не найден в папке мода!")
                     ))
                     self.compiling = False
                     os.chdir(original_cwd)
@@ -565,12 +572,12 @@ class CreatorEditor:
                     progress.stop()
                     return
                 
-                log_to_window(f"✅ Gradle найден: {gradle_script}", "SUCCESS")
+                log_to_window(LangT(f"✅ Gradle найден: {gradle_script}"), "SUCCESS")
                 
                 # Компилируем с выводом в реальном времени
                 cmd = [gradle_script, "jar"]
-                log_to_window(f"📋 Команда: {' '.join(cmd)}", "INFO")
-                log_to_window("\n⏳ Компиляция выполняется...\n", "HEADER")
+                log_to_window(LangT(f"📋 Команда: {' '.join(cmd)}"), "INFO")
+                log_to_window(LangT("\n⏳ Компиляция выполняется...\n"), "HEADER")
                 
                 # Запускаем процесс с pipe для чтения вывода в реальном времени
                 process = subprocess.Popen(
@@ -603,55 +610,55 @@ class CreatorEditor:
                 
                 # Обрабатываем результат
                 if return_code == 0:
-                    log_to_window("✅ КОМПИЛЯЦИЯ УСПЕШНА!", "SUCCESS")
+                    log_to_window(LangT("✅ КОМПИЛЯЦИЯ УСПЕШНА!"), "SUCCESS")
                     
                     jar_files = list(Path(self.mod_folder).glob("build/libs/*.jar"))
                     if jar_files:
                         jar_name = jar_files[0].name
                         jar_size = jar_files[0].stat().st_size / 1024
-                        log_to_window(f"📦 JAR: {jar_name}", "SUCCESS")
-                        log_to_window(f"📊 Размер: {jar_size:.2f} KB", "SUCCESS")
+                        log_to_window(LangT(f"📦 JAR: {jar_name}"), "SUCCESS")
+                        log_to_window(LangT(f"📊 Размер: {jar_size:.2f} KB"), "SUCCESS")
                         
                         self.root.after(0, lambda: messagebox.showinfo(
-                            "Успех", 
-                            f"✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size:.2f} KB"
+                            LangT("Успех"), 
+                            LangT(f"✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size:.2f} KB")
                         ))
                         
                         # Запускаем перемещение файла - ТАК ЖЕ КАК В СТАРОМ КОДЕ
-                        log_to_window("📦 Запуск перемещения JAR...", "INFO")
+                        log_to_window(LangT("📦 Запуск перемещения JAR..."), "INFO")
                         self.teleporte()  # Прямой вызов, как в старом коде
                     else:
-                        log_to_window("⚠️ JAR файл не найден в build/libs/", "WARNING")
+                        log_to_window(LangT("⚠️ JAR файл не найден в build/libs/"), "WARNING")
                         self.root.after(0, lambda: messagebox.showinfo(
-                            "Успех", 
-                            "Компиляция завершена, но JAR файл не найден"
+                            LangT("Успех"), 
+                            LangT("Компиляция завершена, но JAR файл не найден")
                         ))
                 else:
-                    error_msg = stderr[:500] if stderr else "Неизвестная ошибка"
-                    log_to_window(f"❌ ОШИБКА КОМПИЛЯЦИИ! Код: {return_code}", "ERROR")
-                    log_to_window(f"📄 Ошибка: {error_msg}", "ERROR")
+                    error_msg = stderr[:500] if stderr else LangT("Неизвестная ошибка")
+                    log_to_window(LangT(f"❌ ОШИБКА КОМПИЛЯЦИИ! Код: {return_code}"), "ERROR")
+                    log_to_window(LangT(f"📄 Ошибка: {error_msg}"), "ERROR")
                     
                     self.root.after(0, lambda: messagebox.showerror(
-                        "Ошибка", 
-                        f"Ошибка компиляции:\n{error_msg}"
+                        LangT("Ошибка"), 
+                        LangT(f"Ошибка компиляции:\n{error_msg}")
                     ))
                 
                 log_to_window("="*60, "HEADER")
                 
             except subprocess.TimeoutExpired:
-                log_to_window("⏰ ТАЙМАУТ! Компиляция превысила время ожидания (5 минут)", "ERROR")
+                log_to_window(LangT("⏰ ТАЙМАУТ! Компиляция превысила время ожидания (5 минут)"), "ERROR")
                 self.root.after(0, lambda: messagebox.showerror(
-                    "Таймаут", 
-                    "Компиляция превысила время ожидания (5 минут)"
+                    LangT("Таймаут"), 
+                    LangT("Компиляция превысила время ожидания (5 минут)")
                 ))
             
             except Exception as e:
-                log_to_window(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {e}", "ERROR")
+                log_to_window(LangT(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {e}"), "ERROR")
                 import traceback
                 log_to_window(traceback.format_exc(), "ERROR")
                 self.root.after(0, lambda: messagebox.showerror(
-                    "Ошибка", 
-                    f"Ошибка: {str(e)}"
+                    LangT("Ошибка"), 
+                    LangT(f"Ошибка: {str(e)}")
                 ))
             
             finally:
@@ -663,7 +670,7 @@ class CreatorEditor:
                 self.compiling = False
                 close_btn.configure(state="normal")
                 progress.stop()
-                log_to_window("\n🏁 Компиляция завершена", "HEADER")
+                log_to_window(LangT("\n🏁 Компиляция завершена"), "HEADER")
         
         # Запускаем компиляцию в отдельном потоке
         thread = threading.Thread(target=compile_thread, daemon=True)
@@ -676,7 +683,7 @@ class CreatorEditor:
         
         # Создаем новое окно
         self.progress_window = ctk.CTkToplevel(self.root)
-        self.progress_window.title("Компиляция")
+        self.progress_window.title(LangT("Компиляция"))
         self.progress_window.geometry("400x150")
         self.progress_window.resizable(False, False)
         
@@ -694,7 +701,7 @@ class CreatorEditor:
         
         ctk.CTkLabel(
             self.progress_window, 
-            text="Компиляция мода...", 
+            text=LangT("Компиляция мода..."), 
             font=("Arial", 14, "bold")
         ).pack(pady=20)
         
@@ -734,7 +741,7 @@ class CreatorEditor:
     def on_progress_window_close(self):
         """Обработчик закрытия окна прогресса пользователем"""
         if self.compiling:
-            if messagebox.askyesno("Подтверждение", "Прервать компиляцию?"):
+            if messagebox.askyesno(LangT("Подтверждение"), LangT("Прервать компиляцию?")):
                 self.compiling = False
                 self.safe_close_progress_window()
         else:
@@ -755,12 +762,7 @@ class CreatorEditor:
     def create_item(self):
         """Создает или добавляет новый предмет в ModItems.java"""
 
-        PATEH_FOLDER = [
-            "consume_generators", "walls",
-            "solar_panels", "batterys",
-            "beam_nodes", "power_nodes",
-            "shield_walls"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
         
         # Очищаем всё окно
         self.clear_window()
@@ -784,7 +786,7 @@ class CreatorEditor:
         
         title_label = ctk.CTkLabel(
             title_frame,
-            text="Создание предмета",
+            text=LangT("Создание предмета"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"  # Зеленый цвет
         )
@@ -803,7 +805,7 @@ class CreatorEditor:
         # Заголовок карточки
         card_title = ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -815,7 +817,7 @@ class CreatorEditor:
         
         name_label = ctk.CTkLabel(
             name_frame,
-            text="Название предмета (английское, можно пробел, первая буква маленькая):",
+            text=LangT("Название предмета (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -825,7 +827,7 @@ class CreatorEditor:
             name_frame,
             width=400,
             height=40,
-            placeholder_text="item name",
+            placeholder_text=LangT("item name"),
             font=("Arial", 15),
             border_width=2,
             corner_radius=8,
@@ -916,7 +918,7 @@ class CreatorEditor:
         # Заголовок карточки свойств
         properties_title = ctk.CTkLabel(
             properties_card,
-            text="Свойства предмета",
+            text=LangT("Свойства предмета"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -932,7 +934,7 @@ class CreatorEditor:
         
         charge_label = ctk.CTkLabel(
             charge_frame,
-            text="⚡ Заряд (charge):",
+            text=LangT("⚡ Заряд (charge):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -942,7 +944,7 @@ class CreatorEditor:
             charge_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
@@ -959,7 +961,7 @@ class CreatorEditor:
         
         flammability_label = ctk.CTkLabel(
             flammability_frame,
-            text="🔥 Воспламеняемость (flammability):",
+            text=LangT("🔥 Воспламеняемость (flammability):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -969,7 +971,7 @@ class CreatorEditor:
             flammability_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
@@ -986,7 +988,7 @@ class CreatorEditor:
         
         explosiveness_label = ctk.CTkLabel(
             explosiveness_frame,
-            text="💥 Взрывоопасность (explosiveness):",
+            text=LangT("💥 Взрывоопасность (explosiveness):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -996,7 +998,7 @@ class CreatorEditor:
             explosiveness_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
@@ -1013,7 +1015,7 @@ class CreatorEditor:
         
         radioactivity_label = ctk.CTkLabel(
             radioactivity_frame,
-            text="☢️ Радиоактивность (radioactivity):",
+            text=LangT("☢️ Радиоактивность (radioactivity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1023,7 +1025,7 @@ class CreatorEditor:
             radioactivity_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
@@ -1084,7 +1086,7 @@ class CreatorEditor:
         # Заголовок карточки опций
         options_title = ctk.CTkLabel(
             options_card,
-            text="Дополнительные опции",
+            text=LangT("Дополнительные опции"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -1098,7 +1100,7 @@ class CreatorEditor:
         
         always_unlocked_checkbox = ctk.CTkCheckBox(
             always_unlocked_frame,
-            text="🔓 Always Unlocked",
+            text=LangT("🔓 Always Unlocked"),
             variable=always_unlocked_var,
             font=("Arial", 15),
             text_color="#BDBDBD",  # Серый текст
@@ -1205,7 +1207,7 @@ class CreatorEditor:
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите имя предмета!", 
+                    text=LangT("❌ Ошибка: Введите имя предмета!"), 
                     text_color="#F44336"  # Красный цвет для ошибки
                 )
                 return
@@ -1215,7 +1217,7 @@ class CreatorEditor:
             
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -1223,14 +1225,14 @@ class CreatorEditor:
             # Проверка имени по текстурам
             if check_if_name_exists(original_name):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!"), 
                     text_color="#F44336"
                 )
                 return
             
             # Копируем случайную иконку
             icon_copied = copy_icon(original_name)
-            icon_status = "✅ Иконка создана" if icon_copied else "⚠️ Иконка не создана"
+            icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
             
             # Получаем значения свойств
             charge_value = entry_charge.get().strip() or "0"
@@ -1433,33 +1435,33 @@ public class ModItems {{
                     
                     # Формируем статус с информацией о добавленных элементах
                     status_messages = [
-                        f"✅ Предмет '{var_name}' успешно создан!",
-                        f'📋 Имя в игре: "{constructor_name}"',
-                        f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)",
-                        f"🔧 Always Unlocked: {always_unlocked_value}",
-                        "📊 Свойства предмета:",
-                        f"  • ⚡ Заряд: {charge_value}",
-                        f"  • 🔥 Воспламеняемость: {flammability_value}",
-                        f"  • 💥 Взрывоопасность: {explosiveness_value}",
-                        f"  • ☢️ Радиоактивность: {radioactivity_value}"
+                        LangT(f"✅ Предмет '{var_name}' успешно создан!"),
+                        LangT(f'📋 Имя в игре: "{constructor_name}"'),
+                        LangT(f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)"),
+                        LangT(f"🔧 Always Unlocked: {always_unlocked_value}"),
+                        LangT("📊 Свойства предмета:"),
+                        LangT(f"  • ⚡ Заряд: {charge_value}"),
+                        LangT(f"  • 🔥 Воспламеняемость: {flammability_value}"),
+                        LangT(f"  • 💥 Взрывоопасность: {explosiveness_value}"),
+                        LangT(f"  • ☢️ Радиоактивность: {radioactivity_value}")
                     ]
                     
                     if import_added:
-                        status_messages.append("📥 Импорт добавлен в главный файл (через //import_add)")
+                        status_messages.append(LangT("📥 Импорт добавлен в главный файл (через //import_add)"))
                     else:
-                        status_messages.append("ℹ️ Импорт уже присутствует в главном файле")
+                        status_messages.append(LangT("ℹ️ Импорт уже присутствует в главном файле"))
                     
                     if registration_added:
-                        status_messages.append("📝 Регистрация добавлена в главный файл (через //Registration_add)")
+                        status_messages.append(LangT("📝 Регистрация добавлена в главный файл (через //Registration_add)"))
                     else:
-                        status_messages.append("ℹ️ Регистрация уже присутствует в главном файле")
+                        status_messages.append(LangT("ℹ️ Регистрация уже присутствует в главном файле"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except FileNotFoundError:
                     print(f"Главный файл мода не найден: {main_mod_path}")
-                    status_text = f"""✅ Предмет '{var_name}' создан!
+                    status_text = LangT(f"""✅ Предмет '{var_name}' создан!
     📋 Имя в игре: '{constructor_name}'
     🖼️ {icon_status}
     ⚠️ Главный файл мода не найден: {main_mod_path}
@@ -1468,11 +1470,11 @@ public class ModItems {{
     • ⚡ Заряд: {charge_value}
     • 🔥 Воспламеняемость: {flammability_value}
     • 💥 Взрывоопасность: {explosiveness_value}
-    • ☢️ Радиоактивность: {radioactivity_value}"""
+    • ☢️ Радиоактивность: {radioactivity_value}""")
                     status_label.configure(text=status_text, text_color="#FF9800")
                 except Exception as e:
                     print(f"Ошибка при работе с главным файлом: {e}")
-                    status_text = f"""✅ Предмет '{var_name}' создан!
+                    status_text = LangT(f"""✅ Предмет '{var_name}' создан!
     📋 Имя в игре: '{constructor_name}'
     🖼️ {icon_status}
     ⚠️ Ошибка при обновлении главного файла: {e}
@@ -1481,11 +1483,11 @@ public class ModItems {{
     • ⚡ Заряд: {charge_value}
     • 🔥 Воспламеняемость: {flammability_value}
     • 💥 Взрывоопасность: {explosiveness_value}
-    • ☢️ Радиоактивность: {radioactivity_value}"""
+    • ☢️ Радиоактивность: {radioactivity_value}""")
                     status_label.configure(text=status_text, text_color="#FF9800")
             else:
                 status_label.configure(
-                    text="⚠️ Предмет уже существует", 
+                    text=LangT("⚠️ Предмет уже существует"), 
                     text_color="#FF9800"
                 )
             
@@ -1503,7 +1505,7 @@ public class ModItems {{
         # Кнопка создания
         create_btn = ctk.CTkButton(
             buttons_frame,
-            text="🚀 Создать предмет",
+            text=LangT("🚀 Создать предмет"),
             command=process_item,
             height=45,
             width=200,
@@ -1520,7 +1522,7 @@ public class ModItems {{
         # Кнопка назад
         back_btn = ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=back_to_main,
             height=45,
             width=120,
@@ -1538,7 +1540,7 @@ public class ModItems {{
         
         tips_label = ctk.CTkLabel(
             tips_frame,
-            text="💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'item', 'bigItem', 'energyCore'",
+            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'item', 'bigItem', 'energyCore'"),
             font=("Arial", 12),
             text_color="#9E9E9E",  # Серый текст
             wraplength=450
@@ -1548,12 +1550,7 @@ public class ModItems {{
     def create_liquid(self):
         """Создает или добавляет новую жидкость в ModLiquid.java"""
 
-        PATEH_FOLDER = [
-            "consume_generators", "walls",
-            "solar_panels", "batterys",
-            "beam_nodes", "power_nodes",
-            "shield_walls"
-        ]
+        PATEH_FOLDER = self.PATEH_FOLDER
         
         # Очищаем всё окно
         self.clear_window()
@@ -1577,7 +1574,7 @@ public class ModItems {{
         
         title_label = ctk.CTkLabel(
             title_frame,
-            text="Создание жидкости",
+            text=LangT("Создание жидкости"),
             font=("Arial", 24, "bold"),
             text_color="#2196F3"  # Синий цвет для жидкости
         )
@@ -1596,7 +1593,7 @@ public class ModItems {{
         # Заголовок карточки
         card_title = ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -1608,7 +1605,7 @@ public class ModItems {{
         
         name_label = ctk.CTkLabel(
             name_frame,
-            text="Название жидкости (английское, можно пробел, первая буква маленькая):",
+            text=LangT("Название жидкости (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1618,7 +1615,7 @@ public class ModItems {{
             name_frame,
             width=400,
             height=40,
-            placeholder_text="liquid name",
+            placeholder_text=LangT("liquid name"),
             font=("Arial", 15),
             border_width=2,
             corner_radius=8,
@@ -1752,7 +1749,7 @@ public class ModItems {{
         # Заголовок карточки свойств
         properties_title = ctk.CTkLabel(
             properties_card,
-            text="Свойства жидкости",
+            text=LangT("Свойства жидкости"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -1768,7 +1765,7 @@ public class ModItems {{
         
         flammability_label = ctk.CTkLabel(
             flammability_frame,
-            text="🔥 Воспламеняемость (flammability):",
+            text=LangT("🔥 Воспламеняемость (flammability):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1778,7 +1775,7 @@ public class ModItems {{
             flammability_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd_float,
@@ -1795,7 +1792,7 @@ public class ModItems {{
         
         explosiveness_label = ctk.CTkLabel(
             explosiveness_frame,
-            text="💥 Взрывоопасность (explosiveness):",
+            text=LangT("💥 Взрывоопасность (explosiveness):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1805,7 +1802,7 @@ public class ModItems {{
             explosiveness_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd_float,
@@ -1822,7 +1819,7 @@ public class ModItems {{
         
         temperature_label = ctk.CTkLabel(
             temperature_frame,
-            text="🌡️ Температура (temperature):",
+            text=LangT("🌡️ Температура (temperature):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1832,7 +1829,7 @@ public class ModItems {{
             temperature_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd_float,
@@ -1849,7 +1846,7 @@ public class ModItems {{
         
         viscosity_label = ctk.CTkLabel(
             viscosity_frame,
-            text="💧 Вязкость (viscosity):",
+            text=LangT("💧 Вязкость (viscosity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"  # Серый текст
         )
@@ -1859,7 +1856,7 @@ public class ModItems {{
             viscosity_frame,
             width=180,
             height=38,
-            placeholder_text="0.00",
+            placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd_viscosity,
@@ -1920,7 +1917,7 @@ public class ModItems {{
         # Заголовок карточки опций
         options_title = ctk.CTkLabel(
             options_card,
-            text="Дополнительные опции",
+            text=LangT("Дополнительные опции"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"  # Светло-серый текст
         )
@@ -1934,7 +1931,7 @@ public class ModItems {{
         
         always_unlocked_checkbox = ctk.CTkCheckBox(
             always_unlocked_frame,
-            text="🔓 Always Unlocked",
+            text=LangT("🔓 Always Unlocked"),
             variable=always_unlocked_var,
             font=("Arial", 15),
             text_color="#BDBDBD",  # Серый текст
@@ -2049,7 +2046,7 @@ public class ModItems {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите имя жидкости!", 
+                    text=LangT("❌ Ошибка: Введите имя жидкости!"), 
                     text_color="#F44336"  # Красный цвет для ошибки
                 )
                 return
@@ -2059,7 +2056,7 @@ public class ModItems {{
             
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2067,14 +2064,14 @@ public class ModItems {{
             # Проверка имени по текстурам
             if check_if_name_exists(original_name):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!"), 
                     text_color="#F44336"
                 )
                 return
             
             # Копируем иконку
             icon_copied = copy_liquid_icon(original_name)
-            icon_status = "✅ Иконка создана" if icon_copied else "⚠️ Иконка не создана"
+            icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
             
             # Получаем значения свойств
             flammability_value = entry_flammability.get().strip() or "0"
@@ -2279,33 +2276,33 @@ public class ModLiquid {{
                     
                     # Формируем статус с информацией о добавленных элементах
                     status_messages = [
-                        f"✅ Жидкость '{var_name}' успешно создана!",
-                        f'📋 Имя в игре: "{constructor_name}"',
-                        f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)",
-                        f"🔧 Always Unlocked: {always_unlocked_value}",
-                        "📊 Свойства жидкости:",
-                        f"  • 🔥 Воспламеняемость: {flammability_value}",
-                        f"  • 💥 Взрывоопасность: {explosiveness_value}",
-                        f"  • 🌡️ Температура: {temperature_value}",
-                        f"  • 💧 Вязкость: {viscosity_value}"
+                        LangT(f"✅ Жидкость '{var_name}' успешно создана!"),
+                        LangT(f'📋 Имя в игре: "{constructor_name}"'),
+                        LangT(f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)"),
+                        LangT(f"🔧 Always Unlocked: {always_unlocked_value}"),
+                        LangT("📊 Свойства жидкости:"),
+                        LangT(f"  • 🔥 Воспламеняемость: {flammability_value}"),
+                        LangT(f"  • 💥 Взрывоопасность: {explosiveness_value}"),
+                        LangT(f"  • 🌡️ Температура: {temperature_value}"),
+                        LangT(f"  • 💧 Вязкость: {viscosity_value}")
                     ]
                     
                     if import_added:
-                        status_messages.append("📥 Импорт добавлен в главный файл (через //import_add)")
+                        status_messages.append(LangT("📥 Импорт добавлен в главный файл (через //import_add)"))
                     else:
-                        status_messages.append("ℹ️ Импорт уже присутствует в главном файле")
+                        status_messages.append(LangT("ℹ️ Импорт уже присутствует в главном файле"))
                     
                     if registration_added:
-                        status_messages.append("📝 Регистрация добавлена в главный файл (через //Registration_add)")
+                        status_messages.append(LangT("📝 Регистрация добавлена в главный файл (через //Registration_add)"))
                     else:
-                        status_messages.append("ℹ️ Регистрация уже присутствует в главном файле")
+                        status_messages.append(LangT("ℹ️ Регистрация уже присутствует в главном файле"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#2196F3")
                     
                 except FileNotFoundError:
                     print(f"Главный файл мода не найден: {main_mod_path}")
-                    status_text = f"""✅ Жидкость '{var_name}' создана!
+                    status_text = LangT(f"""✅ Жидкость '{var_name}' создана!
     📋 Имя в игре: '{constructor_name}'
     🖼️ {icon_status}
     ⚠️ Главный файл мода не найден: {main_mod_path}
@@ -2314,11 +2311,11 @@ public class ModLiquid {{
     • 🔥 Воспламеняемость: {flammability_value}
     • 💥 Взрывоопасность: {explosiveness_value}
     • 🌡️ Температура: {temperature_value}
-    • 💧 Вязкость: {viscosity_value}"""
+    • 💧 Вязкость: {viscosity_value}""")
                     status_label.configure(text=status_text, text_color="#FF9800")
                 except Exception as e:
                     print(f"Ошибка при работе с главным файлом: {e}")
-                    status_text = f"""✅ Жидкость '{var_name}' создана!
+                    status_text = LangT(f"""✅ Жидкость '{var_name}' создана!
     📋 Имя в игре: '{constructor_name}'
     🖼️ {icon_status}
     ⚠️ Ошибка при обновлении главного файла: {e}
@@ -2327,11 +2324,11 @@ public class ModLiquid {{
     • 🔥 Воспламеняемость: {flammability_value}
     • 💥 Взрывоопасность: {explosiveness_value}
     • 🌡️ Температура: {temperature_value}
-    • 💧 Вязкость: {viscosity_value}"""
+    • 💧 Вязкость: {viscosity_value}""")
                     status_label.configure(text=status_text, text_color="#FF9800")
             else:
                 status_label.configure(
-                    text="⚠️ Жидкость уже существует", 
+                    text=LangT("⚠️ Жидкость уже существует"), 
                     text_color="#FF9800"
                 )
             
@@ -2349,7 +2346,7 @@ public class ModLiquid {{
         # Кнопка создания
         create_btn = ctk.CTkButton(
             buttons_frame,
-            text="🚀 Создать жидкость",
+            text=LangT("🚀 Создать жидкость"),
             command=process_liquid,
             height=45,
             width=200,
@@ -2366,7 +2363,7 @@ public class ModLiquid {{
         # Кнопка назад
         back_btn = ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=back_to_main,
             height=45,
             width=120,
@@ -2384,7 +2381,7 @@ public class ModLiquid {{
         
         tips_label = ctk.CTkLabel(
             tips_frame,
-            text="💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'liquid', 'coolLiquid', 'energyFluid'",
+            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'liquid', 'coolLiquid', 'energyFluid'"),
             font=("Arial", 12),
             text_color="#9E9E9E",  # Серый текст
             wraplength=450
@@ -2407,11 +2404,11 @@ public class ModLiquid {{
             
             # Открываем диалог выбора файла
             selected_file = filedialog.askopenfilename(
-                title="Выберите иконку для мода",
+                title=LangT("Выберите иконку для мода"),
                 filetypes=[
-                    ("PNG изображения", "*.png"),
-                    ("JPEG изображения", "*.jpg *.jpeg"),
-                    ("Все файлы", "*.*")
+                    (LangT("PNG изображения"), "*.png"),
+                    (LangT("JPEG изображения"), "*.jpg *.jpeg"),
+                    (LangT("Все файлы"), "*.*")
                 ]
             )
             
@@ -2420,7 +2417,7 @@ public class ModLiquid {{
             if selected_file:
                 # Проверяем существование файла
                 if not os.path.exists(selected_file):
-                    messagebox.showerror("Ошибка", f"Файл не найден:\n{selected_file}")
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Файл не найден:\n{selected_file}"))
                     return None
                 
                 # Целевой путь: папка мода + mod.png
@@ -2428,8 +2425,8 @@ public class ModLiquid {{
                 
                 # Если файл уже существует, спрашиваем подтверждение
                 if target_path.exists():
-                    response = messagebox.askyesno("Подтверждение",
-                        f"Файл {target_path.name} уже существует.\nЗаменить?")
+                    response = messagebox.askyesno(LangT("Подтверждение"),
+                        LangT(f"Файл {target_path.name} уже существует.\nЗаменить?"))
                     if not response:
                         return None
                 
@@ -2437,22 +2434,22 @@ public class ModLiquid {{
                     # Копируем файл
                     shutil.copy2(selected_file, target_path)
                     
-                    messagebox.showinfo("Успех",
-                        f"✅ Иконка успешно загружена!\n\n"
-                        f"Исходный файл: {os.path.basename(selected_file)}\n"
-                        f"Сохранен как: {target_path.name}\n"
-                        f"Путь: {target_path}")
+                    messagebox.showinfo(LangT("Успех"),
+                        LangT(f"✅ Иконка успешно загружена!\n\n"
+                              f"Исходный файл: {os.path.basename(selected_file)}\n"
+                              f"Сохранен как: {target_path.name}\n"
+                              f"Путь: {target_path}"))
                     
                     return str(target_path)
                     
                 except Exception as e:
-                    messagebox.showerror("Ошибка", f"Не удалось скопировать файл:\n{e}")
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось скопировать файл:\n{e}"))
                     return None
             
             return None  # Пользователь отменил выбор
             
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Ошибка при выборе файла:\n{e}")
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при выборе файла:\n{e}"))
             return None
 
     def show_blocks_selection(self):
@@ -2471,7 +2468,7 @@ public class ModLiquid {{
         
         title_label = ctk.CTkLabel(
             title_frame,
-            text="🏗️ Создание блока",
+            text=LangT("🏗️ Создание блока"),
             font=("Arial", 26, "bold"),
             text_color="#FF9800"  # Оранжевый цвет для блоков
         )
@@ -2479,7 +2476,7 @@ public class ModLiquid {{
         
         subtitle_label = ctk.CTkLabel(
             title_frame,
-            text="Выберите тип блока для создания:",
+            text=LangT("Выберите тип блока для создания:"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         )
@@ -2492,7 +2489,7 @@ public class ModLiquid {{
         # Кнопка назад
         back_btn = ctk.CTkButton(
             title_frame,
-            text="← Назад в редактор",
+            text=LangT("← Назад в редактор"),
             command=back_to_main,  # Возврат к основному редактору
             height=35,
             width=140,
@@ -2514,16 +2511,16 @@ public class ModLiquid {{
 
         # Определяем блоки с прямыми вызовами функций
         blocks = [
-            ("🧱 Стена", "blocks/copper-wall.png", self.create_wall),
-            ("Солнечная панель", "blocks/solar-panel.png", self.create_solar_panel),
-            ("Батарея", "blocks/battery.png", self.create_battery),
-            ("Генератор", "blocks/steam-generator.png", self.create_consume_generator),
-            ("Энергитический башня", "blocks/beam-node.png", self.create_beam_node),
-            ("Энергитический узел", "blocks/power-node.png", self.create_power_node),
-            ("Экранированую стену", "blocks/shielded-wall.png", self.create_shield_wall),
-            ("Завод", "blocks/kiln.png", self.create_generic_crafter),
-            ("мост", "blocks/bridge-conveyor.png", self.create_bridge),
-            ("конвеер", "blocks/conveyor-0-0.png", self.create_conveyor)
+            (LangT("🧱 Стена"), "blocks/copper-wall.png", self.create_wall),
+            (LangT("Солнечная панель"), "blocks/solar-panel.png", self.create_solar_panel),
+            (LangT("Батарея"), "blocks/battery.png", self.create_battery),
+            (LangT("Генератор"), "blocks/steam-generator.png", self.create_consume_generator),
+            (LangT("Энергетическая башня"), "blocks/beam-node.png", self.create_beam_node),
+            (LangT("Энергетический узел"), "blocks/power-node.png", self.create_power_node),
+            (LangT("Экранированная стена"), "blocks/shielded-wall.png", self.create_shield_wall),
+            (LangT("Завод"), "blocks/kiln.png", self.create_generic_crafter),
+            (LangT("Мост"), "blocks/bridge-conveyor.png", self.create_bridge),
+            (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor)
         ]
 
         blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -2594,7 +2591,7 @@ public class ModLiquid {{
         
         info_label = ctk.CTkLabel(
             info_frame,
-            text=f"💡 Выберите тип блока для создания. Всего доступно {len(blocks)} типов блоков.",
+            text=LangT(f"💡 Выберите тип блока для создания. Всего доступно {len(blocks)} типов блоков."),
             font=("Arial", 12),
             text_color="#9E9E9E",
             wraplength=500
@@ -2615,14 +2612,14 @@ public class ModLiquid {{
         
         ctk.CTkLabel(
             title_frame,
-            text="🌐 Создание Bundle файлов",
+            text=LangT("🌐 Создание Bundle файлов"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
         
         ctk.CTkLabel(
             title_frame,
-            text="Автоматический поиск предметов и создание локализации",
+            text=LangT("Автоматический поиск предметов и создание локализации"),
             font=("Arial", 14),
             text_color="#BDBDBD"
         ).pack()
@@ -2632,8 +2629,8 @@ public class ModLiquid {{
         tabview.pack(fill="both", expand=True, pady=(0, 20))
         
         # Вкладки
-        tabview.add("EN Английский (EN)")
-        tabview.add("RU Русский (RU)")
+        tabview.add(LangT("EN Английский (EN)"))
+        tabview.add(LangT("RU Русский (RU)"))
         
         # === ЛОКАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЭТОЙ ФУНКЦИИ ===
         found_items = {}
@@ -2799,9 +2796,9 @@ public class ModLiquid {{
                     item_type = item_info['type']
                     type_stats[item_type] = type_stats.get(item_type, 0) + 1
                 
-                stats_text = f"✅ Найдено {len(found_items)} элементов:\n"
+                stats_text = LangT(f"✅ Найдено {len(found_items)} элементов:\n")
                 for t, count in sorted(type_stats.items()):
-                    stats_text += f"  • {t}: {count}\n"
+                    stats_text += LangT(f"  • {t}: {count}\n")
                 print(stats_text)
                 
             except Exception as e:
@@ -2896,14 +2893,14 @@ public class ModLiquid {{
             # Заголовок
             ctk.CTkLabel(
                 frame,
-                text=f"Переводы ({len(translations)} элементов)",
+                text=LangT(f"Переводы ({len(translations)} элементов)"),
                 font=("Arial", 16, "bold"),
                 text_color="#4CAF50"
             ).pack(anchor="w", pady=(0, 10))
             
             ctk.CTkLabel(
                 frame,
-                text="Формат: itemname.name = Название\n       itemname.description = Описание",
+                text=LangT("Формат: itemname.name = Название\n       itemname.description = Описание"),
                 font=("Arial", 11),
                 text_color="#888888"
             ).pack(anchor="w", pady=(0, 20))
@@ -2935,7 +2932,7 @@ public class ModLiquid {{
                 
                 ctk.CTkLabel(
                     name_frame,
-                    text="Название:",
+                    text=LangT("Название:"),
                     font=("Arial", 10),
                     width=80
                 ).pack(side="left")
@@ -2945,7 +2942,7 @@ public class ModLiquid {{
                     name_frame,
                     textvariable=name_var,
                     font=("Arial", 11),
-                    placeholder_text="Введите название..."
+                    placeholder_text=LangT("Введите название...")
                 )
                 name_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
                 name_entries[key] = name_var
@@ -2960,7 +2957,7 @@ public class ModLiquid {{
                 
                 ctk.CTkLabel(
                     desc_frame,
-                    text="Описание:",
+                    text=LangT("Описание:"),
                     font=("Arial", 10),
                     width=80
                 ).pack(side="left")
@@ -2970,7 +2967,7 @@ public class ModLiquid {{
                     desc_frame,
                     textvariable=desc_var,
                     font=("Arial", 11),
-                    placeholder_text="Введите описание..."
+                    placeholder_text=LangT("Введите описание...")
                 )
                 desc_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
                 desc_entries[desc_key] = desc_var
@@ -2979,7 +2976,7 @@ public class ModLiquid {{
             if not translations:
                 ctk.CTkLabel(
                     frame,
-                    text="Переводы не найдены. Автоматический поиск уже выполнен.",
+                    text=LangT("Переводы не найдены. Автоматический поиск уже выполнен."),
                     font=("Arial", 12),
                     text_color="#888888"
                 ).pack(pady=50)
@@ -3062,19 +3059,19 @@ public class ModLiquid {{
                 total_ru = len([v for v in ru_translations.values() if v]) + len([v for v in ru_descriptions.values() if v])
                 
                 messagebox.showinfo(
-                    "✅ Успех", 
-                    f"Bundle файлы успешно созданы в папке /assets/bundles/\n\n"
-                    f"• bundle.properties: {total_en} записей\n"
-                    f"• bundle_ru.properties: {total_ru} записей\n\n"
-                    f"Пример использования в игре:\n"
-                    f"ModItems.redStone = \"redStone.name\""
+                    LangT("Успех"), 
+                    LangT(f"Bundle файлы успешно созданы в папке /assets/bundles/\n\n"
+                          f"• bundle.properties: {total_en} записей\n"
+                          f"• bundle_ru.properties: {total_ru} записей\n\n"
+                          f"Пример использования в игре:\n"
+                          f"ModItems.redStone = \"redStone.name\"")
                 )
                 
             except Exception as e:
-                messagebox.showerror("❌ Ошибка", f"Не удалось сохранить bundle файлы:\n{str(e)}")
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось сохранить bundle файлы:\n{str(e)}"))
         
         # ===== ВКЛАДКА 2: АНГЛИЙСКИЙ =====
-        en_tab = tabview.tab("EN Английский (EN)")
+        en_tab = tabview.tab(LangT("EN Английский (EN)"))
         
         # Основной фрейм с прокруткой для английского
         en_main_scroll = ctk.CTkScrollableFrame(en_tab, fg_color="transparent")
@@ -3087,7 +3084,7 @@ public class ModLiquid {{
         en_frame.pack(fill="both", expand=True)
         
         # ===== ВКЛАДКА 3: РУССКИЙ =====
-        ru_tab = tabview.tab("RU Русский (RU)")
+        ru_tab = tabview.tab(LangT("RU Русский (RU)"))
         
         # Основной фрейм с прокруткой для русского
         ru_main_scroll = ctk.CTkScrollableFrame(ru_tab, fg_color="transparent")
@@ -3106,7 +3103,7 @@ public class ModLiquid {{
         # Кнопка обновить поиск
         ctk.CTkButton(
             button_frame,
-            text="🔄 Обновить поиск",
+            text=LangT("🔄 Обновить поиск"),
             command=auto_search,
             height=45,
             width=140,
@@ -3119,7 +3116,7 @@ public class ModLiquid {{
         # Кнопка сохранить
         ctk.CTkButton(
             button_frame,
-            text="💾 Сохранить Bundle файлы",
+            text=LangT("💾 Сохранить Bundle файлы"),
             command=save_all_bundles,
             height=45,
             width=180,
@@ -3131,7 +3128,7 @@ public class ModLiquid {{
         
         ctk.CTkButton(
             button_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.open_creator,
             height=45,
             width=120,
@@ -3146,14 +3143,14 @@ public class ModLiquid {{
 
     def setup_actions_panel(self, parent):
         """Настройка панели действий"""
-        ctk.CTkLabel(parent, text="Действия", font=("Arial", 14, "bold")).pack(pady=8)
+        ctk.CTkLabel(parent, text=LangT("Действия"), font=("Arial", 14, "bold")).pack(pady=8)
         
         buttons_frame = ctk.CTkFrame(parent, fg_color="transparent")
         buttons_frame.pack(pady=5)
 
         ctk.CTkButton(
             buttons_frame,
-            text="Создать предмет",
+            text=LangT("Создать предмет"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3162,7 +3159,7 @@ public class ModLiquid {{
 
         ctk.CTkButton(
             buttons_frame,
-            text="Создать жидкость",
+            text=LangT("Создать жидкость"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3171,7 +3168,7 @@ public class ModLiquid {{
 
         ctk.CTkButton(
             buttons_frame,
-            text="Создать блок",
+            text=LangT("Создать блок"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3180,7 +3177,7 @@ public class ModLiquid {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="📁 Открыть папку",
+            text=LangT("📁 Открыть папку"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3189,7 +3186,7 @@ public class ModLiquid {{
 
         ctk.CTkButton(
             buttons_frame,
-            text="Переводы",
+            text=LangT("Переводы"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3198,7 +3195,7 @@ public class ModLiquid {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="🔧 Компилировать",
+            text=LangT("🔧 Компилировать"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3207,7 +3204,7 @@ public class ModLiquid {{
 
         ctk.CTkButton(
             buttons_frame,
-            text="Загрузить иконку мода",
+            text=LangT("Загрузить иконку мода"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3216,7 +3213,7 @@ public class ModLiquid {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             width=180,
             height=35,
             font=("Arial", 12),
@@ -3257,7 +3254,7 @@ public class ModLiquid {{
         
         # Создаем всплывающее окно
         menu_window = ctk.CTkToplevel(self.root)
-        menu_window.title(f"Действия для {element_name}")
+        menu_window.title(LangT(f"Действия для {element_name}"))
         menu_window.geometry("450x450")
         menu_window.resizable(False, False)
         
@@ -3275,15 +3272,15 @@ public class ModLiquid {{
         # Заголовок
         ctk.CTkLabel(
             main_frame,
-            text=f"Выберите действие для: {element_name}",
+            text=LangT(f"Выберите действие для: {element_name}"),
             font=("Arial", 14, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(0, 15))
         
         # Информация о типе элемента
-        type_text = "📦 Предмет" if element_type == "item" else \
-                    "💧 Жидкость" if element_type == "liquid" else \
-                    "🧱 Блок"
+        type_text = LangT("📦 Предмет") if element_type == "item" else \
+                    LangT("💧 Жидкость") if element_type == "liquid" else \
+                    LangT("🧱 Блок")
         
         ctk.CTkLabel(
             main_frame,
@@ -3319,12 +3316,12 @@ public class ModLiquid {{
             
             # Подтверждение удаления
             result = messagebox.askyesno(
-                "Подтверждение удаления",
-                f"Вы уверены, что хотите удалить элемент '{element_name}'?\n\n"
-                f"Будут удалены:\n"
-                f"• Все текстуры элемента\n"
-                f"• Код в Java файлах\n\n"
-                f"⚠️ Это действие необратимо!",
+                LangT("Подтверждение удаления"),
+                LangT(f"Вы уверены, что хотите удалить элемент '{element_name}'?\n\n"
+                      f"Будут удалены:\n"
+                      f"• Все текстуры элемента\n"
+                      f"• Код в Java файлах\n\n"
+                      f"⚠️ Это действие необратимо!"),
                 icon='warning'
             )
             
@@ -3365,14 +3362,14 @@ public class ModLiquid {{
                                 tree_content = f.read()
                             
                             if formatted_name in tree_content:
-                                warnings.append(f"⚠️ Блок найден в дереве технологий ({tree_class}.java)")
-                                warnings.append(f"   Рекомендуется сначала удалить его из дерева вручную")
+                                warnings.append(LangT(f"⚠️ Блок найден в дереве технологий ({tree_class}.java)"))
+                                warnings.append(LangT(f"   Рекомендуется сначала удалить его из дерева вручную"))
                                 
                                 result2 = messagebox.askyesno(
-                                    "Предупреждение",
-                                    f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
-                                    f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
-                                    f"Продолжить удаление (только текстуры и Java код)?",
+                                    LangT("Предупреждение"),
+                                    LangT(f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
+                                          f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
+                                          f"Продолжить удаление (только текстуры и Java код)?"),
                                     icon='warning'
                                 )
                                 
@@ -3447,9 +3444,9 @@ public class ModLiquid {{
                         path.parent.rmdir()
                 
                 if texture_count > 0:
-                    deleted_items.append(f"🖼️ Удалено текстур: {texture_count}")
+                    deleted_items.append(LangT(f"🖼️ Удалено текстур: {texture_count}"))
                 else:
-                    errors.append(f"⚠️ Текстуры не найдены")
+                    errors.append(LangT(f"⚠️ Текстуры не найдены"))
                 
                 # ========== 2. УДАЛЕНИЕ ИЗ JAVA ФАЙЛА ==========
                 java_deleted = False
@@ -3619,33 +3616,33 @@ public class ModLiquid {{
                                 print(f"Обновлен файл: {block_file_path}")
                 
                 if java_deleted:
-                    deleted_items.append(f"📦 Удален из Java файла")
+                    deleted_items.append(LangT(f"📦 Удален из Java файла"))
                 else:
-                    errors.append(f"⚠️ Не удалось удалить из Java файла")
+                    errors.append(LangT(f"⚠️ Не удалось удалить из Java файла"))
                 
                 # ========== 3. РЕЗУЛЬТАТ ==========
                 if warnings:
-                    messagebox.showwarning("Внимание", "\n".join(warnings))
+                    messagebox.showwarning(LangT("Внимание"), "\n".join(warnings))
                 
                 if errors:
-                    status_text = f"⚠️ Удаление элемента '{element_name}' выполнено с ошибками:\n\n"
-                    status_text += "✅ Успешно:\n" + "\n".join(deleted_items) + "\n\n❌ Ошибки:\n" + "\n".join(errors)
-                    messagebox.showwarning("Предупреждение", status_text)
+                    status_text = LangT(f"⚠️ Удаление элемента '{element_name}' выполнено с ошибками:\n\n")
+                    status_text += LangT("✅ Успешно:\n") + "\n".join(deleted_items) + LangT("\n\n❌ Ошибки:\n") + "\n".join(errors)
+                    messagebox.showwarning(LangT("Предупреждение"), status_text)
                 else:
-                    status_text = f"✅ Элемент '{element_name}' успешно удален!\n\n"
+                    status_text = LangT(f"✅ Элемент '{element_name}' успешно удален!\n\n")
                     status_text += "\n".join(deleted_items)
-                    messagebox.showinfo("Успех", status_text)
+                    messagebox.showinfo(LangT("Успех"), status_text)
                 
                 # Обновляем отображение
                 self.open_creator()
                 
             except Exception as e:
-                messagebox.showerror("Ошибка", f"Не удалось удалить элемент: {str(e)}")
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить элемент: {str(e)}"))
 
         # Кнопка Delete
         delete_btn = ctk.CTkButton(
             actions_frame,
-            text="🗑️ Удалить элемент",
+            text=LangT("🗑️ Удалить элемент"),
             command=action_delete,
             height=45,
             font=("Arial", 14),
@@ -3661,7 +3658,7 @@ public class ModLiquid {{
         # Закрыть
         close_btn = ctk.CTkButton(
             main_frame,
-            text="Закрыть",
+            text=LangT("Закрыть"),
             command=menu_window.destroy,
             height=35,
             font=("Arial", 12),
@@ -3694,73 +3691,73 @@ public class ModLiquid {{
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/items/ModItems.java"], 
                 "class": "Item", 
                 "icon": "📦", 
-                "display": "Предмет", 
+                "display": LangT("Предмет"), 
                 "sprite_folder": "items"},
             "liquid": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/liquids/ModLiquid.java"], 
                 "class": "Liquid", 
                 "icon": "💧", 
-                "display": "Жидкость", 
+                "display": LangT("Жидкость"), 
                 "sprite_folder": "liquids"},
             "wall": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/walls/Walls.java"], 
                 "class": "Wall", 
                 "icon": "🧱", 
-                "display": "Стена", 
+                "display": LangT("Стена"), 
                 "sprite_folder": "walls"},
             "solar_panel": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java"], 
                 "class": "SolarGenerator", 
                 "icon": "☀️", 
-                "display": "Солнечная панель", 
+                "display": LangT("Солнечная панель"), 
                 "sprite_folder": "solar_panels"},
             "batterys": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/batterys/Batterys.java"], 
                 "class": "Battery", 
                 "icon": "🔋", 
-                "display": "Батарея", 
+                "display": LangT("Батарея"), 
                 "sprite_folder": "batterys"},
             "consume_generators": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java"], 
                 "class": "ConsumeGenerator", 
                 "icon": "⚡", 
-                "display": "Генератор", 
+                "display": LangT("Генератор"), 
                 "sprite_folder": "consume_generators"},
             "beam_nodes": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java"], 
                 "class": "BeamNode", 
                 "icon": "📡", 
-                "display": "Энергетическая башня", 
+                "display": LangT("Энергетическая башня"), 
                 "sprite_folder": "beam_nodes"},
             "power_nodes": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java"], 
                 "class": "PowerNode", 
                 "icon": "🔌", 
-                "display": "Энергетический узел", 
+                "display": LangT("Энергетический узел"), 
                 "sprite_folder": "power_nodes"},
             "shield_walls": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java"], 
                 "class": "ShieldWall",
                 "icon": "🛡️", 
-                "display": "Экранированная стена", 
+                "display": LangT("Экранированная стена"), 
                 "sprite_folder": "shield_walls"},
             "generic_crafter": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafters/GenericCrafters.java"], 
                 "class": "GenericCrafter", 
                 "icon": "🏭", 
-                "display": "Завод", 
+                "display": LangT("Завод"), 
                 "sprite_folder": "generic_crafters"},
             "circular_bridge": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/bridges/Bridges.java"], 
                 "class": "CircularBridge", 
                 "icon": "🌉", 
-                "display": "Мост", 
+                "display": LangT("Мост"), 
                 "sprite_folder": "bridges"},
             "conveyor": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/conveyors/Conveyors.java"],
                 "class": "Conveyor",
                 "icon": "➡️", 
-                "display": "Конвейер", 
+                "display": LangT("Конвейер"), 
                 "sprite_folder": "conveyors"}
         }
         
@@ -3821,14 +3818,14 @@ public class ModLiquid {{
             filter_frame = ctk.CTkFrame(top_panel, fg_color="#363636", corner_radius=8)
             filter_frame.pack(side="left", fill="x", expand=True)
             
-            ctk.CTkLabel(filter_frame, text="Фильтр:", font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
+            ctk.CTkLabel(filter_frame, text=LangT("Фильтр:"), font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
             
             # Кнопка настроек (вместо всех категорий)
             def show_settings_window():
                 parent_window = self.root.winfo_toplevel()
                 
                 settings_window = ctk.CTkToplevel(parent_window)
-                settings_window.title("Настройки отображения")
+                settings_window.title(LangT("Настройки отображения"))
                 settings_window.geometry("500x450")
                 settings_window.transient(parent_window)
                 settings_window.grab_set()
@@ -3838,7 +3835,7 @@ public class ModLiquid {{
                 y = (settings_window.winfo_screenheight() // 2) - (450 // 2)
                 settings_window.geometry(f'+{x}+{y}')
                 
-                ctk.CTkLabel(settings_window, text="Выберите типы контента для отображения", 
+                ctk.CTkLabel(settings_window, text=LangT("Выберите типы контента для отображения"), 
                             font=("Arial", 16, "bold")).pack(pady=15)
                 
                 checkboxes_frame = ctk.CTkScrollableFrame(settings_window, fg_color="#2b2b2b", 
@@ -3888,7 +3885,7 @@ public class ModLiquid {{
                                 wraplength=120).pack()
                     
                     count = sum(1 for item in all_content if item[0] == block_type)
-                    ctk.CTkLabel(card, text=f"{count} шт.", font=("Arial", 9), 
+                    ctk.CTkLabel(card, text=LangT(f"{count} шт."), font=("Arial", 9), 
                                 text_color="#AAAAAA").pack()
                     
                     var = tk.BooleanVar(value=block_type in self.selected_types)
@@ -3904,35 +3901,35 @@ public class ModLiquid {{
                 left_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
                 left_btn_frame.pack(side="left")
                 
-                ctk.CTkButton(left_btn_frame, text="✓ Выбрать все", command=select_all,
+                ctk.CTkButton(left_btn_frame, text=LangT("✓ Выбрать все"), command=select_all,
                             fg_color="#424242", width=100, height=32).pack(side="left", padx=2)
-                ctk.CTkButton(left_btn_frame, text="✗ Сбросить все", command=deselect_all,
+                ctk.CTkButton(left_btn_frame, text=LangT("✗ Сбросить все"), command=deselect_all,
                             fg_color="#424242", width=100, height=32).pack(side="left", padx=2)
                 
                 right_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
                 right_btn_frame.pack(side="right")
                 
-                ctk.CTkButton(right_btn_frame, text="Применить", command=apply_settings,
+                ctk.CTkButton(right_btn_frame, text=LangT("Применить"), command=apply_settings,
                             fg_color="#397E3C", width=100, height=32).pack(side="left", padx=2)
-                ctk.CTkButton(right_btn_frame, text="Отмена", command=cancel_settings,
+                ctk.CTkButton(right_btn_frame, text=LangT("Отмена"), command=cancel_settings,
                             fg_color="#AD4038", width=100, height=32).pack(side="left", padx=2)
             
-            settings_btn = ctk.CTkButton(filter_frame, text="⚙️ Настройки", width=120, height=32, 
+            settings_btn = ctk.CTkButton(filter_frame, text=LangT("⚙️ Настройки"), width=120, height=32, 
                                         font=("Arial", 12), fg_color="#397E3C",
                                         command=show_settings_window)
             settings_btn.pack(side="left", padx=5)
             
             def update_filter_label():
                 if len(self.selected_types) == len(set(b[0] for b in all_content)):
-                    filter_label.configure(text="Все категории")
+                    filter_label.configure(text=LangT("Все категории"))
                 else:
                     names = [blocks_config.get(t, {}).get("display", t) for t in sorted(self.selected_types)[:3]]
                     text = ", ".join(names)
                     if len(self.selected_types) > 3:
-                        text += f" и ещё {len(self.selected_types) - 3}"
+                        text += LangT(f" и ещё {len(self.selected_types) - 3}")
                     filter_label.configure(text=text)
             
-            filter_label = ctk.CTkLabel(filter_frame, text="Все категории", 
+            filter_label = ctk.CTkLabel(filter_frame, text=LangT("Все категории"), 
                                     font=("Arial", 11), text_color="#AAAAAA")
             filter_label.pack(side="left", padx=10)
             
@@ -3955,7 +3952,7 @@ public class ModLiquid {{
                 update_filter_label()
                 
                 if not filtered_content:
-                    ctk.CTkLabel(cards_container, text="🚫 Нет элементов для отображения", 
+                    ctk.CTkLabel(cards_container, text=LangT("🚫 Нет элементов для отображения"), 
                                 font=("Arial", 14), text_color="#888888").pack(pady=50)
                     return
                 
@@ -4025,7 +4022,7 @@ public class ModLiquid {{
                     ctk.CTkLabel(card, text=config.get("display", block_type), 
                                 font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
                     
-                    sprite_status = ctk.CTkLabel(card, text="🖼️" if has_sprite else "❌", 
+                    sprite_status = ctk.CTkLabel(card, text=LangT("🖼️") if has_sprite else LangT("❌"), 
                                 font=("Arial", 10), 
                                 text_color="#4CAF50" if has_sprite else "#F44336")
                     sprite_status.pack()
@@ -4046,8 +4043,8 @@ public class ModLiquid {{
             
             update_filter_from_settings()
         else:
-            ctk.CTkLabel(scroll_frame, text="📭 Нет созданного контента", font=("Arial", 16), text_color="#888888").pack(pady=50)
-            ctk.CTkLabel(scroll_frame, text="Используйте создатель блоков для добавления контента", font=("Arial", 12), text_color="#666666").pack()
+            ctk.CTkLabel(scroll_frame, text=LangT("📭 Нет созданного контента"), font=("Arial", 16), text_color="#888888").pack(pady=50)
+            ctk.CTkLabel(scroll_frame, text=LangT("Используйте создатель блоков для добавления контента"), font=("Arial", 12), text_color="#666666").pack()
 
     def open_mod_folder(self):
         """Открытие папки мода в проводнике"""
@@ -4060,7 +4057,7 @@ public class ModLiquid {{
             else:
                 subprocess.run(["xdg-open", path])
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось открыть папку: {e}")
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось открыть папку: {e}"))
 
     def go_back(self):
         """Возврат к главному интерфейсу"""

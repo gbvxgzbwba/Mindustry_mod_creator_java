@@ -9,6 +9,7 @@ import os
 import zipfile
 import io
 import re
+from Creator.utils.lang_system import LangT
 
 class ModEditor:
     def __init__(self, root, mod_folder, main_app):
@@ -18,12 +19,12 @@ class ModEditor:
         self.mod_name = mod_folder.name
         self.param_index = 0
         self.parameters = [
-            ("displayName", "Название мода в игре:", "text"),
-            ("name", "Внутреннее имя мода (без пробелов):", "text"),
-            ("author", "Автор мода:", "text"),
-            ("description", "Описание мода:", "text"),
-            ("version", "Версия мода (например: 1.0):", "text"),
-            ("minGameVersion", "Минимальная версия игры:", "number")
+            ("displayName", LangT("Название мода в игре:"), "text"),
+            ("name", LangT("Внутреннее имя мода (без пробелов):"), "text"),
+            ("author", LangT("Автор мода:"), "text"),
+            ("description", LangT("Описание мода:"), "text"),
+            ("version", LangT("Версия мода (например: 1.0):"), "text"),
+            ("minGameVersion", LangT("Минимальная версия игры:"), "number")
         ]
         self.param_values = {}
         
@@ -35,24 +36,24 @@ class ModEditor:
         
         if mod_hjson_path.exists():
             # Файл существует - предлагаем выбор
-            ctk.CTkLabel(self.root, text="Редактирование мода", font=("Arial", 20, "bold")).pack(pady=50)
-            ctk.CTkLabel(self.root, text=f"Мод: {self.mod_name}", font=("Arial", 16)).pack(pady=10)
+            ctk.CTkLabel(self.root, text=LangT("Редактирование мода"), font=("Arial", 20, "bold")).pack(pady=50)
+            ctk.CTkLabel(self.root, text=LangT("Мод: {mod_name}").format(mod_name=self.mod_name), font=("Arial", 16)).pack(pady=10)
             
             # Кнопки выбора
             frame = ctk.CTkFrame(self.root)
             frame.pack(pady=30)
             
-            ctk.CTkButton(frame, text="Редактировать существующий mod.hjson", 
-                         command=self.edit_existing_hjson, width=200).pack(pady=10, padx=20)
-            ctk.CTkButton(frame, text="Скачать новый шаблон", 
+            ctk.CTkButton(frame, text=LangT("Редактировать существующий mod.hjson"), 
+                         command=self.edit_existing_hjson, width=250).pack(pady=10, padx=20)
+            ctk.CTkButton(frame, text=LangT("Скачать новый шаблон"), 
                          command=self.download_new_template, width=200).pack(pady=10, padx=20)
-            ctk.CTkButton(frame, text="Назад", 
+            ctk.CTkButton(frame, text=LangT("Назад"), 
                          command=self.main_app.show_main_ui, width=200, fg_color="gray").pack(pady=20, padx=20)
         else:
             # Файла нет - скачиваем шаблон
-            ctk.CTkLabel(self.root, text="Скачивание шаблона", font=("Arial", 20, "bold")).pack(pady=50)
-            ctk.CTkLabel(self.root, text=f"Мод: {self.mod_name}", font=("Arial", 16)).pack(pady=10)
-            ctk.CTkLabel(self.root, text="Скачиваю и распаковываю...", font=("Arial", 14)).pack(pady=20)
+            ctk.CTkLabel(self.root, text=LangT("Скачивание шаблона"), font=("Arial", 20, "bold")).pack(pady=50)
+            ctk.CTkLabel(self.root, text=LangT("Мод: {mod_name}").format(mod_name=self.mod_name), font=("Arial", 16)).pack(pady=10)
+            ctk.CTkLabel(self.root, text=LangT("Скачиваю и распаковываю..."), font=("Arial", 14)).pack(pady=20)
             
             self.root.after(100, self.download_template)
     
@@ -64,9 +65,9 @@ class ModEditor:
     def download_new_template(self):
         """Скачать новый шаблон"""
         self.clear_window()
-        ctk.CTkLabel(self.root, text="Скачивание шаблона", font=("Arial", 20, "bold")).pack(pady=50)
-        ctk.CTkLabel(self.root, text=f"Мод: {self.mod_name}", font=("Arial", 16)).pack(pady=10)
-        ctk.CTkLabel(self.root, text="Скачиваю и распаковываю...", font=("Arial", 14)).pack(pady=20)
+        ctk.CTkLabel(self.root, text=LangT("Скачивание шаблона"), font=("Arial", 20, "bold")).pack(pady=50)
+        ctk.CTkLabel(self.root, text=LangT("Мод: {mod_name}").format(mod_name=self.mod_name), font=("Arial", 16)).pack(pady=10)
+        ctk.CTkLabel(self.root, text=LangT("Скачиваю и распаковываю..."), font=("Arial", 14)).pack(pady=20)
         
         self.root.after(100, self.download_template)
     
@@ -74,7 +75,7 @@ class ModEditor:
         def download_thread():
             try:
                 template_url = "https://github.com/Anuken/MindustryModTemplate/archive/refs/heads/master.zip"
-                print("Скачиваю и распаковываю шаблон...")
+                print(LangT("Скачиваю и распаковываю шаблон..."))
                 
                 response = requests.get(template_url, timeout=60)
                 response.raise_for_status()
@@ -85,7 +86,7 @@ class ModEditor:
                     first_file = zip_ref.namelist()[0]
                     root_folder = first_file.split('/')[0]
                     
-                    print(f"Извлекаю файлы из {root_folder}...")
+                    print(LangT("Извлекаю файлы из {folder}...").format(folder=root_folder))
                     
                     for file_info in zip_ref.infolist():
                         filename = file_info.filename
@@ -109,7 +110,7 @@ class ModEditor:
                                 with open(target_path, 'wb') as target_file:
                                     target_file.write(content)
                 
-                print("Шаблон успешно установлен!")
+                print(LangT("Шаблон успешно установлен!"))
                 
                 # Удаляем папку example если она существует
                 self.remove_example_folder()
@@ -118,7 +119,7 @@ class ModEditor:
                 self.root.after(0, lambda: self.start_parameter_input(edit_existing=False))
                 
             except Exception as e:
-                print(f"Ошибка: {e}")
+                print(LangT("Ошибка: {error}").format(error=e))
                 self.create_empty_structure()
                 self.root.after(0, lambda: self.start_parameter_input(edit_existing=False))
         
@@ -130,33 +131,33 @@ class ModEditor:
         try:
             example_folder = self.mod_folder / "src" / "example"
             if example_folder.exists() and example_folder.is_dir():
-                print(f"Удаляю папку example: {example_folder}")
+                print(LangT("Удаляю папку example: {path}").format(path=example_folder))
                 
                 # Проверяем, есть ли Java файлы в папке example
                 java_files = list(example_folder.glob("*.java"))
                 if java_files:
-                    print(f"Найдено Java файлов в example: {len(java_files)}")
+                    print(LangT("Найдено Java файлов в example: {count}").format(count=len(java_files)))
                     # Если есть файлы, проверяем их содержимое на наличие ExampleJavaMod
                     for java_file in java_files:
                         content = java_file.read_text(encoding='utf-8', errors='ignore')
                         if "ExampleJavaMod" in content:
-                            print(f"Файл {java_file.name} содержит ExampleJavaMod")
+                            print(LangT("Файл {file} содержит ExampleJavaMod").format(file=java_file.name))
                 
                 # Удаляем папку example рекурсивно
                 shutil.rmtree(example_folder)
-                print("Папка example успешно удалена")
+                print(LangT("Папка example успешно удалена"))
                 
                 # Также проверяем и удаляем другие возможные папки example
                 for item in (self.mod_folder / "src").iterdir():
                     if item.is_dir() and item.name.lower() == "example":
-                        print(f"Удаляю дополнительную папку example: {item}")
+                        print(LangT("Удаляю дополнительную папку example: {path}").format(path=item))
                         shutil.rmtree(item)
             
             # Также удаляем любые .class файлы или другие следы example
             self.cleanup_example_files()
             
         except Exception as e:
-            print(f"Ошибка при удалении папки example: {e}")
+            print(LangT("Ошибка при удалении папки example: {error}").format(error=e))
     
     def cleanup_example_files(self):
         """Очищает другие файлы связанные с example"""
@@ -166,7 +167,7 @@ class ModEditor:
                 if "example" in class_file.name.lower() or "Example" in class_file.name:
                     try:
                         class_file.unlink()
-                        print(f"Удален .class файл: {class_file}")
+                        print(LangT("Удален .class файл: {file}").format(file=class_file))
                     except:
                         pass
             
@@ -181,12 +182,12 @@ class ModEditor:
                             new_content = content.replace('example', mod_name_lower)
                             new_content = re.sub(r'example\.', f'{mod_name_lower}.', new_content)
                             file.write_text(new_content, encoding='utf-8')
-                            print(f"Обновлен файл: {file}")
+                            print(LangT("Обновлен файл: {file}").format(file=file))
                     except:
                         pass
                         
         except Exception as e:
-            print(f"Ошибка при очистке файлов example: {e}")
+            print(LangT("Ошибка при очистке файлов example: {error}").format(error=e))
     
     def replace_example_in_java(self, content_bytes):
         """Заменяет 'example' на имя мода в Java файлах"""
@@ -229,9 +230,9 @@ class ModEditor:
         if example_dir.exists() and example_dir.is_dir():
             try:
                 shutil.rmtree(example_dir)
-                print("Удалена старая папка example")
+                print(LangT("Удалена старая папка example"))
             except Exception as e:
-                print(f"Ошибка при удалении папки example: {e}")
+                print(LangT("Ошибка при удалении папки example: {error}").format(error=e))
         
         # Создаем директорию для нового package
         src_dir = self.mod_folder / "src" / mod_name_lower
@@ -295,7 +296,7 @@ public class {mod_name_camel}JavaMod extends Mod{{
 }}
 """
             java_file.write_text(java_content, encoding='utf-8')
-            print(f"Создан Java файл: {java_file}")
+            print(LangT("Создан Java файл: {file}").format(file=java_file))
         
         # Возвращаем путь для main в mod.hjson
         return f"{mod_name_lower}.{mod_name_camel}JavaMod"
@@ -337,7 +338,7 @@ public class {mod_name_camel}JavaMod extends Mod{{
                         if key in [p[0] for p in self.parameters] + ['main']:
                             self.param_values[key] = value
             except Exception as e:
-                print(f"Ошибка при чтении mod.hjson: {e}")
+                print(LangT("Ошибка при чтении mod.hjson: {error}").format(error=e))
     
     def show_current_parameter(self):
         """Показывает текущий параметр для ввода"""
@@ -351,15 +352,17 @@ public class {mod_name_camel}JavaMod extends Mod{{
         self.clear_window()
         
         # Заголовок
-        ctk.CTkLabel(self.root, text="Настройка мода", font=("Arial", 20, "bold")).pack(pady=30)
-        ctk.CTkLabel(self.root, text=f"Шаг {self.param_index + 1} из {len(self.parameters)}", 
+        ctk.CTkLabel(self.root, text=LangT("Настройка мода"), font=("Arial", 20, "bold")).pack(pady=30)
+        ctk.CTkLabel(self.root, text=LangT("Шаг {current} из {total}").format(current=self.param_index + 1, total=len(self.parameters)), 
                     font=("Arial", 14)).pack(pady=5)
         
         # Информация о главном классе
         if param_name == "displayName":
-            ctk.CTkLabel(self.root, text=f"Главный класс: {self.param_values.get('main', 'Не определен')}", 
+            ctk.CTkLabel(self.root, text=LangT("Главный класс: {main_class}").format(main_class=self.param_values.get('main', LangT('Не определен'))), 
                         font=("Arial", 12), text_color="gray").pack(pady=5)
-            ctk.CTkLabel(self.root, text=f"Package: {self.param_values.get('main', '').rsplit('.', 1)[0] if '.' in self.param_values.get('main', '') else ''}", 
+            main_class = self.param_values.get('main', '')
+            package_name = main_class.rsplit('.', 1)[0] if '.' in main_class else ''
+            ctk.CTkLabel(self.root, text=LangT("Package: {package}").format(package=package_name), 
                         font=("Arial", 12), text_color="gray").pack(pady=2)
         
         # Название параметра
@@ -400,14 +403,14 @@ public class {mod_name_camel}JavaMod extends Mod{{
         frame.pack(pady=30)
         
         if self.param_index > 0:
-            ctk.CTkButton(frame, text="← Назад", command=self.previous_parameter, 
+            ctk.CTkButton(frame, text=LangT("← Назад"), command=self.previous_parameter, 
                          width=100).pack(side="left", padx=10)
         
-        btn_text = "Сохранить и завершить" if self.param_index == len(self.parameters) - 1 else "Далее →"
+        btn_text = LangT("Сохранить и завершить") if self.param_index == len(self.parameters) - 1 else LangT("Далее →")
         ctk.CTkButton(frame, text=btn_text, command=lambda: self.next_parameter(entry.get()), 
-                     width=100).pack(side="left", padx=10)
+                     width=120).pack(side="left", padx=10)
         
-        ctk.CTkButton(self.root, text="Отмена", command=self.main_app.show_main_ui,
+        ctk.CTkButton(self.root, text=LangT("Отмена"), command=self.main_app.show_main_ui,
                      fg_color="gray", width=100).pack(pady=10)
         
         # Сохраняем ссылку на entry для использования
@@ -506,7 +509,7 @@ java: true
             self.go_to_creator()
             
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось сохранить файл: {e}")
+            messagebox.showerror(LangT("Ошибка"), LangT("Не удалось сохранить файл: {error}").format(error=e))
             self.main_app.show_main_ui()
     
     def create_empty_structure(self):
@@ -536,7 +539,7 @@ hidden: false"""
         creator.open_creator()
     
     def show_error(self, message):
-        messagebox.showerror("Ошибка", message)
+        messagebox.showerror(LangT("Ошибка"), message)
         self.main_app.show_main_ui()
     
     def clear_window(self):
