@@ -15,7 +15,7 @@ from pathlib import Path
 from tkinter import messagebox
 import sys
 import re
-from Creator.utils.lang_system import LangT
+from Creator.utils.lang_system import LangT, get_current_language
 
 # Проверяем ОС для импорта winreg
 if platform.system() == "Windows":
@@ -101,24 +101,39 @@ class MainWindow:
     
     def open_settings_window(self):
         """Открывает окно настроек"""
+        from Creator.utils.lang_system import get_available_languages, set_language, LangT
+        
         settings_window = ctk.CTkToplevel(self.root)
         settings_window.title(LangT("Настройки"))
-        settings_window.geometry("400x300")
+        settings_window.geometry("400x350")
         settings_window.transient(self.root)
         settings_window.grab_set()
         
         # Центрируем окно
         settings_window.update_idletasks()
         x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (400 // 2)
-        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (300 // 2)
-        settings_window.geometry(f"400x300+{x}+{y}")
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (350 // 2)
+        settings_window.geometry(f"400x350+{x}+{y}")
         
-        # Язык
-        ctk.CTkLabel(settings_window, text="Язык / Language:", font=("Arial", 14)).pack(pady=(20, 5))
-        language_var = ctk.StringVar(value=self.settings.get("language", "ru"))
+        # Язык - получаем динамически из доступных файлов
+        ctk.CTkLabel(settings_window, text=LangT("Язык / Language:"), font=("Arial", 14)).pack(pady=(20, 5))
+        
+        available_langs = get_available_languages()
+        # Преобразуем коды языков в отображаемые названия
+        lang_display_names = {
+            "ru": "Русский",
+            "en": "English",
+            # Можно добавить другие языки
+        }
+        
+        # Создаем список для отображения
+        display_values = [lang_display_names.get(lang, lang) for lang in available_langs]
+        current_display = lang_display_names.get(self.settings.get("language", "ru"), self.settings.get("language", "ru"))
+        
+        language_var = ctk.StringVar(value=current_display)
         language_combo = ctk.CTkComboBox(
             settings_window,
-            values=["ru"],
+            values=display_values,
             variable=language_var,
             width=200
         )
@@ -126,7 +141,7 @@ class MainWindow:
         
         # Папка сохранения
         ctk.CTkLabel(settings_window, text=LangT("Папка сохранения модов:"), font=("Arial", 14)).pack(pady=(20, 5))
-
+        
         appdata_roaming = os.getenv('APPDATA')
         
         # Словарь для отображения: текст для пользователя -> реальный путь
@@ -144,7 +159,6 @@ class MainWindow:
                 display_value = display_text
                 break
         else:
-            # Если текущий путь не найден в словаре, используем первый вариант
             display_value = list(folder_options.keys())[0]
         
         display_var = ctk.StringVar(value=display_value)
@@ -162,13 +176,29 @@ class MainWindow:
         button_frame.pack(pady=30)
         
         def save_settings():
-            # Сохраняем настройки
-            selected_display = display_var.get()
-            save_path = folder_options[selected_display]
+            # Получаем выбранный язык
+            selected_display = language_var.get()
+            # Находим код языка по отображаемому имени
+            selected_lang = None
+            for lang_code, display_name in lang_display_names.items():
+                if display_name == selected_display:
+                    selected_lang = lang_code
+                    break
+            if not selected_lang and selected_display in available_langs:
+                selected_lang = selected_display
             
-            self.settings["language"] = language_var.get()
+            # Получаем папку сохранения
+            selected_folder_display = display_var.get()
+            save_path = folder_options[selected_folder_display]
+            
+            # Сохраняем настройки
+            self.settings["language"] = selected_lang if selected_lang else "ru"
             self.settings["save_folder"] = save_path
             self.save_settings()
+            
+            # Меняем язык в системе
+            if selected_lang and selected_lang != get_current_language():
+                set_language(selected_lang)
             
             # Создаём папку если её нет
             try:
@@ -176,7 +206,7 @@ class MainWindow:
                 messagebox.showinfo(LangT("Успех"), LangT("Настройки сохранены\nПапка: {save_path}").format(save_path=save_path))
                 settings_window.destroy()
                 
-                # Обновляем интерфейс
+                # Обновляем интерфейс с новым языком
                 self.show_main_ui()
             except Exception as e:
                 messagebox.showerror(
