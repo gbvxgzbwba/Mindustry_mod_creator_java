@@ -11,6 +11,7 @@ from tkinter import colorchooser
 
 import sys
 import os
+from Creator.utils.lang_system import LangT
 
 def resource_path(relative_path):
     """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
@@ -125,19 +126,19 @@ class BlockCreator:
             if always_unlocked_var.get():
                 research_card.pack_forget()
                 always_unlocked_status.configure(
-                    text="✅ Always Unlocked (доступен с самого начала)",
+                    text=LangT("✅ Always Unlocked (доступен с самого начала)"),
                     text_color="#4CAF50"
                 )
             else:
                 research_card.pack(fill="x", pady=(0, 20), after=build_card)
                 always_unlocked_status.configure(
-                    text="🔒 Требуется исследование",
+                    text=LangT("🔒 Требуется исследование"),
                     text_color="#FFA500"
                 )
         
         always_unlocked_check = ctk.CTkCheckBox(
             always_unlocked_frame,
-            text="🔓 Always Unlocked (блок сразу доступен)",
+            text=LangT("🔓 Always Unlocked (блок сразу доступен)"),
             variable=always_unlocked_var,
             command=on_always_unlocked_change,
             font=("Arial", 15),
@@ -153,7 +154,7 @@ class BlockCreator:
         # Заголовок карточки исследования
         ctk.CTkLabel(
             research_card,
-            text="🔬 Исследование (требуется для открытия)",
+            text=LangT("🔬 Исследование (требуется для открытия)"),
             font=("Arial", 18, "bold"),
             text_color="#FF9800"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -164,7 +165,7 @@ class BlockCreator:
         
         ctk.CTkLabel(
             block_res_frame,
-            text="🎯 Блок для исследования:",
+            text=LangT("🎯 Блок для исследования:"),
             font=("Arial", 15, "bold"),
             text_color="#FF9800"
         ).pack(anchor="w", pady=(0, 10))
@@ -211,7 +212,7 @@ class BlockCreator:
                 selected_block_var.set(display_name)
                 selected_block_internal_var.set(internal_name)
                 selected_block_type_var.set(block_type)
-                block_path_label.configure(text="Модовый блок" if block_type == "mod" else "Ванильный блок")
+                block_path_label.configure(text=LangT("Модовый блок") if block_type == "mod" else LangT("Ванильный блок"))
                 icon_display_label.configure(text=block_emoji)
                 
                 if on_block_selected_callback:
@@ -228,7 +229,7 @@ class BlockCreator:
         
         select_block_button = ctk.CTkButton(
             block_res_frame,
-            text="🔍 Выбрать блок",
+            text=LangT("🔍 Выбрать блок"),
             command=wrapped_block_selector,
             height=35,
             font=("Arial", 13),
@@ -244,7 +245,7 @@ class BlockCreator:
         
         ctk.CTkLabel(
             item_res_frame,
-            text="💰 Предметы для исследования:",
+            text=LangT("💰 Предметы для исследования:"),
             font=("Arial", 15, "bold"),
             text_color="#FF9800"
         ).pack(anchor="w", pady=(0, 10))
@@ -260,7 +261,7 @@ class BlockCreator:
         
         select_items_button = ctk.CTkButton(
             item_res_frame,
-            text="📋 Выбрать предметы для исследования",
+            text=LangT("📋 Выбрать предметы для исследования"),
             command=lambda: self.open_items_editor(research_items_var, "research"),
             height=35,
             font=("Arial", 13),
@@ -291,10 +292,10 @@ class BlockCreator:
             return True, ""
         
         if not research_items:
-            return False, "❌ Ошибка: Выберите предметы для исследования!"
+            return False, LangT("❌ Ошибка: Выберите предметы для исследования!")
         
         if not selected_block_internal_var.get():
-            return False, "❌ Ошибка: Выберите блок для исследования!"
+            return False, LangT("❌ Ошибка: Выберите блок для исследования!")
         
         return True, ""
 
@@ -403,7 +404,7 @@ class BlockCreator:
                 
                 # Проверяем, не добавлен ли уже этот блок
                 if f"{block_node_var}" in existing_content:
-                    print(f"Блок {block_var_name} уже есть в {class_name}.java")
+                    print(LangT(f"Блок {block_var_name} уже есть в {class_name}.java"))
                     return True
                 
                 # Находим место для вставки нового кода ВНУТРИ метода Load()
@@ -439,18 +440,18 @@ class BlockCreator:
                         if i == load_method_end - 1:  # Вставляем перед последней строкой метода
                             modified_lines.append(new_node_code)
                             inserted = True
-                            print(f"Вставлен код для {block_var_name} в метод Load() в {class_name}.java")
+                            print(LangT(f"Вставлен код для {block_var_name} в метод Load() в {class_name}.java"))
                     
                     if inserted:
                         # Записываем обновленное содержимое
                         new_content = '\n'.join(modified_lines)
                         with open(tree_file_path, 'w', encoding='utf-8') as file:
                             file.write(new_content)
-                        print(f"✅ Файл {class_name}.java успешно обновлен")
+                        print(LangT(f"✅ Файл {class_name}.java успешно обновлен"))
                         return True
                 else:
                     # Если не нашли метод Load(), создаем новый файл
-                    print(f"Не найден метод Load() в {class_name}.java, создаем новый файл")
+                    print(LangT(f"Не найден метод Load() в {class_name}.java, создаем новый файл"))
                     tree_content = f"""package {mod_name_lower}.content;
 
     import arc.struct.*;
@@ -470,7 +471,7 @@ class BlockCreator:
                     with open(tree_file_path, 'w', encoding='utf-8') as file:
                         file.write(tree_content)
                     
-                    print(f"✅ Файл {class_name}.java успешно пересоздан")
+                    print(LangT(f"✅ Файл {class_name}.java успешно пересоздан"))
                     return True
             else:
                 # Создаем новый файл с базовой структурой
@@ -493,11 +494,11 @@ class BlockCreator:
                 with open(tree_file_path, 'w', encoding='utf-8') as file:
                     file.write(tree_content)
                 
-                print(f"✅ Файл {class_name}.java успешно создан")
+                print(LangT(f"✅ Файл {class_name}.java успешно создан"))
                 return True
                 
         except Exception as e:
-            print(f"❌ Ошибка создания файла дерева технологий: {e}")
+            print(LangT(f"❌ Ошибка создания файла дерева технологий: {e}"))
             import traceback
             traceback.print_exc()
             return False
@@ -538,7 +539,7 @@ class BlockCreator:
             main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
             
             if not main_mod_path.exists():
-                print(f"⚠️ Главный файл мода не найден: {main_mod_path}")
+                print(LangT(f"⚠️ Главный файл мода не найден: {main_mod_path}"))
                 return False
             
             with open(main_mod_path, 'r', encoding='utf-8') as file:
@@ -576,11 +577,11 @@ class BlockCreator:
             with open(main_mod_path, 'w', encoding='utf-8') as file:
                 file.write(main_content)
             
-            print(f"✅ Главный файл мода успешно обновлен")
+            print(LangT("✅ Главный файл мода успешно обновлен"))
             return True
             
         except Exception as e:
-            print(f"❌ Ошибка обновления главного файла: {e}")
+            print(LangT(f"❌ Ошибка обновления главного файла: {e}"))
             return False
 
     def open_block_selector_universal(self, display_var, internal_var, type_var, 
@@ -597,7 +598,7 @@ class BlockCreator:
             callback: функция, вызываемая после выбора (принимает display_name, internal_name, block_type, icon_name, block_emoji)
         """
         selector_window = ctk.CTkToplevel(self.root)
-        selector_window.title("Выбор блока для исследования")
+        selector_window.title(LangT("Выбор блока для исследования"))
         selector_window.geometry("900x700")
         selector_window.configure(fg_color="#2b2b2b")
         selector_window.transient(self.root)
@@ -608,7 +609,7 @@ class BlockCreator:
         
         ctk.CTkLabel(
             main_frame,
-            text="Выберите блок, который нужно исследовать для открытия",
+            text=LangT("Выберите блок, который нужно исследовать для открытия"),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
         
@@ -622,7 +623,7 @@ class BlockCreator:
         search_entry = ctk.CTkEntry(
             search_frame,
             textvariable=search_var,
-            placeholder_text="Поиск блока...",
+            placeholder_text=LangT("Поиск блока..."),
             height=35,
             fg_color="#424242",
             border_width=0
@@ -641,8 +642,8 @@ class BlockCreator:
         notebook.pack(fill="both", expand=True)
         
         # Вкладки
-        mod_tab = notebook.add("📦 Блоки мода")
-        vanilla_tab = notebook.add("🎮 Ванильные блоки")
+        mod_tab = notebook.add(LangT("📦 Блоки мода"))
+        vanilla_tab = notebook.add(LangT("🎮 Ванильные блоки"))
         
         # Получаем блоки мода
         mod_blocks = self.get_mod_blocks_for_research_universal()
@@ -658,7 +659,7 @@ class BlockCreator:
             # Обновляем иконку и информацию - ИСПРАВЛЕНО
             if icon_label:
                 icon_label.configure(text=block_emoji)
-            path_label.configure(text="Модовый блок" if block_type == "mod" else "Ванильный блок")
+            path_label.configure(text=LangT("Модовый блок") if block_type == "mod" else LangT("Ванильный блок"))
             
             # Вызываем callback если есть
             if callback:
@@ -693,7 +694,7 @@ class BlockCreator:
         
         cancel_btn = ctk.CTkButton(
             button_frame,
-            text="❌ Отмена",
+            text=LangT("❌ Отмена"),
             width=120,
             height=35,
             font=("Arial", 12),
@@ -710,15 +711,15 @@ class BlockCreator:
         
         # Пути к файлам с блоками
         block_files = [
-            ("walls", f"src/{mod_name_lower}/init/blocks/walls/Walls.java", "🧱 Стены"),
-            ("solar_panels", f"src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java", "☀️ Солнечные панели"),
-            ("batterys", f"src/{mod_name_lower}/init/blocks/batterys/Batterys.java", "🔋 Батареи"),
-            ("consume_generators", f"src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java", "⚡ Генераторы"),
-            ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", "📡 Энерг. башни"),
-            ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", "🔌 Энерг. узлы"),
-            ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", "🛡️ Щитовые стены"),
-            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "🏭 Заводы"),
-            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", "Мосты")
+            ("walls", f"src/{mod_name_lower}/init/blocks/walls/Walls.java", LangT("🧱 Стены")),
+            ("solar_panels", f"src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java", LangT("☀️ Солнечные панели")),
+            ("batterys", f"src/{mod_name_lower}/init/blocks/batterys/Batterys.java", LangT("🔋 Батареи")),
+            ("consume_generators", f"src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java", LangT("⚡ Генераторы")),
+            ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", LangT("📡 Энерг. башни")),
+            ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", LangT("🔌 Энерг. узлы")),
+            ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", LangT("🛡️ Щитовые стены")),
+            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", LangT("🏭 Заводы")),
+            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты"))
         ]
         
         for folder, file_path, display_prefix in block_files:
@@ -756,7 +757,7 @@ class BlockCreator:
                             mod_blocks[var_name] = (f"{display_prefix} - {var_name}", folder)
                             
                 except Exception as e:
-                    print(f"Ошибка чтения {full_path}: {e}")
+                    print(LangT(f"Ошибка чтения {full_path}: {e}"))
         
         return mod_blocks
     
@@ -897,7 +898,7 @@ class BlockCreator:
         else:
             ctk.CTkLabel(
                 scroll,
-                text="📭 Нет блоков по вашему запросу",
+                text=LangT("📭 Нет блоков по вашему запросу"),
                 font=("Arial", 14),
                 text_color="#888888"
             ).pack(pady=50)
@@ -934,7 +935,7 @@ class BlockCreator:
         else:
             ctk.CTkLabel(
                 scroll,
-                text="🎮 Нет блоков по вашему запросу",
+                text=LangT("🎮 Нет блоков по вашему запросу"),
                 font=("Arial", 14),
                 text_color="#888888"
             ).pack(pady=50)
@@ -984,7 +985,7 @@ class BlockCreator:
         # Кнопка выбора
         ctk.CTkButton(
             card,
-            text="Выбрать",
+            text=LangT("Выбрать"),
             width=100,
             height=30,
             font=("Arial", 11),
@@ -1071,11 +1072,11 @@ class BlockCreator:
                 icon_label.configure(image=ctk_img, text="")
             else:
                 # Если иконка не найдена, показываем эмодзи
-                print(f"Иконка не найдена для {block_name}, используем эмодзи {block_emoji}")
+                print(LangT(f"Иконка не найдена для {block_name}, используем эмодзи {block_emoji}"))
                 icon_label.configure(text=block_emoji, image=None)
 
         except Exception as e:
-            print(f"Ошибка загрузки иконки для {block_name}: {e}")
+            print(LangT(f"Ошибка загрузки иконки для {block_name}: {e}"))
             icon_label.configure(text=block_emoji, image=None)
 
     def copy_block_texture(self, block_name: str, size_multiplier: int, 
@@ -1095,7 +1096,7 @@ class BlockCreator:
         try:
             templates_dir = Path(resource_path("Creator/icons/blocks"))
             if not templates_dir.exists():
-                print(f"Папка с шаблонами не найдена: {templates_dir}")
+                print(LangT(f"Папка с шаблонами не найдена: {templates_dir}"))
                 return False
             
             # Определяем шаблон для копирования
@@ -1105,17 +1106,17 @@ class BlockCreator:
                     test_path = templates_dir / template_name
                     if test_path.exists():
                         template = test_path
-                        print(f"Найден шаблон: {template_name}")
+                        print(LangT(f"Найден шаблон: {template_name}"))
                         break
             
             # Если шаблон не найден, берем первый доступный PNG
             if not template:
                 image_files = list(templates_dir.glob("*.png"))
                 if not image_files:
-                    print("В папке нет PNG файлов")
+                    print(LangT("В папке нет PNG файлов"))
                     return False
                 template = image_files[0]
-                print(f"Используется первый доступный шаблон: {template.name}")
+                print(LangT(f"Используется первый доступный шаблон: {template.name}"))
             
             # Формируем имя текстуры
             texture_name = self.format_to_lower_camel(block_name)
@@ -1134,11 +1135,11 @@ class BlockCreator:
             target_path = target_dir / f"{texture_name}.png"
             img.save(target_path)
             
-            print(f"Текстура сохранена: {target_path}")
+            print(LangT(f"Текстура сохранена: {target_path}"))
             return True
             
         except Exception as e:
-            print(f"Ошибка копирования текстуры для {block_name}: {e}")
+            print(LangT(f"Ошибка копирования текстуры для {block_name}: {e}"))
             return False
     
     def copy_block_textures_multi(self, block_name: str, size_multiplier: int,
@@ -1181,7 +1182,7 @@ class BlockCreator:
                     if similar_files:
                         template_path = similar_files[0]
                     else:
-                        print(f"Шаблон {config['template']} не найден, пропускаем")
+                        print(LangT(f"Шаблон {config['template']} не найден, пропускаем"))
                         success = False
                         continue
                 
@@ -1200,13 +1201,13 @@ class BlockCreator:
                     #print(f"Сохранена текстура: {target_path}")
                     
                 except Exception as e:
-                    print(f"Ошибка при обработке {config['template']}: {e}")
+                    print(LangT(f"Ошибка при обработке {config['template']}: {e}"))
                     success = False
             
             return success
             
         except Exception as e:
-            print(f"Ошибка копирования текстур: {e}")
+            print(LangT(f"Ошибка копирования текстур: {e}"))
             return False
     
     def check_block_name_exists(self, name: str, additional_folders: list = None) -> bool:
@@ -1248,7 +1249,7 @@ class BlockCreator:
         # Проверяем существование
         for path in check_paths:
             if path.exists():
-                print(f"Найден существующий файл: {path}")
+                print(LangT(f"Найден существующий файл: {path}"))
                 return True
         
         return False
@@ -1290,7 +1291,7 @@ class BlockCreator:
                             custom_items[item_name] = item_name
                             
             except Exception as e:
-                print(f"Ошибка чтения ModItems: {e}")
+                print(LangT(f"Ошибка чтения ModItems: {e}"))
         
         # Сохраняем в кэш
         self._custom_items_cache = custom_items
@@ -1324,7 +1325,7 @@ class BlockCreator:
                             custom_liquids[liquid_name] = liquid_name
                             
             except Exception as e:
-                print(f"Ошибка чтения ModLiquids: {e}")
+                print(LangT(f"Ошибка чтения ModLiquids: {e}"))
         
         self._custom_liquids_cache = custom_liquids
         return custom_liquids
@@ -1765,7 +1766,7 @@ public class CircularBridge extends ItemBridge {{
             path=str(self.get_absolute_path(f"src/{self.mod_name.lower()}/custom_types/blocks/bridge"))
         )
         
-        print(f"✅ CircularBridge.java успешно создан: {created_files[0]}")
+        print(LangT(f"✅ CircularBridge.java успешно создан: {created_files[0]}"))
         
         return created_files
 
@@ -1835,12 +1836,12 @@ public class CircularBridge extends ItemBridge {{
                                 value = getattr(self, attr_name)
                                 return str(value)
                             else:
-                                print(f"⚠️ Атрибут {attr_name} не найден, оставляем как есть")
+                                print(LangT(f"⚠️ Атрибут {attr_name} не найден, оставляем как есть"))
                                 return f"{{{expr}}}"
                         else:
                             return f"{{{expr}}}"
                     except Exception as e:
-                        print(f"⚠️ Ошибка при обработке {expr}: {e}")
+                        print(LangT(f"⚠️ Ошибка при обработке {expr}: {e}"))
                         return f"{{{expr}}}"
                 
                 # Обрабатываем все {self.что-то} (включая .ADD-TO)
@@ -1873,9 +1874,9 @@ public class CircularBridge extends ItemBridge {{
             # Создаем директорию, если её нет
             try:
                 os.makedirs(current_path, exist_ok=True)
-                print(f"📁 Директория создана/существует: {current_path}")
+                print(LangT(f"📁 Директория создана/существует: {current_path}"))
             except Exception as e:
-                print(f"❌ Ошибка создания директории {current_path}: {e}")
+                print(LangT(f"❌ Ошибка создания директории {current_path}: {e}"))
                 continue
             
             # Полный путь к файлу
@@ -1893,9 +1894,9 @@ public class CircularBridge extends ItemBridge {{
                 with open(full_path, 'w', encoding='utf-8') as file:
                     file.write(str(current_content))
                 created_files.append(full_path)
-                print(f"✅ Файл создан: {full_path}")
+                print(LangT(f"✅ Файл создан: {full_path}"))
             except Exception as e:
-                print(f"❌ Ошибка при создании файла {full_path}: {e}")
+                print(LangT(f"❌ Ошибка при создании файла {full_path}: {e}"))
         
         return created_files
 
@@ -1908,9 +1909,9 @@ public class CircularBridge extends ItemBridge {{
         CATENAME = "Wall"
         CATEDOR = "defense"
         TEMPO_ICON = "copper-wall.png"
-        BL_NAME_2 = "Стена"
-        BL_CR_NAME = "Стену"
-        BL_NAME = "стены"
+        BL_NAME_2 = LangT("Стена")
+        BL_CR_NAME = LangT("Стену")
+        BL_NAME = LangT("стены")
         ENTRY_NAME1 = "wall"
         NAME = "Walls"
         FOLDER = "walls"
@@ -1941,7 +1942,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание стены",
+            text=LangT("Создание стены"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -1958,7 +1959,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -1969,7 +1970,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2023,7 +2024,7 @@ public class CircularBridge extends ItemBridge {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2038,7 +2039,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2064,7 +2065,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2090,7 +2091,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2123,7 +2124,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2131,7 +2132,7 @@ public class CircularBridge extends ItemBridge {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -2143,7 +2144,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -2162,12 +2163,12 @@ public class CircularBridge extends ItemBridge {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🧱", font=("Arial", 30))  # Временный label, будет заменен
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))  # Временный label, будет заменен
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -2208,7 +2209,7 @@ public class CircularBridge extends ItemBridge {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название стены!", 
+                    text=LangT("❌ Ошибка: Введите название стены!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2226,7 +2227,7 @@ public class CircularBridge extends ItemBridge {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2235,7 +2236,7 @@ public class CircularBridge extends ItemBridge {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2243,7 +2244,7 @@ public class CircularBridge extends ItemBridge {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2256,7 +2257,7 @@ public class CircularBridge extends ItemBridge {{
                 target_folder=FOLDER,
                 template_names=[TEMPO_ICON]
             )
-            texture_status = "✅ Текстура создана" if texture_copied else "⚠️ Текстура не создана"
+            texture_status = LangT("✅ Текстура создана") if texture_copied else LangT("⚠️ Текстура не создана")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -2428,22 +2429,22 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создана!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
                     ])
                     
                     if build_items_list:
@@ -2455,7 +2456,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -2471,25 +2472,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 WallsTree.java создан и добавлен в main (WallsTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 WallsTree.java создан и добавлен в main (WallsTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ WallsTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ WallsTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} '{var_name}' уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -2499,7 +2500,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_wall,
             height=45,
             width=200,
@@ -2511,7 +2512,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -2534,9 +2535,9 @@ public class {NAME} {{
         CATEDOR = "power"
         TEMPO_ICON = "battery.png"
         TEMPO_ICON_TOP = "battery-top.png"
-        BL_NAME_2 = "Батарея"
-        BL_CR_NAME = "Батарею"
-        BL_NAME = "батареи"
+        BL_NAME_2 = LangT("Батарея")
+        BL_CR_NAME = LangT("Батарею")
+        BL_NAME = LangT("батареи")
         ENTRY_NAME1 = "battery"
         NAME = "Batterys"
         FOLDER = "batterys"
@@ -2562,7 +2563,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание батареи",
+            text=LangT("Создание батареи"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -2579,7 +2580,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2590,7 +2591,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2644,7 +2645,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2659,7 +2660,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2685,7 +2686,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2711,7 +2712,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2733,7 +2734,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             buff_frame,
-            text="Ёмкость (powerBuffered):",
+            text=LangT("Ёмкость (powerBuffered):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2770,7 +2771,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2778,7 +2779,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -2790,7 +2791,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -2809,12 +2810,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🔋", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -2855,7 +2856,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название батареи!", 
+                    text=LangT("❌ Ошибка: Введите название батареи!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2873,7 +2874,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2882,7 +2883,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2890,7 +2891,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -2908,7 +2909,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -3082,23 +3083,23 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создана!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • 🔋 Ёмкость: {buff_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 🔋 Ёмкость: {buff_raw}"),
                     ])
                     
                     if build_items_list:
@@ -3110,7 +3111,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -3126,25 +3127,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 BatteryTree.java создан и добавлен в main (BatteryTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 BatteryTree.java создан и добавлен в main (BatteryTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ BatteryTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ BatteryTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} '{var_name}' уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -3154,7 +3155,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_battery,
             height=45,
             width=200,
@@ -3166,7 +3167,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -3189,9 +3190,9 @@ public class {NAME} {{
         CATENAME = "SolarGenerator"
         CATEDOR = "power"
         TEMPO_ICON = "solar-panel.png"
-        BL_NAME_2 = "Солнечная панель"
-        BL_CR_NAME = "Солнечную панель"
-        BL_NAME = "солнечной панели"
+        BL_NAME_2 = LangT("Солнечная панель")
+        BL_CR_NAME = LangT("Солнечную панель")
+        BL_NAME = LangT("солнечной панели")
         ENTRY_NAME1 = "solarPanel"
         NAME = "SolarPanels"
         FOLDER = "solar_panels"
@@ -3217,7 +3218,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание солнечной панели",
+            text=LangT("Создание солнечной панели"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -3234,7 +3235,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3245,7 +3246,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3299,7 +3300,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3314,7 +3315,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3340,7 +3341,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3366,7 +3367,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3388,7 +3389,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             power_frame,
-            text="Производство энергии (powerProduction):\n(вводите значение в секунду, будет /60)",
+            text=LangT("Производство энергии (powerProduction):\n(вводите значение в секунду, будет /60)"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3425,7 +3426,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3433,7 +3434,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -3445,7 +3446,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -3464,12 +3465,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="☀️", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -3510,7 +3511,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название солнечной панели!", 
+                    text=LangT("❌ Ошибка: Введите название солнечной панели!"), 
                     text_color="#F44336"
                 )
                 return
@@ -3528,7 +3529,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -3537,7 +3538,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -3545,7 +3546,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -3558,7 +3559,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 template_names=[TEMPO_ICON]
             )
-            texture_status = "✅ Текстура создана" if texture_copied else "⚠️ Текстура не создана"
+            texture_status = LangT("✅ Текстура создана") if texture_copied else LangT("⚠️ Текстура не создана")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -3739,23 +3740,23 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создана!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • ⚡ Производство энергии: {power_raw}/сек ({power_in_game_str} в коде)",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • ⚡ Производство энергии: {power_raw}/сек ({power_in_game_str} в коде)"),
                     ])
                     
                     if build_items_list:
@@ -3767,7 +3768,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -3783,25 +3784,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 SolarTree.java создан и добавлен в main (SolarTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 SolarTree.java создан и добавлен в main (SolarTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ SolarTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ SolarTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -3811,7 +3812,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_solar,
             height=45,
             width=200,
@@ -3823,7 +3824,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -3847,9 +3848,9 @@ public class {NAME} {{
         CATEDOR = "defense"
         TEMPO_ICON = "shielded-wall.png"
         TEMPO_ICON_TOP = "shielded-wall-glow.png"
-        BL_NAME_2 = "Экранированная стена"
-        BL_CR_NAME = "Экранированную стену"
-        BL_NAME = "экранированной стены"
+        BL_NAME_2 = LangT("Экранированная стена")
+        BL_CR_NAME = LangT("Экранированную стену")
+        BL_NAME = LangT("экранированной стены")
         ENTRY_NAME1 = "shieldWall"
         NAME = "ShieldWalls"
         FOLDER = "shield_walls"
@@ -3875,7 +3876,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание экранированной стены",
+            text=LangT("Создание экранированной стены"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -3892,7 +3893,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3903,7 +3904,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3957,7 +3958,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3972,7 +3973,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность стены (health):",
+            text=LangT("Прочность стены (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3998,7 +3999,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4024,7 +4025,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4046,7 +4047,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             power_frame,
-            text="Потребление энергии (consumePower) в сек:\n(введите значение, будет /60)",
+            text=LangT("Потребление энергии (consumePower) в сек:\n(введите значение, будет /60)"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4072,7 +4073,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             shield_hp_frame,
-            text="Прочность щита (shieldHealth):",
+            text=LangT("Прочность щита (shieldHealth):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4098,7 +4099,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             cooldown_frame,
-            text="Перезарядка (breakCooldown):",
+            text=LangT("Перезарядка (breakCooldown):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4124,7 +4125,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             regen_frame,
-            text="Скорость регенерации (regenSpeed):",
+            text=LangT("Скорость регенерации (regenSpeed):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4161,7 +4162,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -4169,7 +4170,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -4181,7 +4182,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -4200,12 +4201,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🛡️", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -4246,7 +4247,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название экранированной стены!", 
+                    text=LangT("❌ Ошибка: Введите название экранированной стены!"), 
                     text_color="#F44336"
                 )
                 return
@@ -4264,7 +4265,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -4273,7 +4274,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -4281,7 +4282,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -4299,7 +4300,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -4487,26 +4488,26 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создана!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье стены: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • ⚡ Потребление энергии: {power_raw}/сек ({power_in_game_str} в коде)",
-                        f"  • 🛡️ Здоровье щита: {shield_hp_raw}",
-                        f"  • ⏱️ Перезарядка: {cooldown_raw}",
-                        f"  • 🔄 Регенерация: {regen_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье стены: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек ({power_in_game_str} в коде)"),
+                        LangT(f"  • 🛡️ Здоровье щита: {shield_hp_raw}"),
+                        LangT(f"  • ⏱️ Перезарядка: {cooldown_raw}"),
+                        LangT(f"  • 🔄 Регенерация: {regen_raw}"),
                     ])
                     
                     if build_items_list:
@@ -4518,7 +4519,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -4534,25 +4535,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 ShieldWallTree.java создан и добавлен в main (ShieldWallTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 ShieldWallTree.java создан и добавлен в main (ShieldWallTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ ShieldWallTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ ShieldWallTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -4562,7 +4563,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_shield,
             height=45,
             width=200,
@@ -4574,7 +4575,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -4597,9 +4598,9 @@ public class {NAME} {{
         CATENAME = "PowerNode"
         CATEDOR = "power"
         TEMPO_ICON = "power-node.png"
-        BL_NAME_2 = "Узел питания"
-        BL_CR_NAME = "Узел питания"
-        BL_NAME = "узла питания"
+        BL_NAME_2 = LangT("Узел питания")
+        BL_CR_NAME = LangT("Узел питания")
+        BL_NAME = LangT("узла питания")
         ENTRY_NAME1 = "powerNode"
         NAME = "PowerNodes"
         FOLDER = "power_nodes"
@@ -4625,7 +4626,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание узла питания",
+            text=LangT("Создание узла питания"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -4642,7 +4643,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -4653,7 +4654,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4704,7 +4705,7 @@ public class {NAME} {{
 
         # === Функции выбора цвета ===
         def choose_color(color_var, button):
-            color = colorchooser.askcolor(title="Выберите цвет", initialcolor=color_var.get())
+            color = colorchooser.askcolor(title=LangT("Выберите цвет"), initialcolor=color_var.get())
             if color[1]:
                 color_var.set(color[1])
                 button.configure(fg_color=color[1])
@@ -4721,7 +4722,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -4740,7 +4741,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4766,7 +4767,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4792,7 +4793,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4814,7 +4815,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             range_frame,
-            text="Дальность подключения (laserRange):",
+            text=LangT("Дальность подключения (laserRange):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4840,7 +4841,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             max_nodes_frame,
-            text="Макс. подключений (maxNodes):",
+            text=LangT("Макс. подключений (maxNodes):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4866,7 +4867,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             map_color_frame,
-            text="mapColor (цвет на карте):",
+            text=LangT("mapColor (цвет на карте):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4890,7 +4891,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             outline_color_frame,
-            text="outlineColor (контур):",
+            text=LangT("outlineColor (контур):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4914,7 +4915,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             laser_color1_frame,
-            text="Энергия есть (laserColor1):",
+            text=LangT("Энергия есть (laserColor1):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4938,7 +4939,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             laser_color2_frame,
-            text="Энергии нет (laserColor2):",
+            text=LangT("Энергии нет (laserColor2):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4962,7 +4963,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             light_color_frame,
-            text="lightColor (цвет света):",
+            text=LangT("lightColor (цвет света):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4997,7 +4998,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -5005,7 +5006,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -5017,7 +5018,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -5036,12 +5037,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="⚡", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -5082,7 +5083,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название узла питания!", 
+                    text=LangT("❌ Ошибка: Введите название узла питания!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5100,7 +5101,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5109,7 +5110,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5117,7 +5118,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5130,7 +5131,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 template_names=[TEMPO_ICON]
             )
-            texture_status = "✅ Текстура создана" if texture_copied else "⚠️ Текстура не создана"
+            texture_status = LangT("✅ Текстура создана") if texture_copied else LangT("⚠️ Текстура не создана")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -5317,24 +5318,24 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • 📡 Дальность: {range_raw}",
-                        f"  • 🔌 Макс. подключений: {max_nodes_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 📡 Дальность: {range_raw}"),
+                        LangT(f"  • 🔌 Макс. подключений: {max_nodes_raw}"),
                     ])
                     
                     if build_items_list:
@@ -5346,7 +5347,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -5362,25 +5363,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 PowerNodeTree.java создан и добавлен в main (PowerNodeTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 PowerNodeTree.java создан и добавлен в main (PowerNodeTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ PowerNodeTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ PowerNodeTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -5390,7 +5391,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_power_node,
             height=45,
             width=200,
@@ -5402,7 +5403,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -5425,9 +5426,9 @@ public class {NAME} {{
         CATENAME = "BeamNode"
         CATEDOR = "power"
         TEMPO_ICON = "beam-node.png"
-        BL_NAME_2 = "Лучевой узел"
-        BL_CR_NAME = "Лучевой узел"
-        BL_NAME = "лучевого узла"
+        BL_NAME_2 = LangT("Лучевой узел")
+        BL_CR_NAME = LangT("Лучевой узел")
+        BL_NAME = LangT("лучевого узла")
         ENTRY_NAME1 = "beamNode"
         NAME = "BeamNodes"
         FOLDER = "beam_nodes"
@@ -5453,7 +5454,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание лучевого узла",
+            text=LangT("Создание лучевого узла"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -5470,7 +5471,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -5481,7 +5482,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5532,7 +5533,7 @@ public class {NAME} {{
 
         # === Функции выбора цвета ===
         def choose_color(color_var, button):
-            color = colorchooser.askcolor(title="Выберите цвет", initialcolor=color_var.get())
+            color = colorchooser.askcolor(title=LangT("Выберите цвет"), initialcolor=color_var.get())
             if color[1]:
                 color_var.set(color[1])
                 button.configure(fg_color=color[1])
@@ -5549,7 +5550,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -5568,7 +5569,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5594,7 +5595,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5620,7 +5621,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5642,7 +5643,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             range_frame,
-            text="Дальность луча (range):",
+            text=LangT("Дальность луча (range):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5668,7 +5669,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             map_color_frame,
-            text="mapColor (цвет на карте):",
+            text=LangT("mapColor (цвет на карте):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5692,7 +5693,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             outline_color_frame,
-            text="outlineColor (контур):",
+            text=LangT("outlineColor (контур):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5716,7 +5717,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             laser_color1_frame,
-            text="Энергия есть (laserColor1):",
+            text=LangT("Энергия есть (laserColor1):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5740,7 +5741,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             laser_color2_frame,
-            text="Энергии нет (laserColor2):",
+            text=LangT("Энергии нет (laserColor2):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5764,7 +5765,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             light_color_frame,
-            text="lightColor (цвет света):",
+            text=LangT("lightColor (цвет света):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5799,7 +5800,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -5807,7 +5808,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -5819,7 +5820,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -5838,12 +5839,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="⚡", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -5884,7 +5885,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название лучевого узла!", 
+                    text=LangT("❌ Ошибка: Введите название лучевого узла!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5902,7 +5903,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5911,7 +5912,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5919,7 +5920,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5932,7 +5933,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 template_names=[TEMPO_ICON]
             )
-            texture_status = "✅ Текстура создана" if texture_copied else "⚠️ Текстура не создана"
+            texture_status = LangT("✅ Текстура создана") if texture_copied else LangT("⚠️ Текстура не создана")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -6117,23 +6118,23 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • 📡 Дальность луча: {range_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 📡 Дальность луча: {range_raw}"),
                     ])
                     
                     if build_items_list:
@@ -6145,7 +6146,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -6161,25 +6162,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 BeamNodeTree.java создан и добавлен в main (BeamNodeTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 BeamNodeTree.java создан и добавлен в main (BeamNodeTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ BeamNodeTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ BeamNodeTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -6189,7 +6190,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_beam_node,
             height=45,
             width=200,
@@ -6201,7 +6202,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -6225,9 +6226,9 @@ public class {NAME} {{
         CATEDOR = "power"
         TEMPO_ICON_BASE = "rtg-generator.png"
         TEMPO_ICON_TOP = "rtg-generator-top.png"
-        BL_NAME_2 = "Генератор"
-        BL_CR_NAME = "Генератор"
-        BL_NAME = "генератора"
+        BL_NAME_2 = LangT("Генератор")
+        BL_CR_NAME = LangT("Генератор")
+        BL_NAME = LangT("генератора")
         ENTRY_NAME1 = "generator"
         NAME = "ConsumeGenerators"
         FOLDER = "consume_generators"
@@ -6253,7 +6254,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание генератора",
+            text=LangT("Создание генератора"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -6270,7 +6271,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -6281,7 +6282,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6343,7 +6344,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -6358,7 +6359,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6384,7 +6385,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             power_frame,
-            text="Мощность (powerProduction) в секунду:",
+            text=LangT("Мощность (powerProduction) в секунду:"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6410,7 +6411,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6432,7 +6433,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6458,7 +6459,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             capacity_item_frame,
-            text="Вместимость предметов (itemCapacity):",
+            text=LangT("Вместимость предметов (itemCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6484,7 +6485,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             capacity_liquid_frame,
-            text="Вместимость жидкости (liquidCapacity):",
+            text=LangT("Вместимость жидкости (liquidCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6516,7 +6517,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             fuel_card,
-            text="🔥 Топливо для генератора",
+            text=LangT("🔥 Топливо для генератора"),
             font=("Arial", 18, "bold"),
             text_color="#FF9800"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -6531,12 +6532,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             fuel_items_frame,
-            text="📦 Предметы для топлива (количество в секунду):",
+            text=LangT("📦 Предметы для топлива (количество в секунду):"),
             font=("Arial", 15, "bold"),
             text_color="#4CAF50"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_fuel_items_var = tk.StringVar(value="Не выбрано")
+        selected_fuel_items_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_fuel_items_label = ctk.CTkLabel(
             fuel_items_frame,
             textvariable=selected_fuel_items_var,
@@ -6548,7 +6549,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             fuel_items_frame,
-            text="➕ Добавить предметное топливо",
+            text=LangT("➕ Добавить предметное топливо"),
             command=lambda: self.open_fuel_items_editor_with_amount(selected_fuel_items_var, "item"),
             height=35,
             font=("Arial", 13),
@@ -6563,12 +6564,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             fuel_liquids_frame,
-            text="💧 Жидкости для топлива (количество в секунду):",
+            text=LangT("💧 Жидкости для топлива (количество в секунду):"),
             font=("Arial", 15, "bold"),
             text_color="#2196F3"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_fuel_liquids_var = tk.StringVar(value="Не выбрано")
+        selected_fuel_liquids_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_fuel_liquids_label = ctk.CTkLabel(
             fuel_liquids_frame,
             textvariable=selected_fuel_liquids_var,
@@ -6580,7 +6581,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             fuel_liquids_frame,
-            text="➕ Добавить жидкое топливо",
+            text=LangT("➕ Добавить жидкое топливо"),
             command=lambda: self.open_fuel_items_editor_with_amount(selected_fuel_liquids_var, "liquid"),
             height=35,
             font=("Arial", 13),
@@ -6606,7 +6607,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -6614,7 +6615,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -6626,7 +6627,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -6645,12 +6646,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🔥", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -6691,7 +6692,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название генератора!",
+                    text=LangT("❌ Ошибка: Введите название генератора!"),
                     text_color="#F44336"
                 )
                 return
@@ -6709,7 +6710,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -6718,7 +6719,7 @@ public class {NAME} {{
             if (not hasattr(self, 'fuel_items_with_amount') or not self.fuel_items_with_amount) and \
             (not hasattr(self, 'fuel_liquids_with_amount') or not self.fuel_liquids_with_amount):
                 status_label.configure(
-                    text="❌ Ошибка: Выберите хотя бы один вид топлива (предметы или жидкости)!", 
+                    text=LangT("❌ Ошибка: Выберите хотя бы один вид топлива (предметы или жидкости)!"), 
                     text_color="#F44336"
                 )
                 return
@@ -6727,7 +6728,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!",
+                    text=LangT("❌ Ошибка: Некорректное название!"),
                     text_color="#F44336"
                 )
                 return
@@ -6735,7 +6736,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -6753,7 +6754,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "500"
@@ -6966,25 +6967,25 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Мощность: {power_raw}/сек ({power_in_game_str} в коде)",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • 📦 Вместимость предметов: {capacity_item_raw}",
-                        f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Мощность: {power_raw}/сек ({power_in_game_str} в коде)"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 📦 Вместимость предметов: {capacity_item_raw}"),
+                        LangT(f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}"),
                     ])
                     
                     if build_items_list:
@@ -6996,7 +6997,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if hasattr(self, 'fuel_items_with_amount') and self.fuel_items_with_amount:
                         fuel_list = []
@@ -7008,7 +7009,7 @@ public class {NAME} {{
                                 fuel_list.append(f"{display_name} ×{amount}/сек")
                         
                         if fuel_list:
-                            status_messages.append(f"  • 🔥 Предметное топливо: {', '.join(fuel_list)}")
+                            status_messages.append(LangT(f"  • 🔥 Предметное топливо: {', '.join(fuel_list)}"))
                     
                     if hasattr(self, 'fuel_liquids_with_amount') and self.fuel_liquids_with_amount:
                         liquid_list = []
@@ -7020,7 +7021,7 @@ public class {NAME} {{
                                 liquid_list.append(f"{display_name} ×{amount}/сек")
                         
                         if liquid_list:
-                            status_messages.append(f"  • 💧 Жидкое топливо: {', '.join(liquid_list)}")
+                            status_messages.append(LangT(f"  • 💧 Жидкое топливо: {', '.join(liquid_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -7036,25 +7037,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 ConsumeGeneratorTree.java создан и добавлен в main (ConsumeGeneratorTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 ConsumeGeneratorTree.java создан и добавлен в main (ConsumeGeneratorTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ ConsumeGeneratorTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ ConsumeGeneratorTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -7064,7 +7065,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_generator,
             height=45,
             width=200,
@@ -7076,7 +7077,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -7102,9 +7103,9 @@ public class {NAME} {{
         CATEDOR = "crafting"
         TEMPO_ICON_BASE = "kiln.png"
         TEMPO_ICON_TOP = "kiln-top.png"
-        BL_NAME_2 = "Завод"
-        BL_CR_NAME = "Завод"
-        BL_NAME = "завода"
+        BL_NAME_2 = LangT("Завод")
+        BL_CR_NAME = LangT("Завод")
+        BL_NAME = LangT("завода")
         ENTRY_NAME1 = "crafter"
         NAME = "GenericCrafters"
         FOLDER = "generic_crafter"
@@ -7130,7 +7131,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание завода",
+            text=LangT("Создание завода"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -7147,7 +7148,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7158,7 +7159,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7212,7 +7213,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7227,7 +7228,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7253,7 +7254,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             craft_time_frame,
-            text="Время крафта (craftTime):",
+            text=LangT("Время крафта (craftTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7279,7 +7280,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_frame,
-            text="Размер (size):",
+            text=LangT("Размер (size):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7301,7 +7302,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7327,7 +7328,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             capacity_item_frame,
-            text="Вместимость предметов (itemCapacity):",
+            text=LangT("Вместимость предметов (itemCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7353,7 +7354,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             capacity_liquid_frame,
-            text="Вместимость жидкости (liquidCapacity):",
+            text=LangT("Вместимость жидкости (liquidCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7385,7 +7386,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             consume_card,
-            text="⬇️ Потребление для завода (за крафт)",
+            text=LangT("⬇️ Потребление для завода (за крафт)"),
             font=("Arial", 18, "bold"),
             text_color="#FF9800"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7402,12 +7403,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             consume_items_frame,
-            text="📦 Предметы для потребления (количество за крафт):",
+            text=LangT("📦 Предметы для потребления (количество за крафт):"),
             font=("Arial", 15, "bold"),
             text_color="#4CAF50"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_consume_items_var = tk.StringVar(value="Не выбрано")
+        selected_consume_items_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_consume_items_label = ctk.CTkLabel(
             consume_items_frame,
             textvariable=selected_consume_items_var,
@@ -7419,7 +7420,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             consume_items_frame,
-            text="➕ Добавить предметы на вход",
+            text=LangT("➕ Добавить предметы на вход"),
             command=lambda: self.open_editor_with_target(selected_consume_items_var, "item", "consume_items"),
             height=35,
             font=("Arial", 13),
@@ -7434,12 +7435,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             consume_liquids_frame,
-            text="💧 Жидкости для потребления (количество за крафт):",
+            text=LangT("💧 Жидкости для потребления (количество за крафт):"),
             font=("Arial", 15, "bold"),
             text_color="#2196F3"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_consume_liquids_var = tk.StringVar(value="Не выбрано")
+        selected_consume_liquids_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_consume_liquids_label = ctk.CTkLabel(
             consume_liquids_frame,
             textvariable=selected_consume_liquids_var,
@@ -7451,7 +7452,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             consume_liquids_frame,
-            text="➕ Добавить жидкости на вход",
+            text=LangT("➕ Добавить жидкости на вход"),
             command=lambda: self.open_editor_with_target(selected_consume_liquids_var, "liquid", "consume_liquids"),
             height=35,
             font=("Arial", 13),
@@ -7466,7 +7467,7 @@ public class {NAME} {{
         
         power_check = ctk.CTkCheckBox(
             consume_power_frame,
-            text="⚡ Потребляет энергию",
+            text=LangT("⚡ Потребляет энергию"),
             variable=self.consume_power_needed,
             font=("Arial", 15, "bold"),
             text_color="#FFD700",
@@ -7480,7 +7481,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             power_amount_frame,
-            text="Количество энергии в секунду:",
+            text=LangT("Количество энергии в секунду:"),
             font=("Arial", 14),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7508,7 +7509,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             output_card,
-            text="⬆️ Результат крафта (за крафт)",
+            text=LangT("⬆️ Результат крафта (за крафт)"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7523,12 +7524,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             output_items_frame,
-            text="📦 Предметы на выходе (количество за крафт):",
+            text=LangT("📦 Предметы на выходе (количество за крафт):"),
             font=("Arial", 15, "bold"),
             text_color="#4CAF50"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_output_items_var = tk.StringVar(value="Не выбрано")
+        selected_output_items_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_output_items_label = ctk.CTkLabel(
             output_items_frame,
             textvariable=selected_output_items_var,
@@ -7540,7 +7541,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             output_items_frame,
-            text="➕ Добавить предметы на выход",
+            text=LangT("➕ Добавить предметы на выход"),
             command=lambda: self.open_editor_with_target(selected_output_items_var, "item", "output_items"),
             height=35,
             font=("Arial", 13),
@@ -7555,12 +7556,12 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             output_liquids_frame,
-            text="💧 Жидкости на выходе (количество за крафт):",
+            text=LangT("💧 Жидкости на выходе (количество за крафт):"),
             font=("Arial", 15, "bold"),
             text_color="#2196F3"
         ).pack(anchor="w", pady=(0, 10))
         
-        selected_output_liquids_var = tk.StringVar(value="Не выбрано")
+        selected_output_liquids_var = tk.StringVar(value=LangT("Не выбрано"))
         selected_output_liquids_label = ctk.CTkLabel(
             output_liquids_frame,
             textvariable=selected_output_liquids_var,
@@ -7572,7 +7573,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             output_liquids_frame,
-            text="➕ Добавить жидкости на выход",
+            text=LangT("➕ Добавить жидкости на выход"),
             command=lambda: self.open_editor_with_target(selected_output_liquids_var, "liquid", "output_liquids"),
             height=35,
             font=("Arial", 13),
@@ -7598,7 +7599,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7606,7 +7607,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -7618,7 +7619,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -7637,12 +7638,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🏭", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # ИСПОЛЬЗУЕМ НОВУЮ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -7683,7 +7684,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название завода!",
+                    text=LangT("❌ Ошибка: Введите название завода!"),
                     text_color="#F44336"
                 )
                 return
@@ -7701,7 +7702,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -7711,7 +7712,7 @@ public class {NAME} {{
             (not hasattr(self, 'consume_liquids_with_amount') or not self.consume_liquids_with_amount) and \
             (not self.consume_power_needed.get()):
                 status_label.configure(
-                    text="❌ Ошибка: Добавьте хотя бы один элемент потребления!", 
+                    text=LangT("❌ Ошибка: Добавьте хотя бы один элемент потребления!"), 
                     text_color="#F44336"
                 )
                 return
@@ -7720,7 +7721,7 @@ public class {NAME} {{
             if (not hasattr(self, 'output_items_with_amount') or not self.output_items_with_amount) and \
             (not hasattr(self, 'output_liquids_with_amount') or not self.output_liquids_with_amount):
                 status_label.configure(
-                    text="❌ Ошибка: Добавьте хотя бы один элемент на выходе!", 
+                    text=LangT("❌ Ошибка: Добавьте хотя бы один элемент на выходе!"), 
                     text_color="#F44336"
                 )
                 return
@@ -7729,7 +7730,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!",
+                    text=LangT("❌ Ошибка: Некорректное название!"),
                     text_color="#F44336"
                 )
                 return
@@ -7737,7 +7738,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -7755,7 +7756,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "500"
@@ -7991,25 +7992,25 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⏱️ Время крафта: {craft_time_raw}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📏 Размер: {size_value}",
-                        f"  • 📦 Вместимость предметов: {capacity_item_raw}",
-                        f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⏱️ Время крафта: {craft_time_raw}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 📦 Вместимость предметов: {capacity_item_raw}"),
+                        LangT(f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}"),
                     ])
                     
                     if build_items_list:
@@ -8021,7 +8022,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     # Потребление
                     consume_list = []
@@ -8044,10 +8045,10 @@ public class {NAME} {{
                     if self.consume_power_needed.get():
                         power_amount = float(self.consume_power_amount.get())
                         power_in_game = power_amount / 60.0
-                        consume_list.append(f"⚡ {power_amount} энергии/сек ({power_in_game:.4f}f)")
+                        consume_list.append(LangT(f"⚡ {power_amount} энергии/сек ({power_in_game:.4f}f)"))
                     
                     if consume_list:
-                        status_messages.append(f"  • ⬇️ Потребление: {', '.join(consume_list)}")
+                        status_messages.append(LangT(f"  • ⬇️ Потребление: {', '.join(consume_list)}"))
                     
                     # Выход
                     output_list = []
@@ -8068,7 +8069,7 @@ public class {NAME} {{
                                 output_list.append(f"{display_name} ×{float(amount)}")
                     
                     if output_list:
-                        status_messages.append(f"  • ⬆️ Выход: {', '.join(output_list)}")
+                        status_messages.append(LangT(f"  • ⬆️ Выход: {', '.join(output_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -8084,25 +8085,25 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 GenericCrafterTree.java создан и добавлен в main (GenericCrafterTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 GenericCrafterTree.java создан и добавлен в main (GenericCrafterTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ GenericCrafterTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ GenericCrafterTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -8112,7 +8113,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_crafter,
             height=45,
             width=200,
@@ -8124,7 +8125,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -8156,9 +8157,9 @@ public class {NAME} {{
         TEMPO_ICON_END = "bridge-conveyor-end.png"
         TEMPO_ICON_ARROW = "bridge-conveyor-arrow.png"
         TEMPO_ICON_BRIDGE = "bridge-conveyor-bridge.png"
-        BL_NAME_2 = "Мост"
-        BL_CR_NAME = "Мост"
-        BL_NAME = "моста"
+        BL_NAME_2 = LangT("Мост")
+        BL_CR_NAME = LangT("Мост")
+        BL_NAME = LangT("моста")
         ENTRY_NAME1 = "bridge"
         NAME = "Bridges"
         FOLDER = "bridges"
@@ -8184,7 +8185,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание моста",
+            text=LangT("Создание моста"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -8201,7 +8202,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8212,7 +8213,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8266,7 +8267,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8281,7 +8282,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8307,7 +8308,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8333,7 +8334,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             size_info_frame,
-            text="Размер (size): 1 (фиксировано для моста)",
+            text=LangT("Размер (size): 1 (фиксировано для моста)"),
             font=("Arial", 15),
             text_color="#FFA500"
         ).pack(anchor="w", pady=(0, 5))
@@ -8344,7 +8345,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             power_frame,
-            text="Потребление энергии (powerUsage) в сек:\n(0 - не требует энергии)",
+            text=LangT("Потребление энергии (powerUsage) в сек:\n(0 - не требует энергии)"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8370,7 +8371,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             range_frame,
-            text="Радиус (range):",
+            text=LangT("Радиус (range):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8396,7 +8397,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             items_per_second_frame,
-            text="Предметы в секунду (itemsPerSecond):",
+            text=LangT("Предметы в секунду (itemsPerSecond):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8422,7 +8423,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             capacity_frame,
-            text="Вместимость (itemCapacity):",
+            text=LangT("Вместимость (itemCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8450,14 +8451,14 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             circular_frame,
-            text="Круглый режим (Circular Bridge):",
+            text=LangT("Круглый режим (Circular Bridge):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
         
         circular_checkbox = ctk.CTkCheckBox(
             circular_frame,
-            text="Включить круговое соединение (позволяет подключаться по диагонали)",
+            text=LangT("Включить круговое соединение (позволяет подключаться по диагонали)"),
             variable=circular_var,
             font=("Arial", 12),
             text_color="#FFFFFF",
@@ -8484,7 +8485,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8492,7 +8493,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -8504,7 +8505,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -8523,12 +8524,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
         block_icon_label = ctk.CTkLabel(properties_card, text="🌉", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # Используем универсальную функцию
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -8565,12 +8566,13 @@ public class {NAME} {{
 
         # === Основная функция создания моста ===
         def process_bridge():
+            # Сначала создаем CircularBridge.java
             self.circularBridge()
             original_name = entry_name.get().strip()
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название моста!", 
+                    text=LangT("❌ Ошибка: Введите название моста!"), 
                     text_color="#F44336"
                 )
                 return
@@ -8588,7 +8590,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -8597,7 +8599,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -8605,7 +8607,7 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
@@ -8624,7 +8626,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -8806,26 +8808,26 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • ⚡ Потребление энергии: {power_raw}/сек",
-                        f"  • 📡 Радиус: {range_raw}",
-                        f"  • 📦 Предметов/сек: {items_per_second_raw}",
-                        f"  • 💾 Вместимость: {capacity_raw}",
-                        f"  • 🔄 Круговой режим: {'Да' if circular_var.get() else 'Нет'}",
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек"),
+                        LangT(f"  • 📡 Радиус: {range_raw}"),
+                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw}"),
+                        LangT(f"  • 💾 Вместимость: {capacity_raw}"),
+                        LangT(f"  • 🔄 Круговой режим: {'Да' if circular_var.get() else 'Нет'}"),
                     ])
                     
                     if build_items_list:
@@ -8837,7 +8839,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -8853,27 +8855,27 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 BridgesTree.java создан и добавлен в main (BridgesTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 BridgesTree.java создан и добавлен в main (BridgesTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ BridgesTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ BridgesTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
                     import traceback
                     traceback.print_exc()
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} '{var_name}' уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -8883,7 +8885,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
+            text=LangT(f"Создать {BL_CR_NAME}"),
             command=process_bridge,
             height=45,
             width=200,
@@ -8895,7 +8897,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -8910,9 +8912,9 @@ public class {NAME} {{
         self.research_items = []
 
     def create_conveyor(self):
-        """Создает или добавляет новый мост в bridges/Bridges.java"""
+        """Создает или добавляет новый конвеер в conveyors/Conveyors.java"""
         
-        # Константы для моста
+        # Константы для конвеера
         PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "Conveyor"
@@ -8937,9 +8939,9 @@ public class {NAME} {{
         CONVEYOR41 = "conveyor-4-1.png"
         CONVEYOR42 = "conveyor-4-2.png"
         CONVEYOR43 = "conveyor-4-3.png"
-        BL_NAME_2 = "Конвеер"
-        BL_CR_NAME = "Конвеер"
-        BL_NAME = "Конвеера"
+        BL_NAME_2 = LangT("Конвеер")
+        BL_CR_NAME = LangT("Конвеер")
+        BL_NAME = LangT("конвеера")
         ENTRY_NAME1 = "conveyor"
         NAME = "Conveyors"
         FOLDER = "conveyors"
@@ -8965,7 +8967,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             title_frame,
-            text="Создание моста",
+            text=LangT("Создание конвеера"),
             font=("Arial", 24, "bold"),
             text_color="#4CAF50"
         ).pack(pady=10)
@@ -8982,7 +8984,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             info_card,
-            text="Основная информация",
+            text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8993,7 +8995,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):",
+            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9047,7 +9049,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=f"Свойства {BL_NAME}",
+            text=LangT(f"Свойства {BL_NAME}"),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -9062,7 +9064,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             hp_frame,
-            text="Прочность (health):",
+            text=LangT("Прочность (health):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9088,7 +9090,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             speed_frame,
-            text="Скорость стройки (buildTime):",
+            text=LangT("Скорость стройки (buildTime):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9108,24 +9110,24 @@ public class {NAME} {{
         )
         entry_speed.pack(fill="x")
 
-        # Размер (фиксирован для моста)
+        # Размер (фиксирован для конвеера)
         size_info_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
         size_info_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             size_info_frame,
-            text="Размер (size): 1 (фиксировано для конвеера)",
+            text=LangT("Размер (size): 1 (фиксировано для конвеера)"),
             font=("Arial", 15),
             text_color="#FFA500"
         ).pack(anchor="w", pady=(0, 5))
 
         # Предметы в секунду
         items_per_second_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        items_per_second_frame.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        items_per_second_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             items_per_second_frame,
-            text="Предметы в секунду (itemsPerSecond):",
+            text=LangT("Предметы в секунду (itemsPerSecond):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9147,11 +9149,11 @@ public class {NAME} {{
 
         # Вместимость
         capacity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        capacity_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        capacity_frame.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             capacity_frame,
-            text="Вместимость (itemCapacity):",
+            text=LangT("Вместимость (itemCapacity):"),
             font=("Arial", 15),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9187,7 +9189,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             build_card,
-            text="🔨 Предметы для строительства",
+            text=LangT("🔨 Предметы для строительства"),
             font=("Arial", 18, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -9195,7 +9197,7 @@ public class {NAME} {{
         build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
         build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
         
-        build_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
         build_items_label = ctk.CTkLabel(
             build_items_frame,
             textvariable=build_items_var,
@@ -9207,7 +9209,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             build_items_frame,
-            text="📋 Выбрать предметы для строительства",
+            text=LangT("📋 Выбрать предметы для строительства"),
             command=lambda: self.open_items_editor(build_items_var, "build"),
             height=35,
             font=("Arial", 13),
@@ -9226,12 +9228,12 @@ public class {NAME} {{
         )
         
         # Переменные для исследования
-        selected_block_var = tk.StringVar(value="Не выбран")
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
         selected_block_internal_var = tk.StringVar(value="")
         selected_block_type_var = tk.StringVar(value="")
-        block_icon_label = ctk.CTkLabel(properties_card, text="🌉", font=("Arial", 30))
+        block_icon_label = ctk.CTkLabel(properties_card, text="🔄", font=("Arial", 30))
         block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
-        research_items_var = tk.StringVar(value="Выбрано: 0 предметов")
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
 
         # Используем универсальную функцию
         always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
@@ -9266,13 +9268,13 @@ public class {NAME} {{
         button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         button_frame.pack(fill="x", pady=20)
 
-        # === Основная функция создания моста ===
-        def process_bridge():
+        # === Основная функция создания конвеера ===
+        def process_conveyor():
             original_name = entry_name.get().strip()
             
             if not original_name:
                 status_label.configure(
-                    text="❌ Ошибка: Введите название конвеера!", 
+                    text=LangT("❌ Ошибка: Введите название конвеера!"), 
                     text_color="#F44336"
                 )
                 return
@@ -9290,7 +9292,7 @@ public class {NAME} {{
             
             if not hasattr(self, 'build_items') or not self.build_items:
                 status_label.configure(
-                    text="❌ Ошибка: Выберите предметы для строительства!", 
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
                     text_color="#F44336"
                 )
                 return
@@ -9299,7 +9301,7 @@ public class {NAME} {{
             constructor_name = self.format_to_lower_camel(original_name)
             if not constructor_name:
                 status_label.configure(
-                    text="❌ Ошибка: Некорректное название!", 
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -9307,12 +9309,12 @@ public class {NAME} {{
             # Проверяем, существует ли уже такое имя
             if self.check_block_name_exists(original_name, PATEH_FOLDER):
                 status_label.configure(
-                    text=f"❌ Ошибка: Имя '{constructor_name}' уже используется!", 
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
                     text_color="#F44336"
                 )
                 return
             
-            # Копируем текстуры (для моста их 4)
+            # Копируем текстуры (для конвеера их 20)
             texture_configs = [
                 # Группа 0
                 {"template": CONVEYOR00, "suffix": "-0-0"},
@@ -9351,7 +9353,7 @@ public class {NAME} {{
                 target_folder=FOLDER,
                 texture_configs=texture_configs
             )
-            texture_status = "✅ Текстуры созданы" if texture_copied else "⚠️ Текстуры не созданы"
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
             
             # Получаем значения свойств
             hp_value = entry_hp.get().strip() or "400"
@@ -9384,7 +9386,7 @@ public class {NAME} {{
                 
                 build_itemstack_code = f"\n            requirements(Category.{CATEDOR},\n                ItemStack.with({', '.join(item_parts)}));"
             
-            # Формируем свойства моста
+            # Формируем свойства конвеера
             properties = f"""    health = {hp_value};
                 size = 1;
                 buildTime = {speed_raw};
@@ -9432,11 +9434,11 @@ public class {NAME} {{
     }}
 }}"""
             
-            bridge_exists = var_name in content
+            conveyor_exists = var_name in content
             tree_file_created = False
             main_file_updated = False
             
-            if not bridge_exists:
+            if not conveyor_exists:
                 # Добавляем переменную блока
                 if f"public static {CATENAME};" in content:
                     content = content.replace(
@@ -9458,8 +9460,8 @@ public class {NAME} {{
                     if open_brace != -1:
                         insert_pos = open_brace + 1
                         indent = "        "
-                        bridge_code = f'\n{indent}{var_name} = new {CATENAME}("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
-                        content = content[:insert_pos] + bridge_code + content[insert_pos:]
+                        conveyor_code = f'\n{indent}{var_name} = new {CATENAME}("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        content = content[:insert_pos] + conveyor_code + content[insert_pos:]
                 
                 # Сохраняем файл
                 with open(block_registration_path, 'w', encoding='utf-8') as file:
@@ -9529,23 +9531,23 @@ public class {NAME} {{
                     
                     # Формируем сообщение о результате
                     status_messages = [
-                        f"✅ {BL_NAME_2} '{var_name}' успешно создан!",
-                        f'📝 Имя в игре: "{constructor_name}"',
-                        f"{texture_status}",
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
                     ]
                     
                     # Добавляем информацию о Always Unlocked
                     if always_unlocked_var.get():
-                        status_messages.append("🔓 Always Unlocked: ДА (доступен с самого начала)")
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
                     else:
-                        status_messages.append("🔒 Always Unlocked: НЕТ (требуется исследование)")
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
                     
                     status_messages.extend([
-                        f"📊 Свойства {BL_NAME}:",
-                        f"  • ❤️ Здоровье: {hp_value}",
-                        f"  • ⚡ Скорость стройки: {speed_raw}",
-                        f"  • 📦 Предметов/сек: {items_per_second_raw}",
-                        f"  • 💾 Вместимость: {capacity_raw}"
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw_no}"),
+                        LangT(f"  • 💾 Вместимость: {capacity_raw}")
                     ])
                     
                     if build_items_list:
@@ -9557,7 +9559,7 @@ public class {NAME} {{
                                 display_name = item_name.replace('-', ' ').title()
                                 items_list.append(f"{display_name} ×{count}")
                         
-                        status_messages.append(f"  • 🔨 Стройка: {', '.join(items_list)}")
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
                     
                     if not always_unlocked_var.get():
                         if hasattr(self, 'research_items') and self.research_items:
@@ -9573,27 +9575,27 @@ public class {NAME} {{
                                     display_name = item_name.replace('-', ' ').title()
                                     research_list.append(f"{display_name} ×{count}")
                             
-                            status_messages.append(f"  • 💰 Исследование: {', '.join(research_list)}")
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
                         
-                        status_messages.append(f"  • 🎯 Блок исследования: {selected_block_var.get()}")
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
                         
                         if tree_file_created:
-                            status_messages.append(f"  • 🌳 ConveyorTree.java создан и добавлен в main (ConveyorTree.Load())")
+                            status_messages.append(LangT(f"  • 🌳 ConveyorTree.java создан и добавлен в main (ConveyorTree.Load())"))
                         else:
-                            status_messages.append(f"  • ⚠️ ConveyorTree.java не создан")
+                            status_messages.append(LangT(f"  • ⚠️ ConveyorTree.java не создан"))
                     
                     if main_file_updated:
-                        status_messages.append(f"  • 📄 Главный файл мода обновлен")
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except Exception as e:
-                    status_label.configure(text=f"❌ Ошибка: {str(e)}", text_color="#F44336")
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
                     import traceback
                     traceback.print_exc()
             else:
-                status_label.configure(text=f"⚠️ {BL_NAME_2} '{var_name}' уже существует", text_color="#FF9800")
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
             
             self.root.after(5000, lambda: status_label.configure(text=""))
 
@@ -9603,8 +9605,8 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=f"Создать {BL_CR_NAME}",
-            command=process_bridge,
+            text=LangT(f"Создать {BL_CR_NAME}"),
+            command=process_conveyor,
             height=45,
             width=200,
             font=("Arial", 16, "bold"),
@@ -9615,7 +9617,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text="← Назад",
+            text=LangT("← Назад"),
             command=self.back_to_main,
             height=45,
             width=120,
@@ -9645,16 +9647,16 @@ public class {NAME} {{
         
         if item_type == "item":
             if "consume" in target:
-                editor_window.title("Выбор предметов для потребления")
+                editor_window.title(LangT("Выбор предметов для потребления"))
             else:
-                editor_window.title("Выбор предметов на выходе")
-            title = "Выберите предметы и количество"
+                editor_window.title(LangT("Выбор предметов на выходе"))
+            title = LangT("Выберите предметы и количество")
         else:  # "liquid"
             if "consume" in target:
-                editor_window.title("Выбор жидкостей для потребления")
+                editor_window.title(LangT("Выбор жидкостей для потребления"))
             else:
-                editor_window.title("Выбор жидкостей на выходе")
-            title = "Выберите жидкости и количество"
+                editor_window.title(LangT("Выбор жидкостей на выходе"))
+            title = LangT("Выберите жидкости и количество")
         
         editor_window.geometry("650x500")
         editor_window.configure(fg_color="#2b2b2b")
@@ -9857,7 +9859,7 @@ public class {NAME} {{
             if item_name in custom_elements:
                 ctk.CTkLabel(
                     row_frame,
-                    text="(Мод)",
+                    text=LangT("(Мод)"),
                     font=("Arial", 10),
                     text_color="#4CAF50",
                     width=40
@@ -9869,7 +9871,7 @@ public class {NAME} {{
             
             ctk.CTkLabel(
                 amount_frame,
-                text="Кол-во:",
+                text=LangT("Кол-во:"),
                 font=("Arial", 10),
                 text_color="#FF9800" if item_type == "item" else "#2196F3"
             ).pack(side="left", padx=(0, 5))
@@ -9902,7 +9904,7 @@ public class {NAME} {{
             
             ctk.CTkLabel(
                 amount_frame,
-                text="ед",
+                text=LangT("ед"),
                 font=("Arial", 10),
                 text_color="#888888"
             ).pack(side="left", padx=(5, 0))
@@ -9920,14 +9922,14 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value=f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"),
+            textvariable=tk.StringVar(value=LangT(f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}")),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=f"Выбрано: {selected_count.get()} {'предметов' if item_type == 'item' else 'жидкостей'}")
+            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} {'предметов' if item_type == 'item' else 'жидкостей'}"))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -9975,11 +9977,11 @@ public class {NAME} {{
                             display_name = item_name.capitalize()
                         items_list.append(f"{display_name} ×{int(amount)}")
                 
-                display_text = f"Выбрано: {len(selected_items)} {'предметов' if item_type == 'item' else 'жидкостей'} ({', '.join(items_list[:2])})"
+                display_text = LangT(f"Выбрано: {len(selected_items)} {'предметов' if item_type == 'item' else 'жидкостей'} ({', '.join(items_list[:2])})")
                 if len(items_list) > 2:
                     display_text += "..."
             else:
-                display_text = f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"
+                display_text = LangT(f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}")
             
             # Обновляем текст на кнопке
             selected_var.set(display_text)
@@ -10000,7 +10002,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="💾 Сохранить", 
+            text=LangT("💾 Сохранить"), 
             width=140,
             height=35,
             font=("Arial", 13),
@@ -10011,7 +10013,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="❌ Отмена", 
+            text=LangT("❌ Отмена"), 
             width=140,
             height=35,
             font=("Arial", 13),
@@ -10029,7 +10031,7 @@ public class {NAME} {{
         """Открывает окно выбора блока для исследования
         icon_path_var: опциональная переменная для хранения пути к текстуре блока"""
         selector_window = ctk.CTkToplevel(self.root)
-        selector_window.title("Выбор блока для исследования")
+        selector_window.title(LangT("Выбор блока для исследования"))
         selector_window.geometry("900x700")
         selector_window.configure(fg_color="#2b2b2b")
         selector_window.transient(self.root)
@@ -10040,7 +10042,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             main_frame,
-            text="Выберите блок, который нужно исследовать для открытия",
+            text=LangT("Выберите блок, который нужно исследовать для открытия"),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
         
@@ -10054,7 +10056,7 @@ public class {NAME} {{
         search_entry = ctk.CTkEntry(
             search_frame,
             textvariable=search_var,
-            placeholder_text="Поиск блока...",
+            placeholder_text=LangT("Поиск блока..."),
             height=35,
             fg_color="#424242",
             border_width=0
@@ -10073,8 +10075,8 @@ public class {NAME} {{
         notebook.pack(fill="both", expand=True)
         
         # Вкладки
-        mod_tab = notebook.add("📦 Блоки мода")
-        vanilla_tab = notebook.add("🎮 Ванильные блоки")
+        mod_tab = notebook.add(LangT("📦 Блоки мода"))
+        vanilla_tab = notebook.add(LangT("🎮 Ванильные блоки"))
         
         # Получаем блоки мода один раз
         mod_blocks = self.get_mod_blocks_for_research_universal()
@@ -10137,7 +10139,7 @@ public class {NAME} {{
         blocks_dir = Path(resource_path("creator/icons/blocks"))
         
         if blocks_dir.exists():
-            print(f"Сканируем папку: {blocks_dir}")
+            print(LangT(f"Сканируем папку: {blocks_dir}"))
             
             # Получаем все PNG файлы в папке blocks
             all_textures = list(blocks_dir.glob("*.png"))
@@ -10148,32 +10150,28 @@ public class {NAME} {{
                 
                 # Проверка на черный список блоков
                 if filename in blacklist_blocks:
-                    #print(f"Блок {filename} в черном списке - пропускаем")
                     continue
                 
                 # Проверяем на частичное совпадение с черным списком
                 if any(block in filename for block in blacklist_blocks if block in filename):
                     skip = False
                     for block in blacklist_blocks:
-                        if block in filename and len(block) > 3:  # Игнорируем слишком короткие
+                        if block in filename and len(block) > 3:
                             skip = True
-                            #print(f"Блок {filename} содержит {block} из черного списка - пропускаем")
                             break
                     if skip:
                         continue
                 
                 # Проверяем на черный список по суффиксам
                 if any(filename.endswith(suffix) for suffix in blacklist_suffixes):
-                    #print(f"Блок {filename} имеет исключаемый суффикс - пропускаем")
                     continue
                 
                 # Проверяем на точное совпадение с исключениями
                 if any(filename.startswith(exact) or filename == exact for exact in blacklist_exact):
-                    #print(f"Блок {filename} в списке исключений - пропускаем")
                     continue
                 
                 # Игнорируем файлы, которые явно не являются блоками
-                if len(filename) < 3:  # Слишком короткие имена
+                if len(filename) < 3:
                     continue
                 
                 # Создаем красивое отображаемое имя
@@ -10221,12 +10219,8 @@ public class {NAME} {{
             
             # Сортируем по имени
             vanilla_blocks.sort(key=lambda x: x[1])
-            #print(f"Найдено {len(vanilla_blocks)} ванильных блоков")
-            #print("Примеры преобразования имен:")
-            #for i, (internal, display, _, original, _) in enumerate(vanilla_blocks[:5]):
-                #print(f"  {original} -> {internal} (для Blocks.{internal})")
         else:
-            print(f"Папка {blocks_dir} не найдена")
+            print(LangT(f"Папка {blocks_dir} не найдена"))
         
         def select_block(display_name, internal_name, block_type, icon_name="", block_emoji="🧱"):
             display_var.set(display_name)
@@ -10240,10 +10234,10 @@ public class {NAME} {{
             # Обновляем иконку и информацию
             if block_type == "mod":
                 icon_label.configure(text="📦")
-                path_label.configure(text="Модовый блок")
+                path_label.configure(text=LangT("Модовый блок"))
             else:
                 icon_label.configure(text=block_emoji)
-                path_label.configure(text="Ванильный блок")
+                path_label.configure(text=LangT("Ванильный блок"))
             
             selector_window.destroy()
         
@@ -10311,7 +10305,7 @@ public class {NAME} {{
                     # Эмодзи по умолчанию
                     ctk.CTkLabel(icon_frame, text=block_emoji, font=("Arial", 30)).pack(expand=True)
             except Exception as e:
-                print(f"Ошибка загрузки иконки для {block_name}: {e}")
+                print(LangT(f"Ошибка загрузки иконки для {block_name}: {e}"))
                 ctk.CTkLabel(icon_frame, text=block_emoji, font=("Arial", 30)).pack(expand=True)
         
         def display_blocks():
@@ -10409,7 +10403,7 @@ public class {NAME} {{
                     # Кнопка выбора
                     ctk.CTkButton(
                         block_card,
-                        text="Выбрать",
+                        text=LangT("Выбрать"),
                         width=100,
                         height=30,
                         font=("Arial", 11),
@@ -10422,7 +10416,7 @@ public class {NAME} {{
             else:
                 ctk.CTkLabel(
                     mod_scroll,
-                    text="📭 Нет блоков по вашему запросу",
+                    text=LangT("📭 Нет блоков по вашему запросу"),
                     font=("Arial", 14),
                     text_color="#888888"
                 ).pack(pady=50)
@@ -10485,7 +10479,7 @@ public class {NAME} {{
                     # Кнопка выбора
                     ctk.CTkButton(
                         block_card,
-                        text="Выбрать",
+                        text=LangT("Выбрать"),
                         width=100,
                         height=30,
                         font=("Arial", 11),
@@ -10499,7 +10493,7 @@ public class {NAME} {{
             else:
                 ctk.CTkLabel(
                     vanilla_scroll,
-                    text="🎮 Нет блоков по вашему запросу",
+                    text=LangT("🎮 Нет блоков по вашему запросу"),
                     font=("Arial", 14),
                     text_color="#888888"
                 ).pack(pady=50)
@@ -10519,7 +10513,7 @@ public class {NAME} {{
         
         cancel_btn = ctk.CTkButton(
             button_frame,
-            text="❌ Отмена",
+            text=LangT("❌ Отмена"),
             width=120,
             height=35,
             font=("Arial", 12),
@@ -10536,15 +10530,15 @@ public class {NAME} {{
         
         # Пути к файлам с блоками
         block_files = [
-            ("walls", f"src/{mod_name_lower}/init/blocks/walls/Walls.java", "🧱 Стены"),
-            ("solar_panels", f"src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java", "☀️ Солнечные панели"),
-            ("batterys", f"src/{mod_name_lower}/init/blocks/batterys/Batterys.java", "🔋 Батареи"),
-            ("consume_generators", f"src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java", "⚡ Генераторы"),
-            ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", "📡 Энерг. башни"),
-            ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", "🔌 Энерг. узлы"),
-            ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", "🛡️ Щитовые стены"),
-            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", "Заводы"),
-            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", "Мосты")
+            ("walls", f"src/{mod_name_lower}/init/blocks/walls/Walls.java", LangT("🧱 Стены")),
+            ("solar_panels", f"src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java", LangT("☀️ Солнечные панели")),
+            ("batterys", f"src/{mod_name_lower}/init/blocks/batterys/Batterys.java", LangT("🔋 Батареи")),
+            ("consume_generators", f"src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java", LangT("⚡ Генераторы")),
+            ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", LangT("📡 Энерг. башни")),
+            ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", LangT("🔌 Энерг. узлы")),
+            ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", LangT("🛡️ Щитовые стены")),
+            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", LangT("🏭 Заводы")),
+            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты"))
         ]
         
         for folder, file_path, display_prefix in block_files:
@@ -10582,14 +10576,14 @@ public class {NAME} {{
                             mod_blocks[var_name] = (f"{display_prefix} - {var_name}", folder)
                             
                 except Exception as e:
-                    print(f"Ошибка чтения {full_path}: {e}")
+                    print(LangT(f"Ошибка чтения {full_path}: {e}"))
         
         return mod_blocks
 
     def open_items_editor(self, target_var, target_type):
         """Открывает редактор предметов для строительства или исследования"""
         editor_window = ctk.CTkToplevel(self.root)
-        title = "Выбор предметов для исследования" if target_type == "research" else "Выбор предметов для строительства"
+        title = LangT("Выбор предметов для исследования") if target_type == "research" else LangT("Выбор предметов для строительства")
         editor_window.title(title)
         editor_window.geometry("700x600")
         editor_window.configure(fg_color="#2b2b2b")
@@ -10615,7 +10609,7 @@ public class {NAME} {{
         search_entry = ctk.CTkEntry(
             search_frame,
             textvariable=search_var,
-            placeholder_text="Поиск предмета...",
+            placeholder_text=LangT("Поиск предмета..."),
             height=35,
             fg_color="#424242",
             border_width=0
@@ -10652,7 +10646,7 @@ public class {NAME} {{
                         if item_name:
                             custom_items[item_name] = item_name
                 except Exception as e:
-                    print(f"Ошибка чтения ModItems: {e}")
+                    print(LangT(f"Ошибка чтения ModItems: {e}"))
             return custom_items
         
         custom_items = get_custom_items()
@@ -10757,7 +10751,7 @@ public class {NAME} {{
             if is_custom_item:
                 ctk.CTkLabel(
                     row_frame,
-                    text="(Мод)",
+                    text=LangT("(Мод)"),
                     font=("Arial", 10),
                     text_color="#4CAF50",
                     width=40
@@ -10765,7 +10759,7 @@ public class {NAME} {{
             else:
                 ctk.CTkLabel(
                     row_frame,
-                    text="(Ванилла)",
+                    text=LangT("(Ванилла)"),
                     font=("Arial", 10),
                     text_color="#FFA500",
                     width=40
@@ -10826,14 +10820,14 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            text="Выбрано: 0 предметов",
+            text=LangT("Выбрано: 0 предметов"),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=f"Выбрано: {selected_count.get()} предметов")
+            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} предметов"))
         
         selected_count.trace_add("write", update_counter)
         
@@ -10873,18 +10867,18 @@ public class {NAME} {{
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                display_text = f"Выбрано: {len(selected_items)} предметов ({', '.join(items_list[:3])})"
+                display_text = LangT(f"Выбрано: {len(selected_items)} предметов ({', '.join(items_list[:3])})")
                 if len(items_list) > 3:
                     display_text += "..."
             else:
-                display_text = "Выбрано: 0 предметов"
+                display_text = LangT("Выбрано: 0 предметов")
             
             target_var.set(display_text)
             editor_window.destroy()
         
         ctk.CTkButton(
             button_frame,
-            text="💾 Сохранить",
+            text=LangT("💾 Сохранить"),
             width=140,
             height=35,
             font=("Arial", 13),
@@ -10895,7 +10889,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="❌ Отмена",
+            text=LangT("❌ Отмена"),
             width=140,
             height=35,
             font=("Arial", 13),
@@ -10914,11 +10908,11 @@ public class {NAME} {{
         editor_window = ctk.CTkToplevel(self.root)
         
         if fuel_type == "item":
-            editor_window.title("Выбор предметов для топлива")
-            title = "Выберите предметы и количество"
+            editor_window.title(LangT("Выбор предметов для топлива"))
+            title = LangT("Выберите предметы и количество")
         else:  # "liquid"
-            editor_window.title("Выбор жидкостей для топлива")
-            title = "Выберите жидкости и количество"
+            editor_window.title(LangT("Выбор жидкостей для топлива"))
+            title = LangT("Выберите жидкости и количество")
         
         editor_window.geometry("650x500")
         editor_window.configure(fg_color="#2b2b2b")
@@ -11121,7 +11115,7 @@ public class {NAME} {{
             if item_name in custom_elements:
                 ctk.CTkLabel(
                     row_frame,
-                    text="(Мод)",
+                    text=LangT("(Мод)"),
                     font=("Arial", 10),
                     text_color="#4CAF50",
                     width=40
@@ -11133,7 +11127,7 @@ public class {NAME} {{
             
             ctk.CTkLabel(
                 amount_frame,
-                text="Кол-во:",
+                text=LangT("Кол-во:"),
                 font=("Arial", 10),
                 text_color="#FF9800" if fuel_type == "item" else "#2196F3"
             ).pack(side="left", padx=(0, 5))
@@ -11166,7 +11160,7 @@ public class {NAME} {{
             
             ctk.CTkLabel(
                 amount_frame,
-                text="ед",
+                text=LangT("ед"),
                 font=("Arial", 10),
                 text_color="#888888"
             ).pack(side="left", padx=(5, 0))
@@ -11184,14 +11178,14 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value=f"Выбрано: 0 {'предметов' if fuel_type == 'item' else 'жидкостей'}"),
+            textvariable=tk.StringVar(value=LangT(f"Выбрано: 0 {'предметов' if fuel_type == 'item' else 'жидкостей'}")),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=f"Выбрано: {selected_count.get()} {'предметов' if fuel_type == 'item' else 'жидкостей'}")
+            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} {'предметов' if fuel_type == 'item' else 'жидкостей'}"))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -11223,11 +11217,11 @@ public class {NAME} {{
                             display_name = item_name.replace("-", " ").title()
                             items_list.append(f"{display_name} ×{int(amount)}")
                     
-                    display_text = f"Выбрано: {len(self.fuel_items_with_amount)} предметов ({', '.join(items_list[:2])})"
+                    display_text = LangT(f"Выбрано: {len(self.fuel_items_with_amount)} предметов ({', '.join(items_list[:2])})")
                     if len(items_list) > 2:
                         display_text += "..."
                 else:
-                    display_text = "Выбрано: 0 предметов"
+                    display_text = LangT("Выбрано: 0 предметов")
                 
             else:  # "liquid"
                 # Сохраняем жидкости для топлива с количеством
@@ -11251,11 +11245,11 @@ public class {NAME} {{
                             display_name = liquid_name.capitalize()
                             liquids_list.append(f"{display_name} ×{int(amount)}")
                     
-                    display_text = f"Выбрано: {len(self.fuel_liquids_with_amount)} жидкостей ({', '.join(liquids_list[:2])})"
+                    display_text = LangT(f"Выбрано: {len(self.fuel_liquids_with_amount)} жидкостей ({', '.join(liquids_list[:2])})")
                     if len(liquids_list) > 2:
                         display_text += "..."
                 else:
-                    display_text = "Выбрано: 0 жидкостей"
+                    display_text = LangT("Выбрано: 0 жидкостей")
             
             # Обновляем текст на кнопке
             selected_var.set(display_text)
@@ -11274,7 +11268,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="💾 Сохранить", 
+            text=LangT("💾 Сохранить"), 
             width=140,
             height=35,
             font=("Arial", 13),
@@ -11285,7 +11279,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="❌ Отмена", 
+            text=LangT("❌ Отмена"), 
             width=140,
             height=35,
             font=("Arial", 13),
@@ -11302,7 +11296,7 @@ public class {NAME} {{
     def open_build_items_editor(self, selected_items_var):
         """Открывает редактор предметов для строительства"""
         editor_window = ctk.CTkToplevel(self.root)
-        editor_window.title("Выбор предметов для строительства")
+        editor_window.title(LangT("Выбор предметов для строительства"))
         editor_window.geometry("600x500")
         editor_window.configure(fg_color="#2b2b2b")
         editor_window.transient(self.root)
@@ -11313,7 +11307,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             main_frame,
-            text="Выберите предметы и их количество",
+            text=LangT("Выберите предметы и их количество"),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
         
@@ -11441,7 +11435,7 @@ public class {NAME} {{
             if is_custom_item:
                 ctk.CTkLabel(
                     row_frame,
-                    text="(Мод)",
+                    text=LangT("(Мод)"),
                     font=("Arial", 10),
                     text_color="#4CAF50",
                     width=40
@@ -11463,7 +11457,7 @@ public class {NAME} {{
             amount_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
             amount_frame.grid(row=0, column=4, padx=5)
             
-            ctk.CTkLabel(amount_frame, text="Кол-во:", font=("Arial", 10)).pack(side="left", padx=(0, 5))
+            ctk.CTkLabel(amount_frame, text=LangT("Кол-во:"), font=("Arial", 10)).pack(side="left", padx=(0, 5))
             
             ctk.CTkEntry(
                 amount_frame,
@@ -11475,7 +11469,7 @@ public class {NAME} {{
                 validatecommand=vcmd_amount
             ).pack(side="left")
             
-            ctk.CTkLabel(amount_frame, text="шт", font=("Arial", 10)).pack(side="left", padx=(5, 0))
+            ctk.CTkLabel(amount_frame, text=LangT("шт"), font=("Arial", 10)).pack(side="left", padx=(5, 0))
         
         # Создаем предметы
         for item in self.default_items:
@@ -11493,14 +11487,14 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value="Выбрано: 0 предметов"),
+            textvariable=tk.StringVar(value=LangT("Выбрано: 0 предметов")),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=f"Выбрано: {selected_count.get()} предметов")
+            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} предметов"))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -11534,11 +11528,11 @@ public class {NAME} {{
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                display_text = f"Выбрано: {len(self.build_items)} предметов ({', '.join(items_list[:3])})"
+                display_text = LangT(f"Выбрано: {len(self.build_items)} предметов ({', '.join(items_list[:3])})")
                 if len(items_list) > 3:
                     display_text += "..."
             else:
-                display_text = "Выбрано: 0 предметов"
+                display_text = LangT("Выбрано: 0 предметов")
             
             selected_items_var.set(display_text)
             editor_window.destroy()
@@ -11548,7 +11542,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="💾 Сохранить", 
+            text=LangT("💾 Сохранить"), 
             width=140,
             height=35,
             font=("Arial", 13),
@@ -11557,7 +11551,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             button_frame,
-            text="❌ Отмена", 
+            text=LangT("❌ Отмена"), 
             width=140,
             height=35,
             font=("Arial", 13),
