@@ -36,6 +36,25 @@ pyinstaller --onefile ^
     --collect-all "customtkinter" ^
     --collect-all "PIL" ^
     main.py
+pyinstaller --onefile ^
+    --name "MindustryModCreatorConsole" ^
+    --add-data "Creator;Creator" ^
+    --add-data "Creator;icons" ^
+    --add-data "Creator;utils" ^
+    --add-data "Creator;langs" ^
+    --hidden-import "PIL" ^
+    --hidden-import "PIL._imaging" ^
+    --hidden-import "customtkinter" ^
+    --hidden-import "requests" ^
+    --hidden-import "PIL.Image" ^
+    --hidden-import "PIL.ImageDraw" ^
+    --hidden-import "PIL.ImageTk" ^
+    --hidden-import "PIL.ImageFilter" ^
+    --hidden-import "PIL.ImageOps" ^
+    --hidden-import "PIL._tkinter_finder" ^
+    --collect-all "customtkinter" ^
+    --collect-all "PIL" ^
+    main.py
 
 echo.
 echo ========================================
