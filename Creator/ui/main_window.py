@@ -41,9 +41,15 @@ class MainWindow:
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
         
-        # Загружаем настройки
-        self.settings_file = Path("Creator/settings.json")
+        # Загружаем настройки ДО создания UI
+        self.settings_file = None
         self.settings = self.load_settings()
+        
+        # Устанавливаем язык из настроек ДО создания UI
+        saved_lang = self.settings.get("language", "ru")
+        from Creator.utils.lang_system import set_language, get_current_language
+        if saved_lang != get_current_language():
+            set_language(saved_lang)
         
         # Используем путь из настроек или по умолчанию
         save_folder = self.settings.get("save_folder", "mods")
@@ -64,26 +70,31 @@ class MainWindow:
             "save_folder": "mods"
         }
 
+        # Используем единый путь для настроек
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
         settings_dir = Path(appdata) / "MindustryModCreator"
         settings_dir.mkdir(parents=True, exist_ok=True)
         self.settings_file = settings_dir / "settings.json"
+        
+        print(f"Загрузка настроек из: {self.settings_file}")  # Отладка
 
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
+                    print(f"Загружены настройки: {settings}")  # Отладка
                     # Добавляем недостающие ключи
                     for key, value in default_settings.items():
                         if key not in settings:
                             settings[key] = value
                     return settings
             except Exception as e:
-                print(LangT("Ошибка загрузки настроек:") + str(e))
-                return default_settings
+                print(f"Ошибка загрузки настроек: {e}")
+                return default_settings.copy()
         else:
+            print("Файл настроек не найден, создаю новый")
             self.save_settings(default_settings)
-            return default_settings
+            return default_settings.copy()
     
     def save_settings(self, settings=None):
         """Сохраняет настройки в файл"""
@@ -91,12 +102,16 @@ class MainWindow:
             settings = self.settings
         
         try:
+            # Убедимся, что директория существует
             self.settings_file.parent.mkdir(parents=True, exist_ok=True)
+            
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, ensure_ascii=False, indent=4)
+            
+            print(f"Настройки сохранены: {settings}")  # Отладка
             return True
         except Exception as e:
-            print(LangT("Ошибка сохранения настроек:") + str(e))
+            print(f"Ошибка сохранения настроек: {e}")
             return False
     
     def open_settings_window(self):

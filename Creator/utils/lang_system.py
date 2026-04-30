@@ -1,9 +1,7 @@
-# p/Creator/utils/lang_system.py
 import json
 import os
 import sys
 import locale
-import re
 from pathlib import Path
 
 def resource_path(relative_path):
@@ -29,8 +27,8 @@ class LangSystem:
     def __init__(self):
         self.current_lang = "ru"
         self.translations = {}
-        self.available_languages = []  # Список кодов языков
-        self.available_languages_display = {}  # Словарь {код: отображаемое_имя}
+        self.available_languages = []
+        self.available_languages_display = {}
         
         # Определяем пути для поиска языковых файлов
         self.lang_search_paths = []
@@ -95,7 +93,6 @@ class LangSystem:
                 try:
                     with open(lang_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
-                        # Ищем ключ с названием языка
                         if "__language_name__" in data:
                             return data["__language_name__"]
                         elif "language_name" in data:
@@ -116,18 +113,16 @@ class LangSystem:
                     print(f"Сканируем: {search_path}")
                     for file in os.listdir(search_path):
                         if file.endswith('.json'):
-                            lang_code = file[:-5]  # Убираем .json
+                            lang_code = file[:-5]
                             if lang_code not in found_files:
                                 found_files.add(lang_code)
                                 self.available_languages.append(lang_code)
-                                # Получаем отображаемое имя
                                 display_name = self.get_lang_display_name(lang_code, search_path)
                                 self.available_languages_display[lang_code] = display_name
                                 print(f"  Найден язык: {lang_code} -> {display_name}")
                 except Exception as e:
                     print(f"Ошибка сканирования {search_path}: {e}")
         
-        # Сортируем для удобства
         self.available_languages.sort()
         print(f"Всего найдено языков: {len(self.available_languages)}")
         
@@ -162,6 +157,7 @@ class LangSystem:
             with open(lang_file, 'r', encoding='utf-8') as f:
                 self.translations = json.load(f)
             print(f"✅ Загружен языковой файл: {lang_file}")
+            print(f"   Содержит переводов: {len(self.translations)}")
             return True
         except json.JSONDecodeError as e:
             print(f"❌ Ошибка парсинга JSON в {lang_file}: {e}")
@@ -173,41 +169,21 @@ class LangSystem:
     
     def translate(self, text):
         """
-        Переводит текст.
-        Поддерживает:
-        1. Прямые ключи: LangT("Ошибка")
-        2. f-строки с переменными: LangT(f"Файл {name} создан")
+        Простой перевод текста
         """
         if not isinstance(text, str):
             return str(text)
         
-        # Пробуем найти точное совпадение в словаре
-        if text in self.translations:
-            return self.translations[text]
+        # Пробуем найти перевод
+        result = self.translations.get(text, text)
         
-        # Если не нашли, пробуем найти шаблон с плейсхолдерами
-        for key, value in self.translations.items():
-            if '{}' in key:
-                # Экранируем специальные символы regex
-                pattern = re.escape(key).replace('\\{\\}', '([^}]+)')
-                try:
-                    match = re.match(pattern, text)
-                    if match:
-                        # Вставляем захваченные значения в перевод
-                        result = value
-                        for i, captured in enumerate(match.groups(), 1):
-                            result = result.replace(f'{{{i}}}', captured)
-                        return result
-                except:
-                    continue
+        # Для отладки (раскомментируйте если нужно)
+        # if text != result:
+        #     print(f"Перевод: '{text}' -> '{result}'")
         
-        # Если ничего не нашли, возвращаем оригинал
-        return text
+        return result
     
-    def T(self, text):
-        """Короткий алиас для translate"""
-        return self.translate(text)
-    
+    # Добавляем недостающие методы
     def get_available_languages(self):
         """Возвращает список доступных языков (коды)"""
         return self.available_languages
@@ -230,31 +206,37 @@ class LangSystem:
     
     def get_current_language(self):
         """Возвращает текущий язык"""
+        return self.current_language  # Исправлено: было self.current_lang, но есть метод
+    
+    # Исправляем get_current_language
+    def get_current_language(self):
+        """Возвращает текущий язык"""
         return self.current_lang
+
 
 # Создаем глобальный экземпляр
 lang_system = LangSystem()
 
-# Функция для удобного использования
+
 def LangT(text):
+    """
+    Простая функция перевода, возвращает строку
+    """
     return lang_system.translate(text)
 
-# Функция для смены языка
+
+# Экспортируем все необходимые функции
 def set_language(lang_code):
     return lang_system.set_language(lang_code)
 
-# Функция для получения текущего языка
 def get_current_language():
     return lang_system.get_current_language()
 
-# Функция для получения списка доступных языков
 def get_available_languages():
     return lang_system.get_available_languages()
 
-# Функция для получения списка отображаемых имен языков
 def get_available_languages_display():
     return lang_system.get_available_languages_display()
 
-# Функция для получения отображаемого имени языка по коду
 def get_language_display_name(lang_code):
     return lang_system.get_language_display_name(lang_code)

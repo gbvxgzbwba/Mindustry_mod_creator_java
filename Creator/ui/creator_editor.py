@@ -43,8 +43,7 @@ class CreatorEditor:
         self.progress_window = None
 
         # Загружаем настройки
-        self.settings_file = Path("Creator/settings.json")
-        self.settings = self.load_settings()
+        self.settings = main_app.settings
     
         # Инициализация создания блоков
         try:
@@ -274,7 +273,7 @@ class CreatorEditor:
             
             if success:
                 save_folder = self.settings.get("save_folder", "mods")
-                messagebox.showinfo(LangT("Успех"), LangT(f"Файл перемещен в {save_folder}/{self.TP_new_name}"))
+                messagebox.showinfo(LangT("Успех"), LangT("Файл перемещен в {save_folder}/{TP_new_name}").format(save_folder=save_folder,TP_new_name=self.TP_new_name))
             else:
                 messagebox.showwarning(LangT("Предупреждение"), LangT("Не удалось переместить файл. Возможно, он не найден."))
         except Exception as e:
@@ -290,7 +289,7 @@ class CreatorEditor:
         
         # Создаем окно для логов
         log_window = ctk.CTkToplevel(self.root)
-        log_window.title(LangT(f"Компиляция {self.mod_name}"))
+        log_window.title(LangT("Компиляция {mod_name}").format(mod_name=self.mod_name))
         log_window.geometry("800x600")
         log_window.minsize(600, 400)
         
@@ -396,7 +395,7 @@ class CreatorEditor:
                 print(LangT("⚠️ Маркер //Registration_add не найден"))
                 return file_content
             
-            print(LangT(f"✅ Найден маркер //Registration_add на строке {registration_marker_line + 1}"))
+            print(LangT("✅ Найден маркер //Registration_add на строке {registration_marker_line}").format(registration_marker_line=registration_marker_line+1))
             
             # Ищем строки после маркера до конца метода или пустой строки
             start_line = registration_marker_line + 1
@@ -520,21 +519,21 @@ class CreatorEditor:
                 log_to_window("="*60, "HEADER")
                 log_to_window(LangT("🚀 НАЧАЛО КОМПИЛЯЦИИ"), "HEADER")
                 log_to_window("="*60, "HEADER")
-                log_to_window(LangT(f"📁 Мод: {self.mod_name}"), "INFO")
-                log_to_window(LangT(f"📂 Папка: {self.mod_folder}"), "INFO")
+                log_to_window(LangT("📁 Мод: {mod_name}").format(mod_name=self.mod_name), "INFO")
+                log_to_window(LangT("📂 Папка: {mod_folder}").format(mod_folder=self.mod_folder), "INFO")
                 
                 # ПЕРЕД ВСЕМ - сортируем строки в главном файле
                 mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
                 main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
                 
-                log_to_window(LangT(f"\n📄 Проверка файла: {main_mod_path}"), "HEADER")
+                log_to_window(LangT("\n📄 Проверка файла: {main_mod_path}").format(main_mod_path=main_mod_path), "HEADER")
                 
                 if main_mod_path.exists():
                     try:
                         with open(main_mod_path, 'r', encoding='utf-8') as file:
                             content = file.read()
                         
-                        log_to_window(LangT(f"📊 Размер файла: {len(content)} символов"), "INFO")
+                        log_to_window(LangT("📊 Размер файла: {lencontentSIZE} символов").format(lencontentSIZE=len(content)), "INFO")
                         
                         # Сортируем строки после //Registration_add
                         sorted_content = sort_registration_lines(content)
@@ -572,11 +571,12 @@ class CreatorEditor:
                     progress.stop()
                     return
                 
-                log_to_window(LangT(f"✅ Gradle найден: {gradle_script}"), "SUCCESS")
+                log_to_window(LangT("✅ Gradle найден: {gradle_script}").format(gradle_script=gradle_script), "SUCCESS")
                 
                 # Компилируем с выводом в реальном времени
                 cmd = [gradle_script, "jar"]
-                log_to_window(LangT(f"📋 Команда: {' '.join(cmd)}"), "INFO")
+                #"📋 Команда: {' '.join(cmd)}"
+                log_to_window(LangT("📋 Команда: {joincmd}").format(joincmd=' '.join(cmd)), "INFO")
                 log_to_window(LangT("\n⏳ Компиляция выполняется...\n"), "HEADER")
                 
                 # Запускаем процесс с pipe для чтения вывода в реальном времени
@@ -617,11 +617,11 @@ class CreatorEditor:
                         jar_name = jar_files[0].name
                         jar_size = jar_files[0].stat().st_size / 1024
                         log_to_window(LangT(f"📦 JAR: {jar_name}"), "SUCCESS")
-                        log_to_window(LangT(f"📊 Размер: {jar_size:.2f} KB"), "SUCCESS")
+                        log_to_window(LangT("📊 Размер: {jar_size} KB").format(jar_size=jar_size), "SUCCESS")
                         
                         self.root.after(0, lambda: messagebox.showinfo(
                             LangT("Успех"), 
-                            LangT(f"✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size:.2f} KB")
+                            LangT("✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size} KB").format(jar_name=jar_name,jar_size=jar_size)
                         ))
                         
                         # Запускаем перемещение файла - ТАК ЖЕ КАК В СТАРОМ КОДЕ
@@ -788,7 +788,7 @@ class CreatorEditor:
             title_frame,
             text=LangT("Создание предмета"),
             font=("Arial", 24, "bold"),
-            text_color="#4CAF50"  # Зеленый цвет
+            text_color="#4CAF50"
         )
         title_label.pack(pady=10)
         
@@ -797,8 +797,8 @@ class CreatorEditor:
             scroll_frame,
             corner_radius=15,
             border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
+            border_color="#404040",
+            fg_color="#363636"
         )
         info_card.pack(fill="x", pady=(0, 20))
         
@@ -807,7 +807,7 @@ class CreatorEditor:
             info_card,
             text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         card_title.pack(pady=(15, 10), padx=20, anchor="w")
         
@@ -819,7 +819,7 @@ class CreatorEditor:
             name_frame,
             text=LangT("Название предмета (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         name_label.pack(anchor="w", pady=(0, 5))
         
@@ -831,30 +831,22 @@ class CreatorEditor:
             font=("Arial", 15),
             border_width=2,
             corner_radius=8,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_name.pack(fill="x", pady=(0, 5))
         
         # Функция форматирования названий
         def format_to_lower_camel(text):
-            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)
-            Примеры:
-            'item' → 'item'
-            'big item' → 'bigItem'
-            'very big item' → 'veryBigItem'
-            'energy core' → 'energyCore'
-            """
+            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)"""
             words = text.strip().split()
             if not words:
                 return ""
             
-            # Первое слово в нижнем регистре
             result = words[0].lower()
             
-            # Остальные слова с заглавной буквы
             for word in words[1:]:
                 result += word.capitalize()
             
@@ -866,12 +858,10 @@ class CreatorEditor:
             if value == "" or value == ".":
                 return True
             
-            # Проверяем формат числа
             pattern = r'^\d*\.?\d{0,2}$'
             if not re.match(pattern, value):
                 return False
             
-            # Проверяем максимальное значение
             try:
                 num = float(value)
                 if num > 5000.00:
@@ -889,11 +879,8 @@ class CreatorEditor:
             
             try:
                 num = float(value)
-                # Ограничиваем максимальное значение
                 num = min(num, 5000.00)
-                # Форматируем до 2 знаков
                 formatted = f"{num:.2f}"
-                # Убираем лишние нули
                 if formatted.endswith(".00"):
                     formatted = formatted[:-3]
                 elif formatted.endswith(".0"):
@@ -910,8 +897,8 @@ class CreatorEditor:
             scroll_frame,
             corner_radius=15,
             border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
+            border_color="#404040",
+            fg_color="#363636"
         )
         properties_card.pack(fill="x", pady=(0, 20))
 
@@ -920,7 +907,7 @@ class CreatorEditor:
             properties_card,
             text=LangT("Свойства предмета"),
             font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         properties_title.pack(pady=(15, 10), padx=20, anchor="w")
 
@@ -936,7 +923,7 @@ class CreatorEditor:
             charge_frame,
             text=LangT("⚡ Заряд (charge):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         charge_label.pack(anchor="w", pady=(0, 5))
         
@@ -948,10 +935,10 @@ class CreatorEditor:
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_charge.pack(fill="x")
 
@@ -963,7 +950,7 @@ class CreatorEditor:
             flammability_frame,
             text=LangT("🔥 Воспламеняемость (flammability):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         flammability_label.pack(anchor="w", pady=(0, 5))
         
@@ -975,10 +962,10 @@ class CreatorEditor:
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_flammability.pack(fill="x")
 
@@ -990,7 +977,7 @@ class CreatorEditor:
             explosiveness_frame,
             text=LangT("💥 Взрывоопасность (explosiveness):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         explosiveness_label.pack(anchor="w", pady=(0, 5))
         
@@ -1002,10 +989,10 @@ class CreatorEditor:
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_explosiveness.pack(fill="x")
 
@@ -1017,7 +1004,7 @@ class CreatorEditor:
             radioactivity_frame,
             text=LangT("☢️ Радиоактивность (radioactivity):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         radioactivity_label.pack(anchor="w", pady=(0, 5))
         
@@ -1029,10 +1016,10 @@ class CreatorEditor:
             font=("Arial", 14),
             validate="key",
             validatecommand=vcmd,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_radioactivity.pack(fill="x")
 
@@ -1078,8 +1065,8 @@ class CreatorEditor:
             scroll_frame,
             corner_radius=15,
             border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
+            border_color="#404040",
+            fg_color="#363636"
         )
         options_card.pack(fill="x", pady=(0, 20))
 
@@ -1088,7 +1075,7 @@ class CreatorEditor:
             options_card,
             text=LangT("Дополнительные опции"),
             font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         options_title.pack(pady=(15, 10), padx=20, anchor="w")
 
@@ -1103,12 +1090,12 @@ class CreatorEditor:
             text=LangT("🔓 Always Unlocked"),
             variable=always_unlocked_var,
             font=("Arial", 15),
-            text_color="#BDBDBD",  # Серый текст
+            text_color="#BDBDBD",
             border_width=2,
             corner_radius=6,
-            fg_color="#4CAF50",  # Зеленый цвет фона
+            fg_color="#4CAF50",
             hover_color="#45a049",
-            border_color="#555555"  # Цвет границы
+            border_color="#555555"
         )
         always_unlocked_checkbox.pack(anchor="w", pady=5)
 
@@ -1122,7 +1109,7 @@ class CreatorEditor:
             font=("Arial", 14),
             wraplength=450,
             justify="left",
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         status_label.pack()
         
@@ -1136,18 +1123,14 @@ class CreatorEditor:
             в assets/sprites/items/ с именем предмета
             """
             try:
-                # Форматируем имя для текстуры
                 formatted_name = format_to_lower_camel(item_name)
                 
-                # Путь к папке с иконками
                 icons_dir = Path(resource_path("Creator/icons/items"))
                 
-                # Проверяем существование папки
                 if not icons_dir.exists():
-                    print(f"Папка с иконками не найдена: {icons_dir}")
+                    print(LangT("Папка с иконками не найдена: {icons_dir}").format(icons_dir=icons_dir))
                     return False
                 
-                # Получаем список всех файлов изображений
                 image_extensions = ['.png', '.jpg', '.jpeg']
                 image_files = []
                 
@@ -1155,39 +1138,31 @@ class CreatorEditor:
                     image_files.extend(list(icons_dir.glob(f"*{ext}")))
                 
                 if not image_files:
-                    print(f"Нет изображений в папке: {icons_dir}")
+                    print(LangT("Нет изображений в папке: {icons_dir}").format(icons_dir=icons_dir))
                     return False
                 
-                # Выбираем иконку
                 icon = resource_path("Creator/icons/items/copper.png")
                 
-                # Путь назначения в папке мода
-                # Используем отформатированное имя в нижнем регистре
                 target_name = formatted_name + ".png"
                 target_dir = Path(self.mod_folder) / "assets" / "sprites" / "items"
                 target_dir.mkdir(parents=True, exist_ok=True)
                 
                 target_path = target_dir / target_name
                 
-                # Копируем файл
                 shutil.copy2(icon, target_path)
                 
-                print(f"Иконка скопирована: {icon} -> {target_path}")
+                print(LangT("Иконка скопирована: {icon} -> {target_path}").format(icon=icon, target_path=target_path))
                 return True
                 
             except Exception as e:
-                print(f"Ошибка при копировании иконки: {e}")
+                print(LangT("Ошибка при копировании иконки: {e}").format(e=e))
                 return False
 
         def check_if_name_exists(name):
             """Проверяет, существует ли имя по текстурам в sprites"""
-            # Форматируем имя для проверки
             formatted_name = format_to_lower_camel(name)
-            
-            # Проверяем существование текстуры в разных местах
             name_lower = formatted_name
             
-            # Пути для проверки
             check_paths = [
                 Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{name_lower}.png",
                 Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{name_lower}.png",
@@ -1208,11 +1183,10 @@ class CreatorEditor:
             if not original_name:
                 status_label.configure(
                     text=LangT("❌ Ошибка: Введите имя предмета!"), 
-                    text_color="#F44336"  # Красный цвет для ошибки
+                    text_color="#F44336"
                 )
                 return
             
-            # Форматируем имя для использования в коде
             constructor_name = format_to_lower_camel(original_name)
             
             if not constructor_name:
@@ -1222,228 +1196,178 @@ class CreatorEditor:
                 )
                 return
 
-            # Проверка имени по текстурам
             if check_if_name_exists(original_name):
                 status_label.configure(
-                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!"), 
+                    text=LangT("❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!").format(constructor_name=constructor_name), 
                     text_color="#F44336"
                 )
                 return
             
-            # Копируем случайную иконку
             icon_copied = copy_icon(original_name)
             icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
             
-            # Получаем значения свойств
             charge_value = entry_charge.get().strip() or "0"
             flammability_value = entry_flammability.get().strip() or "0"
             explosiveness_value = entry_explosiveness.get().strip() or "0"
             radioactivity_value = entry_radioactivity.get().strip() or "0"
             
-            # Форматируем значения
             charge_value = format_float(charge_value)
             flammability_value = format_float(flammability_value)
             explosiveness_value = format_float(explosiveness_value)
             radioactivity_value = format_float(radioactivity_value)
             
-            # Получаем значение alwaysUnlocked
             always_unlocked_value = "true" if always_unlocked_var.get() else "false"
 
-            # Имя переменной (с заглавной буквы - UpperCamelCase)
             if constructor_name and len(constructor_name) > 0:
                 var_name = constructor_name[0].lower() + constructor_name[1:] if constructor_name else ""
             else:
                 var_name = ""
             
-            # Создаем properties строку с правильными значениями
             properties = f"""    charge = {charge_value}f;
-            flammability = {flammability_value}f;
-            explosiveness = {explosiveness_value}f;
-            radioactivity = {radioactivity_value}f;
-            alwaysUnlocked = {always_unlocked_value};
+                flammability = {flammability_value}f;
+                explosiveness = {explosiveness_value}f;
+                radioactivity = {radioactivity_value}f;
+                alwaysUnlocked = {always_unlocked_value};
+                
+                localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                description = Core.bundle.get("{var_name}.description", "OH NO");"""
             
-            localizedName = Core.bundle.get("{var_name}.name", "OH NO");
-            description = Core.bundle.get("{var_name}.description", "OH NO");"""
-            
-            # Путь к файлу ModItems.java
             mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
             item_registration_path = f"{self.mod_folder}/src/{mod_name_lower}/init/items/ModItems.java"
             
-            # Путь к главному файлу мода
             main_mod_path = f"{self.mod_folder}/src/{mod_name_lower}/{self.mod_name}JavaMod.java"
             
-            # Создаем директории, если их нет
             os.makedirs(os.path.dirname(item_registration_path), exist_ok=True)
             
-            # Читаем или создаем файл ModItems.java
             try:
                 with open(item_registration_path, 'r', encoding='utf-8') as file:
                     content = file.read()
             except FileNotFoundError:
-                # Базовый шаблон файла
                 content = f"""package {mod_name_lower}.init.items;
 
-import arc.graphics.Color;
-import mindustry.type.Item;
-import arc.Core;
+    import arc.graphics.Color;
+    import mindustry.type.Item;
+    import arc.Core;
 
-public class ModItems {{
-    public static Item;
-                                    
-    public static void Load() {{
-        // Регистрация предметов
-    }}
-}}"""
+    public class ModItems {{
+        public static Item;
+                                        
+        public static void Load() {{
+            // Регистрация предметов
+        }}
+    }}"""
             
-            # Проверяем, есть ли уже этот предмет
             item_exists = var_name in content
             
             if not item_exists:
-                # 1. Добавляем в объявления (public static Item)
                 if "public static Item;" in content:
-                    # Заменяем на первое объявление
                     content = content.replace(
                         "public static Item;",
                         f"public static Item {var_name};"
                     )
                 elif "public static Item " in content:
-                    # Находим строку с объявлениями
                     lines = content.split('\n')
                     for i, line in enumerate(lines):
                         if "public static Item " in line and var_name not in line:
-                            # Добавляем через запятую
                             lines[i] = line.rstrip(';') + f", {var_name};"
                             content = '\n'.join(lines)
                             break
                 
-                # 2. Добавляем инициализацию в метод Load()
-                # Находим метод Load()
                 load_start = content.find("public static void Load() {")
                 if load_start != -1:
-                    # Находим открывающую скобку метода
                     open_brace = content.find('{', load_start)
                     if open_brace != -1:
-                        # Вставляем после открывающей скобки с правильными отступами
                         insert_pos = open_brace + 1
-                        indent = "        "  # 8 пробелов
+                        indent = "        "
                         
-                        # Создаем код предмета с properties
-                        # В кавычках используем отформатированное имя constructor_name
                         item_code = f'\n{indent}{var_name} = new Item("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
                         
                         content = content[:insert_pos] + item_code + content[insert_pos:]
                 
-                # Записываем файл ModItems.java
                 with open(item_registration_path, 'w', encoding='utf-8') as file:
                     file.write(content)
                 
-                # Теперь работаем с главным файлом мода
                 try:
                     with open(main_mod_path, 'r', encoding='utf-8') as file:
                         main_content = file.read()
                     
-                    original_main_content = main_content  # Сохраняем оригинал для сравнения
+                    original_main_content = main_content
                     modified = False
                     import_added = False
                     registration_added = False
                     
-                    # Проверяем наличие импорта ModItems
                     import_statement = f"import {mod_name_lower}.init.items.ModItems;"
                     
                     if import_statement not in main_content:
-                        # Ищем маркер //import_add
                         import_add_pos = main_content.find("//import_add")
                         
                         if import_add_pos != -1:
-                            # Находим позицию после маркера (учитываем новую строку)
                             insert_pos = import_add_pos + len("//import_add")
-                            # Проверяем, есть ли перевод строки после маркера
                             if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
-                                # Уже есть перевод строки, просто добавляем импорт
                                 main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
                             else:
-                                # Добавляем перевод строки и импорт
                                 main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
                             import_added = True
                             modified = True
                         else:
-                            # Ищем последний импорт перед public class
                             class_declaration = f"public class {self.mod_name}JavaMod extends Mod{{"
                             class_pos = main_content.find(class_declaration)
                             
                             if class_pos != -1:
-                                # Ищем последний import перед классом
                                 last_import_pos = main_content.rfind("import", 0, class_pos)
                                 
                                 if last_import_pos != -1:
-                                    # Находим конец строки этого импорта
                                     line_end = main_content.find("\n", last_import_pos)
                                     if line_end == -1:
                                         line_end = len(main_content)
                                     
-                                    # Вставляем новый импорт после последнего импорта
                                     main_content = main_content[:line_end] + f"\n{import_statement}" + main_content[line_end:]
                                     import_added = True
                                     modified = True
                     
-                    # Проверяем наличие регистрации ModItems.Load()
                     load_statement = "ModItems.Load();"
                     
                     if load_statement not in main_content:
-                        # Ищем маркер //Registration_add
                         registration_add_pos = main_content.find("//Registration_add")
                         
                         if registration_add_pos != -1:
-                            # Находим позицию после маркера
                             insert_pos = registration_add_pos + len("//Registration_add")
-                            # Проверяем, есть ли перевод строки после маркера
                             if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
-                                # Уже есть перевод строки, просто добавляем регистрацию
                                 main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
                             else:
-                                # Добавляем перевод строки и регистрацию
                                 main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
                             registration_added = True
                             modified = True
                         else:
-                            # Ищем метод loadContent()
                             load_content_pos = main_content.find("public void loadContent()")
                             
                             if load_content_pos != -1:
-                                # Находим открывающую скобку метода
                                 open_brace = main_content.find('{', load_content_pos)
                                 
                                 if open_brace != -1:
-                                    # Находим закрывающую скобку метода
                                     close_brace = main_content.find('}', open_brace)
                                     
                                     if close_brace != -1:
-                                        # Ищем позицию перед закрывающей скобкой
-                                        # Пропускаем пустые строки и комментарии
                                         insert_pos = close_brace
-                                        
-                                        # Добавляем перед закрывающей скобкой
-                                        indent = "        "  # 8 пробелов
+                                        indent = "        "
                                         main_content = main_content[:insert_pos] + f"\n{indent}{load_statement}" + main_content[insert_pos:]
                                         registration_added = True
                                         modified = True
                     
-                    # Если были изменения, сохраняем главный файл
                     if modified:
                         with open(main_mod_path, 'w', encoding='utf-8') as file:
                             file.write(main_content)
                     
-                    # Формируем статус с информацией о добавленных элементах
                     status_messages = [
-                        LangT(f"✅ Предмет '{var_name}' успешно создан!"),
-                        LangT(f'📋 Имя в игре: "{constructor_name}"'),
-                        LangT(f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)"),
-                        LangT(f"🔧 Always Unlocked: {always_unlocked_value}"),
+                        LangT("✅ Предмет '{var_name}' успешно создан!").format(var_name=var_name),
+                        LangT('📋 Имя в игре: "{constructor_name}"').format(constructor_name=constructor_name),
+                        LangT("🖼️ {icon_status} (имя текстуры: {texture_name}.png)").format(icon_status=icon_status, texture_name=constructor_name.lower()),
+                        LangT("🔧 Always Unlocked: {always_unlocked_value}").format(always_unlocked_value=always_unlocked_value),
                         LangT("📊 Свойства предмета:"),
-                        LangT(f"  • ⚡ Заряд: {charge_value}"),
-                        LangT(f"  • 🔥 Воспламеняемость: {flammability_value}"),
-                        LangT(f"  • 💥 Взрывоопасность: {explosiveness_value}"),
-                        LangT(f"  • ☢️ Радиоактивность: {radioactivity_value}")
+                        LangT("  • ⚡ Заряд: {charge_value}").format(charge_value=charge_value),
+                        LangT("  • 🔥 Воспламеняемость: {flammability_value}").format(flammability_value=flammability_value),
+                        LangT("  • 💥 Взрывоопасность: {explosiveness_value}").format(explosiveness_value=explosiveness_value),
+                        LangT("  • ☢️ Радиоактивность: {radioactivity_value}").format(radioactivity_value=radioactivity_value)
                     ]
                     
                     if import_added:
@@ -1460,30 +1384,40 @@ public class ModItems {{
                     status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except FileNotFoundError:
-                    print(f"Главный файл мода не найден: {main_mod_path}")
-                    status_text = LangT(f"""✅ Предмет '{var_name}' создан!
-    📋 Имя в игре: '{constructor_name}'
-    🖼️ {icon_status}
-    ⚠️ Главный файл мода не найден: {main_mod_path}
-    🔧 Always Unlocked: {always_unlocked_value}
-    📊 Свойства предмета:
-    • ⚡ Заряд: {charge_value}
-    • 🔥 Воспламеняемость: {flammability_value}
-    • 💥 Взрывоопасность: {explosiveness_value}
-    • ☢️ Радиоактивность: {radioactivity_value}""")
+                    print(LangT("Главный файл мода не найден: {main_mod_path}").format(main_mod_path=main_mod_path))
+                    status_text = LangT("""✅ Предмет '{var_name}' создан!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Главный файл мода не найден: {main_mod_path}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства предмета:
+        • ⚡ Заряд: {charge_value}
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • ☢️ Радиоактивность: {radioactivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            main_mod_path=main_mod_path, always_unlocked_value=always_unlocked_value, 
+            charge_value=charge_value, explosiveness_value=explosiveness_value,
+            radioactivity_value=radioactivity_value, flammability_value=flammability_value
+        )
                     status_label.configure(text=status_text, text_color="#FF9800")
                 except Exception as e:
-                    print(f"Ошибка при работе с главным файлом: {e}")
-                    status_text = LangT(f"""✅ Предмет '{var_name}' создан!
-    📋 Имя в игре: '{constructor_name}'
-    🖼️ {icon_status}
-    ⚠️ Ошибка при обновлении главного файла: {e}
-    🔧 Always Unlocked: {always_unlocked_value}
-    📊 Свойства предмета:
-    • ⚡ Заряд: {charge_value}
-    • 🔥 Воспламеняемость: {flammability_value}
-    • 💥 Взрывоопасность: {explosiveness_value}
-    • ☢️ Радиоактивность: {radioactivity_value}""")
+                    print(LangT("Ошибка при работе с главным файлом: {e}").format(e=e))
+                    status_text = LangT("""✅ Предмет '{var_name}' создан!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Ошибка при обновлении главного файла: {e}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства предмета:
+        • ⚡ Заряд: {charge_value}
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • ☢️ Радиоактивность: {radioactivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            e=e, always_unlocked_value=always_unlocked_value, charge_value=charge_value,
+            explosiveness_value=explosiveness_value, radioactivity_value=radioactivity_value, 
+            flammability_value=flammability_value
+        )
                     status_label.configure(text=status_text, text_color="#FF9800")
             else:
                 status_label.configure(
@@ -1491,7 +1425,6 @@ public class ModItems {{
                     text_color="#FF9800"
                 )
             
-            # Очищаем статус через 5 секунд
             self.root.after(5000, lambda: status_label.configure(text=""))
 
         def back_to_main():
@@ -1542,7 +1475,7 @@ public class ModItems {{
             tips_frame,
             text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'item', 'bigItem', 'energyCore'"),
             font=("Arial", 12),
-            text_color="#9E9E9E",  # Серый текст
+            text_color="#9E9E9E",
             wraplength=450
         )
         tips_label.pack()
@@ -1628,13 +1561,7 @@ public class ModItems {{
         
         # Функция форматирования названий
         def format_to_lower_camel(text):
-            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)
-            Примеры:
-            'liquid' → 'liquid'
-            'cool liquid' → 'coolLiquid'
-            'very cool liquid' → 'veryCoolLiquid'
-            'energy fluid' → 'energyFluid'
-            """
+            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)"""
             words = text.strip().split()
             if not words:
                 return ""
@@ -1997,7 +1924,7 @@ public class ModItems {{
                 
                 # Проверяем существование папки
                 if not icons_dir.exists():
-                    print(f"Папка с иконками не найдена: {icons_dir}")
+                    print(LangT("Папка с иконками не найдена: {icons_dir}").format(icons_dir=icons_dir))
                     # Создаем папку, если ее нет
                     icons_dir.mkdir(parents=True, exist_ok=True)
                     return False
@@ -2010,7 +1937,7 @@ public class ModItems {{
                     image_files.extend(list(icons_dir.glob(f"*{ext}")))
                 
                 if not image_files:
-                    print(f"Нет изображений в папке: {icons_dir}")
+                    print(LangT("Нет изображений в папке: {icons_dir}").format(icons_dir=icons_dir))
                     return False
                 
                 # Выбираем иконку (water.png или первый доступный)
@@ -2033,11 +1960,11 @@ public class ModItems {{
                 # Копируем файл
                 shutil.copy2(icon_path, target_path)
                 
-                print(f"Иконка скопирована: {icon_path} -> {target_path}")
+                print(LangT("Иконка скопирована: {icon_path} -> {target_path}").format(icon_path=icon_path, target_path=target_path))
                 return True
                 
             except Exception as e:
-                print(f"Ошибка при копировании иконки: {e}")
+                print(LangT("Ошибка при копировании иконки: {e}").format(e=e))
                 return False
 
         def process_liquid():
@@ -2064,7 +1991,7 @@ public class ModItems {{
             # Проверка имени по текстурам
             if check_if_name_exists(original_name):
                 status_label.configure(
-                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!"), 
+                    text=LangT("❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!").format(constructor_name=constructor_name), 
                     text_color="#F44336"
                 )
                 return
@@ -2096,13 +2023,13 @@ public class ModItems {{
             
             # Создаем properties строку с правильными значениями
             properties = f"""    flammability = {flammability_value}f;
-                explosiveness = {explosiveness_value}f;
-                temperature = {temperature_value}f;
-                viscosity = {viscosity_value}f;
-                alwaysUnlocked = {always_unlocked_value};
-                
-                localizedName = Core.bundle.get("{var_name}.name", "OH NO");
-                description = Core.bundle.get("{var_name}.description", "OH NO");"""
+                    explosiveness = {explosiveness_value}f;
+                    temperature = {temperature_value}f;
+                    viscosity = {viscosity_value}f;
+                    alwaysUnlocked = {always_unlocked_value};
+                    
+                    localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                    description = Core.bundle.get("{var_name}.description", "OH NO");"""
             
             # Путь к файлу ModLiquid.java
             mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
@@ -2122,17 +2049,17 @@ public class ModItems {{
                 # Базовый шаблон файла
                 content = f"""package {mod_name_lower}.init.liquids;
 
-import arc.graphics.Color;
-import mindustry.type.Liquid;
-import arc.Core;
+    import arc.graphics.Color;
+    import mindustry.type.Liquid;
+    import arc.Core;
 
-public class ModLiquid {{
-    public static Liquid;
-                                        
-    public static void Load() {{
-        // Регистрация жидкостей
-    }}
-}}"""
+    public class ModLiquid {{
+        public static Liquid;
+                                            
+        public static void Load() {{
+            // Регистрация жидкостей
+        }}
+    }}"""
             
             # Проверяем, есть ли уже эта жидкость
             liquid_exists = False
@@ -2276,15 +2203,15 @@ public class ModLiquid {{
                     
                     # Формируем статус с информацией о добавленных элементах
                     status_messages = [
-                        LangT(f"✅ Жидкость '{var_name}' успешно создана!"),
-                        LangT(f'📋 Имя в игре: "{constructor_name}"'),
-                        LangT(f"🖼️ {icon_status} (имя текстуры: {constructor_name.lower()}.png)"),
-                        LangT(f"🔧 Always Unlocked: {always_unlocked_value}"),
+                        LangT("✅ Жидкость '{var_name}' успешно создана!").format(var_name=var_name),
+                        LangT('📋 Имя в игре: "{constructor_name}"').format(constructor_name=constructor_name),
+                        LangT("🖼️ {icon_status} (имя текстуры: {texture_name}.png)").format(icon_status=icon_status, texture_name=constructor_name.lower()),
+                        LangT("🔧 Always Unlocked: {always_unlocked_value}").format(always_unlocked_value=always_unlocked_value),
                         LangT("📊 Свойства жидкости:"),
-                        LangT(f"  • 🔥 Воспламеняемость: {flammability_value}"),
-                        LangT(f"  • 💥 Взрывоопасность: {explosiveness_value}"),
-                        LangT(f"  • 🌡️ Температура: {temperature_value}"),
-                        LangT(f"  • 💧 Вязкость: {viscosity_value}")
+                        LangT("  • 🔥 Воспламеняемость: {flammability_value}").format(flammability_value=flammability_value),
+                        LangT("  • 💥 Взрывоопасность: {explosiveness_value}").format(explosiveness_value=explosiveness_value),
+                        LangT("  • 🌡️ Температура: {temperature_value}").format(temperature_value=temperature_value),
+                        LangT("  • 💧 Вязкость: {viscosity_value}").format(viscosity_value=viscosity_value)
                     ]
                     
                     if import_added:
@@ -2301,30 +2228,40 @@ public class ModLiquid {{
                     status_label.configure(text=status_text, text_color="#2196F3")
                     
                 except FileNotFoundError:
-                    print(f"Главный файл мода не найден: {main_mod_path}")
-                    status_text = LangT(f"""✅ Жидкость '{var_name}' создана!
-    📋 Имя в игре: '{constructor_name}'
-    🖼️ {icon_status}
-    ⚠️ Главный файл мода не найден: {main_mod_path}
-    🔧 Always Unlocked: {always_unlocked_value}
-    📊 Свойства жидкости:
-    • 🔥 Воспламеняемость: {flammability_value}
-    • 💥 Взрывоопасность: {explosiveness_value}
-    • 🌡️ Температура: {temperature_value}
-    • 💧 Вязкость: {viscosity_value}""")
+                    print(LangT("Главный файл мода не найден: {main_mod_path}").format(main_mod_path=main_mod_path))
+                    status_text = LangT("""✅ Жидкость '{var_name}' создана!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Главный файл мода не найден: {main_mod_path}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства жидкости:
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • 🌡️ Температура: {temperature_value}
+        • 💧 Вязкость: {viscosity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
+            main_mod_path=main_mod_path, always_unlocked_value=always_unlocked_value,
+            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
+            temperature_value=temperature_value, viscosity_value=viscosity_value
+        )
                     status_label.configure(text=status_text, text_color="#FF9800")
                 except Exception as e:
-                    print(f"Ошибка при работе с главным файлом: {e}")
-                    status_text = LangT(f"""✅ Жидкость '{var_name}' создана!
-    📋 Имя в игре: '{constructor_name}'
-    🖼️ {icon_status}
-    ⚠️ Ошибка при обновлении главного файла: {e}
-    🔧 Always Unlocked: {always_unlocked_value}
-    📊 Свойства жидкости:
-    • 🔥 Воспламеняемость: {flammability_value}
-    • 💥 Взрывоопасность: {explosiveness_value}
-    • 🌡️ Температура: {temperature_value}
-    • 💧 Вязкость: {viscosity_value}""")
+                    print(LangT("Ошибка при работе с главным файлом: {e}").format(e=e))
+                    status_text = LangT("""✅ Жидкость '{var_name}' создана!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Ошибка при обновлении главного файла: {e}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства жидкости:
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • 🌡️ Температура: {temperature_value}
+        • 💧 Вязкость: {viscosity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
+            e=e, always_unlocked_value=always_unlocked_value,
+            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
+            temperature_value=temperature_value, viscosity_value=viscosity_value
+        )
                     status_label.configure(text=status_text, text_color="#FF9800")
             else:
                 status_label.configure(
@@ -2591,7 +2528,7 @@ public class ModLiquid {{
         
         info_label = ctk.CTkLabel(
             info_frame,
-            text=LangT(f"💡 Выберите тип блока для создания. Всего доступно {len(blocks)} типов блоков."),
+            text=LangT("💡 Выберите тип блока для создания. Всего доступно {lenblocks} типов блоков.").format(lenblocks=len(blocks)),
             font=("Arial", 12),
             text_color="#9E9E9E",
             wraplength=500
@@ -2893,7 +2830,7 @@ public class ModLiquid {{
             # Заголовок
             ctk.CTkLabel(
                 frame,
-                text=LangT(f"Переводы ({len(translations)} элементов)"),
+                text=LangT("Переводы ({lentranslations} элементов)").format(lentranslations=len(translations)),
                 font=("Arial", 16, "bold"),
                 text_color="#4CAF50"
             ).pack(anchor="w", pady=(0, 10))
@@ -3313,15 +3250,18 @@ public class ModLiquid {{
         # Функция для удаления (вся логика внутри)
         def action_delete():
             """Полное удаление элемента"""
+            mod_name = self.mod_name
+            mod_folder = self.mod_folder
+            open_creator = self.open_creator
             
             # Подтверждение удаления
             result = messagebox.askyesno(
                 LangT("Подтверждение удаления"),
-                LangT(f"Вы уверены, что хотите удалить элемент '{element_name}'?\n\n"
-                      f"Будут удалены:\n"
-                      f"• Все текстуры элемента\n"
-                      f"• Код в Java файлах\n\n"
-                      f"⚠️ Это действие необратимо!"),
+                LangT("Вы уверены, что хотите удалить элемент '{element_name}'?\n\n").format(element_name=element_name)+
+                    LangT("Будут удалены:\n")+
+                    LangT("• Все текстуры элемента\n")+
+                    LangT("• Код в Java файлах\n\n")+
+                    LangT("⚠️ Это действие необратимо!"),
                 icon='warning'
             )
             
@@ -3332,7 +3272,9 @@ public class ModLiquid {{
             
             try:
                 import re
-                mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+                from pathlib import Path
+                
+                mod_name_lower = mod_name.lower() if mod_name else mod_name
                 formatted_name = format_to_lower_camel(element_name)
                 deleted_items = []
                 errors = []
@@ -3355,7 +3297,7 @@ public class ModLiquid {{
                     
                     if element_type in tree_files:
                         tree_class = tree_files[element_type]
-                        tree_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "content" / f"{tree_class}.java"
+                        tree_file_path = Path(mod_folder) / "src" / mod_name_lower / "content" / f"{tree_class}.java"
                         
                         if tree_file_path.exists():
                             with open(tree_file_path, 'r', encoding='utf-8') as f:
@@ -3368,8 +3310,8 @@ public class ModLiquid {{
                                 result2 = messagebox.askyesno(
                                     LangT("Предупреждение"),
                                     LangT(f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
-                                          f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
-                                          f"Продолжить удаление (только текстуры и Java код)?"),
+                                        f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
+                                        f"Продолжить удаление (только текстуры и Java код)?"),
                                     icon='warning'
                                 )
                                 
@@ -3382,15 +3324,15 @@ public class ModLiquid {{
                 
                 if element_type == "item":
                     search_paths = [
-                        Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.png",
-                        Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.jpg",
-                        Path(self.mod_folder) / "sprites" / "items" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.jpg",
+                        Path(mod_folder) / "sprites" / "items" / f"{formatted_name}.png",
                     ]
                 elif element_type == "liquid":
                     search_paths = [
-                        Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.png",
-                        Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.jpg",
-                        Path(self.mod_folder) / "sprites" / "liquids" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.jpg",
+                        Path(mod_folder) / "sprites" / "liquids" / f"{formatted_name}.png",
                     ]
                 else:
                     block_folders = {
@@ -3409,22 +3351,18 @@ public class ModLiquid {{
                     target_folder = folder_path or block_folders.get(element_type, "")
                     
                     if target_folder:
-                        base_dir = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / target_folder
+                        base_dir = Path(mod_folder) / "assets" / "sprites" / "blocks" / target_folder
                         if base_dir.exists():
-                            # Для жидкостного моста и моста ищем файлы с разными суффиксами
                             if element_type in ["circular_bridge", "circular_bridge_liquid"]:
-                                # Ищем все файлы, начинающиеся с имени блока
                                 for file in base_dir.glob(f"{formatted_name}*.*"):
                                     if file.suffix in ['.png', '.jpg', '.jpeg']:
                                         search_paths.append(file)
-                                # Проверяем подпапку
                                 sub_dir = base_dir / formatted_name
                                 if sub_dir.exists():
                                     for file in sub_dir.glob(f"*.*"):
                                         if file.suffix in ['.png', '.jpg', '.jpeg']:
                                             search_paths.append(file)
                             else:
-                                # Обычные блоки
                                 for file in base_dir.glob(f"{formatted_name}.png"):
                                     if file.suffix in ['.png', '.jpg', '.jpeg']:
                                         search_paths.append(file)
@@ -3444,7 +3382,7 @@ public class ModLiquid {{
                         path.parent.rmdir()
                 
                 if texture_count > 0:
-                    deleted_items.append(LangT(f"🖼️ Удалено текстур: {texture_count}"))
+                    deleted_items.append(LangT("🖼️ Удалено текстур: {texture_count}").format(texture_count=texture_count))
                 else:
                     errors.append(LangT(f"⚠️ Текстуры не найдены"))
                 
@@ -3452,173 +3390,82 @@ public class ModLiquid {{
                 java_deleted = False
                 
                 if element_type == "item":
-                    items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
+                    items_file_path = Path(mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
                     if items_file_path.exists():
                         with open(items_file_path, 'r', encoding='utf-8') as f:
                             content = f.read()
                         original = content
                         
-                        # Удаляем инициализацию
-                        pattern = rf'{formatted_name}\s*=\s*new\s+Item\("[^"]*"\)\s*\{{\s*[^}}]*\s*\}}\s*;'
-                        content = re.sub(pattern, '', content, flags=re.DOTALL)
+                        # Удаляем инициализацию (более точный паттерн)
+                        lines = content.split('\n')
+                        new_lines = []
+                        skip_until = -1
+                        i = 0
+                        
+                        while i < len(lines):
+                            line = lines[i]
+                            
+                            # Ищем строку с инициализацией удаляемого элемента
+                            if skip_until <= i and re.search(rf'{formatted_name}\s*=\s*new\s+Item\s*\(', line):
+                                # Нашли начало, пропускаем до конца блока
+                                brace_count = 0
+                                found_start = False
+                                j = i
+                                
+                                while j < len(lines):
+                                    current_line = lines[j]
+                                    
+                                    # Считаем фигурные скобки
+                                    if '{' in current_line:
+                                        brace_count += current_line.count('{')
+                                        found_start = True
+                                    if '}' in current_line:
+                                        brace_count -= current_line.count('}')
+                                    
+                                    # Проверяем конец блока
+                                    if found_start and brace_count == 0 and ';' in current_line:
+                                        i = j + 1
+                                        break
+                                    j += 1
+                                else:
+                                    i += 1
+                                continue
+                            
+                            # Добавляем строку если не пропускаем
+                            if skip_until <= i:
+                                new_lines.append(line)
+                            i += 1
+                        
+                        content = '\n'.join(new_lines)
                         
                         # Удаляем из объявления
                         lines = content.split('\n')
                         new_lines = []
                         for line in lines:
                             if 'public static Item' in line and formatted_name in line:
-                                if ',' in line:
-                                    match = re.search(r'public static Item\s+(.+?);', line)
-                                    if match:
-                                        vars_str = match.group(1)
-                                        var_list = [v.strip() for v in vars_str.split(',')]
-                                        remaining_vars = [v for v in var_list if v != formatted_name]
-                                        if remaining_vars:
-                                            indent = ' ' * (len(line) - len(line.lstrip()))
-                                            new_line = f"{indent}public static Item {', '.join(remaining_vars)};"
-                                            new_lines.append(new_line)
+                                match = re.search(r'public static Item\s+(.+?);', line)
+                                if match:
+                                    vars_str = match.group(1)
+                                    var_list = [v.strip() for v in vars_str.split(',')]
+                                    remaining_vars = [v for v in var_list if v != formatted_name]
+                                    if remaining_vars:
+                                        indent = ' ' * (len(line) - len(line.lstrip()))
+                                        new_line = f"{indent}public static Item {', '.join(remaining_vars)};"
+                                        new_lines.append(new_line)
                             else:
                                 new_lines.append(line)
                         content = '\n'.join(new_lines)
+                        
+                        # Удаляем пустые строки
+                        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
                         
                         if content != original:
                             with open(items_file_path, 'w', encoding='utf-8') as f:
                                 f.write(content)
                             java_deleted = True
-                            
-                elif element_type == "liquid":
-                    liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquids.java"
-                    if not liquids_file_path.exists():
-                        liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquid.java"
-                    
-                    if liquids_file_path.exists():
-                        with open(liquids_file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        original = content
-                        
-                        pattern = rf'{formatted_name}\s*=\s*new\s+Liquid\("[^"]*"\)\s*\{{\s*[^}}]*\s*\}}\s*;'
-                        content = re.sub(pattern, '', content, flags=re.DOTALL)
-                        
-                        lines = content.split('\n')
-                        new_lines = []
-                        for line in lines:
-                            if 'public static Liquid' in line and formatted_name in line:
-                                if ',' in line:
-                                    match = re.search(r'public static Liquid\s+(.+?);', line)
-                                    if match:
-                                        vars_str = match.group(1)
-                                        var_list = [v.strip() for v in vars_str.split(',')]
-                                        remaining_vars = [v for v in var_list if v != formatted_name]
-                                        if remaining_vars:
-                                            indent = ' ' * (len(line) - len(line.lstrip()))
-                                            new_line = f"{indent}public static Liquid {', '.join(remaining_vars)};"
-                                            new_lines.append(new_line)
-                            else:
-                                new_lines.append(line)
-                        content = '\n'.join(new_lines)
-                        
-                        if content != original:
-                            with open(liquids_file_path, 'w', encoding='utf-8') as f:
-                                f.write(content)
-                            java_deleted = True
-                            
-                else:
-                    # Удаление из файла блоков
-                    block_files = {
-                        "wall": ("Walls", "walls"),
-                        "battery": ("Batterys", "batterys"),
-                        "solar_panel": ("SolarPanels", "solar_panels"),
-                        "generator": ("ConsumeGenerators", "consume_generators"),
-                        "beam_node": ("BeamNodes", "beam_nodes"),
-                        "power_node": ("PowerNodes", "power_nodes"),
-                        "shield_wall": ("ShieldWalls", "shield_walls"),
-                        "generic_crafter": ("GenericCrafters", "generic_crafter"),
-                        "bridge": ("Bridges", "bridges"),
-                        "conveyor": ("Conveyors", "conveyors"),
-                        "circular_bridge": ("Bridges", "bridges")
-                    }
-                    
-                    if element_type in block_files:
-                        class_name, folder_name = block_files[element_type]
-                        block_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "blocks" / folder_name / f"{class_name}.java"
-                        
-                        if block_file_path.exists():
-                            with open(block_file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                            
-                            original_content = content
-                            
-                            # Определяем тип блока
-                            block_type_match = re.search(r'public static\s+(\w+)\s+', content)
-                            block_type_name = block_type_match.group(1) if block_type_match else "Conveyor"
-                            
-                            # 1. Удаляем блок инициализации
-                            lines = content.split('\n')
-                            start_line = -1
-                            end_line = -1
-                            brace_count = 0
-                            in_block = False
-                            
-                            for i, line in enumerate(lines):
-                                if not in_block and re.search(rf'{formatted_name}\s*=\s*new\s+{block_type_name}\s*\(', line):
-                                    start_line = i
-                                    in_block = True
-                                    brace_count = 0
-                                
-                                if in_block:
-                                    brace_count += line.count('{') - line.count('}')
-                                    if '};' in line and brace_count == 0:
-                                        end_line = i
-                                        break
-                            
-                            if start_line != -1 and end_line != -1:
-                                new_lines = lines[:start_line] + lines[end_line + 1:]
-                                content = '\n'.join(new_lines)
-                            
-                            # 2. Удаляем из строки объявления
-                            lines = content.split('\n')
-                            new_lines = []
-                            for line in lines:
-                                if re.search(rf'public static\s+{block_type_name}\s+.*{formatted_name}', line):
-                                    if ',' in line:
-                                        match = re.search(rf'public static\s+{block_type_name}\s+(.+?);', line)
-                                        if match:
-                                            vars_str = match.group(1)
-                                            var_list = [v.strip() for v in vars_str.split(',')]
-                                            remaining_vars = [v for v in var_list if v != formatted_name]
-                                            if remaining_vars:
-                                                indent = ' ' * (len(line) - len(line.lstrip()))
-                                                new_line = f"{indent}public static {block_type_name} {', '.join(remaining_vars)};"
-                                                new_lines.append(new_line)
-                                    else:
-                                        continue
-                                else:
-                                    new_lines.append(line)
-                            content = '\n'.join(new_lines)
-                            
-                            # 3. Очищаем пустые строки
-                            lines = content.split('\n')
-                            cleaned_lines = []
-                            prev_empty = False
-                            for line in lines:
-                                is_empty = line.strip() == ''
-                                if is_empty and prev_empty:
-                                    continue
-                                cleaned_lines.append(line)
-                                prev_empty = is_empty
-                            content = '\n'.join(cleaned_lines)
-                            
-                            # Сохраняем изменения
-                            if content != original_content:
-                                with open(block_file_path, 'w', encoding='utf-8') as f:
-                                    f.write(content)
-                                java_deleted = True
-                                print(f"Обновлен файл: {block_file_path}")
-                
-                if java_deleted:
-                    deleted_items.append(LangT(f"📦 Удален из Java файла"))
-                else:
-                    errors.append(LangT(f"⚠️ Не удалось удалить из Java файла"))
+                            deleted_items.append(LangT("📦 Удален из ModItems.java"))
+                        else:
+                            errors.append(LangT(f"⚠️ Не удалось удалить из ModItems.java"))
                 
                 # ========== 3. РЕЗУЛЬТАТ ==========
                 if warnings:
@@ -3629,14 +3476,16 @@ public class ModLiquid {{
                     status_text += LangT("✅ Успешно:\n") + "\n".join(deleted_items) + LangT("\n\n❌ Ошибки:\n") + "\n".join(errors)
                     messagebox.showwarning(LangT("Предупреждение"), status_text)
                 else:
-                    status_text = LangT(f"✅ Элемент '{element_name}' успешно удален!\n\n")
+                    status_text = LangT("✅ Элемент '{element_name}' успешно удален!\n\n").format(element_name=element_name)
                     status_text += "\n".join(deleted_items)
                     messagebox.showinfo(LangT("Успех"), status_text)
                 
                 # Обновляем отображение
-                self.open_creator()
+                open_creator()
                 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить элемент: {str(e)}"))
 
         # Кнопка Delete
@@ -3898,7 +3747,7 @@ public class ModLiquid {{
                                 wraplength=120).pack()
                     
                     count = sum(1 for item in all_content if item[0] == block_type)
-                    ctk.CTkLabel(card, text=LangT(f"{count} шт."), font=("Arial", 9), 
+                    ctk.CTkLabel(card, text=LangT("{count} шт.").format(count=count), font=("Arial", 9), 
                                 text_color="#AAAAAA").pack()
                     
                     var = tk.BooleanVar(value=block_type in self.selected_types)
@@ -4239,9 +4088,9 @@ public class ModLiquid {{
                     if str(rel_path) == ".":
                         path_label.configure(text=LangT("Путь: assets/sprites"))
                     else:
-                        path_label.configure(text=LangT(f"Путь: assets/sprites/{rel_path}"))
+                        path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
                 except:
-                    path_label.configure(text=LangT("Путь: assets/sprites"))
+                    path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
                 
                 update_filter_label()
                 
@@ -4284,7 +4133,7 @@ public class ModLiquid {{
                         # Счетчик элементов в папке
                         try:
                             items_count = len(list(item_path.iterdir()))
-                            ctk.CTkLabel(card, text=LangT(f"{items_count} элементов"), 
+                            ctk.CTkLabel(card, text=LangT("{items_count} элементов").format(items_count=items_count), 
                                         font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
                         except:
                             ctk.CTkLabel(card, text=LangT("Папка"), 
@@ -4483,7 +4332,7 @@ public class ModLiquid {{
             item_count = len(list(folder_path.iterdir()))
             ctk.CTkLabel(
                 card, 
-                text=LangT(f"{item_count} элементов"), 
+                text=LangT("{item_count} элементов").format(item_count=item_count), 
                 font=("Arial", 9), 
                 text_color="#AAAAAA"
             ).pack()

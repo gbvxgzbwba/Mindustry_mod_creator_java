@@ -1970,7 +1970,7 @@ public class CircularBridge extends ItemBridge {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2024,7 +2024,7 @@ public class CircularBridge extends ItemBridge {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -2591,7 +2591,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -2645,7 +2645,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3155,7 +3155,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_battery,
             height=45,
             width=200,
@@ -3246,7 +3246,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3300,7 +3300,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -3812,7 +3812,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_solar,
             height=45,
             width=200,
@@ -3904,7 +3904,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -3958,7 +3958,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -4563,7 +4563,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT(f"Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_shield,
             height=45,
             width=200,
@@ -4654,7 +4654,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -4722,7 +4722,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -4789,7 +4789,7 @@ public class {NAME} {{
 
         # Размер
         size_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        size_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        size_frame.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             size_frame,
@@ -4811,7 +4811,7 @@ public class {NAME} {{
 
         # Дальность
         range_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        range_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        range_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             range_frame,
@@ -4837,7 +4837,7 @@ public class {NAME} {{
 
         # Максимальное количество подключений
         max_nodes_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        max_nodes_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        max_nodes_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             max_nodes_frame,
@@ -4863,7 +4863,7 @@ public class {NAME} {{
 
         # mapColor
         map_color_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        map_color_frame.grid(row=3, column=0, padx=10, pady=5, sticky="ew")
+        map_color_frame.grid(row=1, column=2, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             map_color_frame,
@@ -4887,7 +4887,7 @@ public class {NAME} {{
 
         # outlineColor
         outline_color_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        outline_color_frame.grid(row=3, column=1, padx=10, pady=5, sticky="ew")
+        outline_color_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             outline_color_frame,
@@ -4911,7 +4911,7 @@ public class {NAME} {{
 
         # laserColor1
         laser_color1_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        laser_color1_frame.grid(row=4, column=0, padx=10, pady=5, sticky="ew")
+        laser_color1_frame.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             laser_color1_frame,
@@ -4935,7 +4935,7 @@ public class {NAME} {{
 
         # laserColor2
         laser_color2_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        laser_color2_frame.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
+        laser_color2_frame.grid(row=2, column=2, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             laser_color2_frame,
@@ -4959,7 +4959,7 @@ public class {NAME} {{
 
         # lightColor
         light_color_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        light_color_frame.grid(row=5, column=0, padx=10, pady=5, sticky="ew")
+        light_color_frame.grid(row=3, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(
             light_color_frame,
@@ -5391,7 +5391,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_power_node,
             height=45,
             width=200,
@@ -5482,7 +5482,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -5550,7 +5550,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -6190,7 +6190,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_beam_node,
             height=45,
             width=200,
@@ -6282,7 +6282,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -6344,7 +6344,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -7065,7 +7065,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_generator,
             height=45,
             width=200,
@@ -7159,7 +7159,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -7213,7 +7213,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8113,7 +8113,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_crafter,
             height=45,
             width=200,
@@ -8213,7 +8213,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -8267,7 +8267,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -8885,7 +8885,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_bridge,
             height=45,
             width=200,
@@ -8995,7 +8995,7 @@ public class {NAME} {{
         
         ctk.CTkLabel(
             name_frame,
-            text=LangT(f"Название {BL_NAME} (английское, можно пробел, первая буква маленькая):"),
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
             font=("Arial", 16),
             text_color="#BDBDBD"
         ).pack(anchor="w", pady=(0, 5))
@@ -9049,7 +9049,7 @@ public class {NAME} {{
 
         ctk.CTkLabel(
             properties_card,
-            text=LangT(f"Свойства {BL_NAME}"),
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
             font=("Arial", 18, "bold"),
             text_color="#E0E0E0"
         ).pack(pady=(15, 10), padx=20, anchor="w")
@@ -9605,7 +9605,7 @@ public class {NAME} {{
         
         ctk.CTkButton(
             buttons_frame,
-            text=LangT(f"Создать {BL_CR_NAME}"),
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
             command=process_conveyor,
             height=45,
             width=200,
@@ -9922,14 +9922,16 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value=LangT(f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}")),
+            #"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"
+            textvariable=tk.StringVar(value=LangT("Выбрано: 0 {предметовifitem_typeitemelseжидкостей}").format(предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей')),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} {'предметов' if item_type == 'item' else 'жидкостей'}"))
+            #"Выбрано: {selected_count.get()} {'предметов' if item_type == 'item' else 'жидкостей'}"
+            count_label.configure(text=LangT("Выбрано: {selected_countget} {предметовifitem_typeitemelseжидкостей}").format(selected_countget=selected_count.get(),предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей'))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -9977,11 +9979,15 @@ public class {NAME} {{
                             display_name = item_name.capitalize()
                         items_list.append(f"{display_name} ×{int(amount)}")
                 
-                display_text = LangT(f"Выбрано: {len(selected_items)} {'предметов' if item_type == 'item' else 'жидкостей'} ({', '.join(items_list[:2])})")
+                #"Выбрано: {len(selected_items)} {'предметов' if item_type == 'item' else 'жидкостей'} ({', '.join(items_list[:2])})"
+                display_text = LangT("Выбрано: {lenselected_items} {предметовifitem_typeitemelseжидкостей} ({items_list})").format(lenselected_items=len(selected_items),
+                                                                                                                                   предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей',
+                                                                                                                                   items_list=', '.join(items_list[:2]))
                 if len(items_list) > 2:
                     display_text += "..."
             else:
-                display_text = LangT(f"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}")
+                #"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"
+                display_text = LangT("Выбрано: 0 {предметовifitem_typeitemelseжидкостей}").format(предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей')
             
             # Обновляем текст на кнопке
             selected_var.set(display_text)
@@ -10827,7 +10833,7 @@ public class {NAME} {{
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} предметов"))
+            count_label.configure(text=LangT("Выбрано: {selected_countget} предметов").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
         
@@ -10867,7 +10873,9 @@ public class {NAME} {{
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                display_text = LangT(f"Выбрано: {len(selected_items)} предметов ({', '.join(items_list[:3])})")
+                #"Выбрано: {len(selected_items)} предметов ({', '.join(items_list[:3])})"
+                display_text = LangT("Выбрано: {lenselected_items} предметов ({joinitems_list})").format(lenselected_items=len(selected_items),
+                                                                                                         joinitems_list=', '.join(items_list[:3]))
                 if len(items_list) > 3:
                     display_text += "..."
             else:
@@ -11178,14 +11186,17 @@ public class {NAME} {{
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value=LangT(f"Выбрано: 0 {'предметов' if fuel_type == 'item' else 'жидкостей'}")),
+            #"Выбрано: 0 {'предметов' if fuel_type == 'item' else 'жидкостей'}"
+            textvariable=tk.StringVar(value=LangT("Выбрано: 0 {предметовiffueltypeitemelseжидкостей}").format(предметовiffueltypeitemelseжидкостей='предметов' if fuel_type == 'item' else 'жидкостей')),
             font=("Arial", 12, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} {'предметов' if fuel_type == 'item' else 'жидкостей'}"))
+            #"Выбрано: {selected_count.get()} {'предметов' if fuel_type == 'item' else 'жидкостей'}"
+            count_label.configure(text=LangT("Выбрано: {selected_countget} {предметовiffueltypeitemelseжидкостей}").format(selected_countget=selected_count.get(),
+                                                                                                                           предметовiffueltypeitemelseжидкостей='предметов' if fuel_type == 'item' else 'жидкостей'))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -11217,7 +11228,9 @@ public class {NAME} {{
                             display_name = item_name.replace("-", " ").title()
                             items_list.append(f"{display_name} ×{int(amount)}")
                     
-                    display_text = LangT(f"Выбрано: {len(self.fuel_items_with_amount)} предметов ({', '.join(items_list[:2])})")
+                    #"Выбрано: {len(self.fuel_items_with_amount)} предметов ({', '.join(items_list[:2])})"
+                    display_text = LangT("Выбрано: {lenselffuel_items_with_amount} предметов ({joinitems_list})").format(lenselffuel_items_with_amount=len(self.fuel_items_with_amount),
+                                                                                                                         joinitems_list=', '.join(items_list[:2]))
                     if len(items_list) > 2:
                         display_text += "..."
                 else:
@@ -11245,7 +11258,9 @@ public class {NAME} {{
                             display_name = liquid_name.capitalize()
                             liquids_list.append(f"{display_name} ×{int(amount)}")
                     
-                    display_text = LangT(f"Выбрано: {len(self.fuel_liquids_with_amount)} жидкостей ({', '.join(liquids_list[:2])})")
+                    #"Выбрано: {len(self.fuel_liquids_with_amount)} жидкостей ({', '.join(liquids_list[:2])})"
+                    display_text = LangT("Выбрано: {lenselffuel_liquids_with_amount} жидкостей ({joinliquids_list})").format(lenselffuel_liquids_with_amount=len(self.fuel_liquids_with_amount),
+                                                                                                                             joinliquids_list=', '.join(liquids_list[:2]))
                     if len(liquids_list) > 2:
                         display_text += "..."
                 else:
@@ -11494,7 +11509,8 @@ public class {NAME} {{
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=LangT(f"Выбрано: {selected_count.get()} предметов"))
+            #"Выбрано: {selected_count.get()} предметов"
+            count_label.configure(text=LangT("Выбрано: {selected_countget} предметов").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
         update_counter()
@@ -11528,7 +11544,9 @@ public class {NAME} {{
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                display_text = LangT(f"Выбрано: {len(self.build_items)} предметов ({', '.join(items_list[:3])})")
+                #"Выбрано: {len(self.build_items)} предметов ({', '.join(items_list[:3])})"
+                display_text = LangT("Выбрано: {lenselfbuild_items} предметов ({items_list})").format(lenselfbuild_items=len(self.build_items),
+                                                                                                      items_list=', '.join(items_list[:3]))
                 if len(items_list) > 3:
                     display_text += "..."
             else:
