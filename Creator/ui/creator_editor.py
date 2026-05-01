@@ -3609,11 +3609,11 @@ class CreatorEditor:
                 "display": LangT("Экранированная стена"), 
                 "sprite_folder": "shield_walls"},
             "generic_crafter": {
-                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafters/GenericCrafters.java"], 
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java"], 
                 "class": "GenericCrafter", 
                 "icon": "🏭", 
                 "display": LangT("Завод"), 
-                "sprite_folder": "generic_crafters"},
+                "sprite_folder": "generic_crafter"},
             "circular_bridge": {
                 "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/bridges/Bridges.java"], 
                 "class": "CircularBridge", 

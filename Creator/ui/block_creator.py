@@ -10287,15 +10287,15 @@ public class {NAME} {{
                             "walls", "batterys", "solar_panels", 
                             "consume_generators", "beam_nodes", 
                             "power_nodes", "shield_walls", "bridges",
-                            "generic_crafters"
+                            "generic_crafter"
                         ]
                     
                     # Ищем в двух вариантах путей
                     for folder in search_folders:
                         # Первый вариант: напрямую в папке
-                        test_path1 = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / f"{block_name}.png"
+                        test_path1 = resource_path(Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / f"{block_name}.png")
                         # Второй вариант: в подпапке с именем блока
-                        test_path2 = Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / block_name / f"{block_name}.png"
+                        test_path2 = resource_path(Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / block_name / f"{block_name}.png")
                         
                         if test_path1.exists():
                             icon_path = test_path1
