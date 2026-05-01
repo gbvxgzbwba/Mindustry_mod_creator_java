@@ -1306,28 +1306,42 @@ class BlockCreator:
         
         custom_liquids = {}
         mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-        liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquids.java"
+        liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquid.java"
+        
+        print(f"DEBUG: Looking for liquids at: {liquids_file_path}")  # Отладка
         
         if liquids_file_path.exists():
             try:
                 with open(liquids_file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
                 
+                print(f"DEBUG: ModLiquid.java content length: {len(content)}")  # Отладка
+                
+                # Паттерны для поиска жидкостей
                 patterns = [
                     r'public\s+static\s+Liquid\s+(\w+);',
                     r'public\s+static\s+final\s+Liquid\s+(\w+);',
+                    r'public\s+static\s+Liquid\s+(\w+)\s*=',
+                    r'(\w+)\s*=\s*new\s+Liquid\(',
                 ]
                 
                 for pattern in patterns:
                     matches = re.findall(pattern, content)
                     for liquid_name in matches:
-                        if liquid_name:
+                        if isinstance(liquid_name, tuple):
+                            liquid_name = liquid_name[0]
+                        if liquid_name and liquid_name not in custom_liquids:
                             custom_liquids[liquid_name] = liquid_name
-                            
+                            print(f"DEBUG: Found custom liquid: {liquid_name}")  # Отладка
+                                
             except Exception as e:
-                print(LangT(f"Ошибка чтения ModLiquids: {e}"))
+                print(f"DEBUG: Error reading ModLiquid: {e}")
+        else:
+            print(f"DEBUG: ModLiquid.java NOT FOUND at {liquids_file_path}")
         
+        # Сохраняем в кэш
         self._custom_liquids_cache = custom_liquids
+        print(f"DEBUG: Custom liquids found: {list(custom_liquids.keys())}")  # Отладка
         return custom_liquids
 
     def get_item_code_name(self, item_name: str, custom_items: dict = None) -> str:
@@ -9650,131 +9664,74 @@ public class {NAME} {{
                 editor_window.title(LangT("Выбор предметов для потребления"))
             else:
                 editor_window.title(LangT("Выбор предметов на выходе"))
-            title = LangT("Выберите предметы и количество")
         else:  # "liquid"
             if "consume" in target:
                 editor_window.title(LangT("Выбор жидкостей для потребления"))
             else:
                 editor_window.title(LangT("Выбор жидкостей на выходе"))
-            title = LangT("Выберите жидкости и количество")
         
-        editor_window.geometry("650x500")
+        editor_window.geometry("750x550")
         editor_window.configure(fg_color="#2b2b2b")
         editor_window.transient(self.root)
         editor_window.grab_set()
         
         main_frame = ctk.CTkFrame(editor_window, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=8, pady=8)
         
-        ctk.CTkLabel(
+        # Информационная метка
+        info_label = ctk.CTkLabel(
             main_frame,
-            text=title,
-            font=("Arial", 16, "bold"),
-            text_color="#FFFFFF"
-        ).pack(pady=(0, 15))
+            text=LangT("ℹ️ Нажмите + для выбора элемента (автоматически определится ModItems./ModLiquids.)"),
+            font=("Arial", 10),
+            text_color="#888888"
+        )
+        info_label.pack(pady=(0, 10))
         
-        # Canvas для прокрутки
-        canvas_frame = ctk.CTkFrame(main_frame, fg_color="#3a3a3a", corner_radius=8)
-        canvas_frame.pack(fill="both", expand=True)
+        # Создаем вкладки
+        tabview = ctk.CTkTabview(main_frame, fg_color="#2b2b2b")
+        tabview.pack(fill="both", expand=True)
         
-        canvas = tk.Canvas(canvas_frame, bg="#3a3a3a", highlightthickness=0)
-        scrollbar = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=canvas.yview)
-        canvas.configure(yscrollcommand=scrollbar.set)
+        mod_tab = tabview.add(LangT("📦 Из мода"))
+        vanilla_tab = tabview.add(LangT("⭐ Ванильное"))
         
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        items_frame = ctk.CTkFrame(canvas, fg_color="#3a3a3a")
-        canvas.create_window((0, 0), window=items_frame, anchor="nw")
-        
-        # Определяем какие элементы показывать
-        items_to_show = []
+        # Получаем кастомные и ванильные элементы
         custom_elements = {}
+        vanilla_elements = []
         
         if item_type == "item":
-            # Получаем предметы (ванильные + кастомные)
-            items_to_show = self.default_items.copy()
-            custom_items = {}
-            
-            # Добавляем кастомные предметы
-            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
-            
-            if items_file_path.exists():
-                try:
-                    with open(items_file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    pattern = r'public\s+static\s+Item\s+(\w+);'
-                    matches = re.findall(pattern, content)
-                    for item_name in matches:
-                        if item_name and item_name not in items_to_show:
-                            items_to_show.append(item_name)
-                            custom_items[item_name] = True
-                except Exception:
-                    pass
-            
-            custom_elements = custom_items
+            vanilla_elements = self.default_items.copy()
+            custom_elements = self.get_custom_items()
             icon_dir = "items"
-            
+            amount_color = "#FF9800"
         else:  # "liquid"
-            # Получаем жидкости (ванильные + кастомные)
-            items_to_show = self.default_liquids.copy()
-            custom_liquids = {}
-            
-            # Добавляем кастомные жидкости
-            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquids.java"
-            
-            if liquids_file_path.exists():
-                try:
-                    with open(liquids_file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    pattern = r'public\s+static\s+Liquid\s+(\w+);'
-                    matches = re.findall(pattern, content)
-                    for liquid_name in matches:
-                        if liquid_name and liquid_name not in items_to_show:
-                            items_to_show.append(liquid_name)
-                            custom_liquids[liquid_name] = True
-                except Exception:
-                    pass
-            
-            custom_elements = custom_liquids
+            vanilla_elements = self.default_liquids.copy()
+            custom_elements = self.get_custom_liquids()
             icon_dir = "liquids"
+            amount_color = "#2196F3"
         
-        checkbox_vars = {}
-        amount_vars = {}
+        # Словари для хранения переменных
+        all_selected = {}  # item_name -> amount
         selected_count = tk.IntVar(value=0)
         
-        def create_item_row(item_name):
-            row_frame = ctk.CTkFrame(items_frame, fg_color="transparent")
-            row_frame.pack(fill="x", pady=2)
+        def create_grid_card(parent, item_name, is_custom, tab_name):
+            """Создает карточку как в блоках: иконка сверху, название, кнопки внизу"""
+            CARD_WIDTH = 130
+            CARD_HEIGHT = 150
             
-            checkbox_var = tk.BooleanVar(value=False)
-            checkbox_vars[item_name] = checkbox_var
+            card = ctk.CTkFrame(parent, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                            fg_color="#363636", corner_radius=8, 
+                            border_width=1, border_color="#404040")
+            card.pack_propagate(False)
+            card.pack(side="left", padx=4, pady=4)
             
-            def on_checkbox_change():
-                if checkbox_var.get():
-                    selected_count.set(selected_count.get() + 1)
-                else:
-                    selected_count.set(selected_count.get() - 1)
-            
-            ctk.CTkCheckBox(
-                row_frame,
-                text="",
-                variable=checkbox_var,
-                width=20,
-                command=on_checkbox_change,
-                fg_color="#4CAF50",
-                hover_color="#45a049"
-            ).grid(row=0, column=0, padx=(5, 10))
-            
-            # Иконка
-            icon_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=32, height=32)
-            icon_frame.grid(row=0, column=1, padx=5)
+            # Иконка сверху
+            icon_frame = ctk.CTkFrame(card, fg_color="transparent", width=55, height=55)
+            icon_frame.pack(pady=(10, 5))
             icon_frame.pack_propagate(False)
             
+            # Загрузка иконки
             try:
-                is_custom = item_name in custom_elements
+                from PIL import Image
                 
                 if is_custom:
                     item_name_lower = item_name.lower()
@@ -9783,7 +9740,7 @@ public class {NAME} {{
                             Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{item_name_lower}.png",
                             Path(self.mod_folder) / "sprites" / "items" / f"{item_name_lower}.png",
                         ]
-                    else:  # liquid
+                    else:
                         icon_paths = [
                             Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{item_name_lower}.png",
                             Path(self.mod_folder) / "sprites" / "liquids" / f"{item_name_lower}.png",
@@ -9793,206 +9750,274 @@ public class {NAME} {{
                     for icon_path in icon_paths:
                         if icon_path.exists():
                             img = Image.open(icon_path)
-                            img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                            ctk_img = ctk.CTkImage(img, size=(32, 32))
-                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                            img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                            ctk_img = ctk.CTkImage(img, size=(45, 45))
+                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                             icon_found = True
                             break
                     if not icon_found:
-                        if item_type == "item":
-                            ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 14)).pack()
-                        else:
-                            ctk.CTkLabel(icon_frame, text="💧", font=("Arial", 14)).pack()
+                        ctk.CTkLabel(icon_frame, text="📦" if item_type == "item" else "💧", font=("Arial", 30)).pack(expand=True)
                 else:
-                    icon_path = Path("creator/icons") / icon_dir / f"{item_name.lower()}.png"
+                    icon_path = Path(resource_path("Creator/icons")) / icon_dir / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
-                        img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                        ctk_img = ctk.CTkImage(img, size=(32, 32))
-                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                        img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img, size=(45, 45))
+                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                     else:
-                        # Эмодзи для стандартных элементов
                         if item_type == "item":
-                            emoji = "📦"
-                            if item_name == "copper": emoji = "🟫"
-                            elif item_name == "lead": emoji = "🔩"
-                            elif item_name == "metaglass": emoji = "🔮"
-                            elif item_name == "graphite": emoji = "⬛"
-                            elif item_name == "sand": emoji = "🟨"
-                            elif item_name == "coal": emoji = "🪨"
-                            elif item_name == "titanium": emoji = "🔷"
-                            elif item_name == "thorium": emoji = "🟣"
-                            elif item_name == "scrap": emoji = "⚙️"
-                            elif item_name == "silicon": emoji = "💎"
-                            elif item_name == "plastanium": emoji = "🟢"
-                            elif item_name == "phase-fabric": emoji = "🌌"
-                            elif item_name == "surge-alloy": emoji = "⚡"
-                            elif item_name == "spore-pod": emoji = "🍄"
-                            elif item_name == "blast-compound": emoji = "💥"
-                            elif item_name == "pyratite": emoji = "🔥"
-                        else:  # liquid
-                            emoji = "💧"
-                            if item_name == "water": emoji = "💧"
-                            elif item_name == "slag": emoji = "🌋"
-                            elif item_name == "oil": emoji = "🛢️"
-                            elif item_name == "cryofluid": emoji = "❄️"
-                        
-                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 14)).pack()
-            except Exception:
-                ctk.CTkLabel(icon_frame, text="📦" if item_type == "item" else "💧", font=("Arial", 14)).pack()
+                            emoji_map = {
+                                "copper": "🟫", "lead": "🔩", "metaglass": "🔮", "graphite": "⬛",
+                                "sand": "🟨", "coal": "🪨", "titanium": "🔷", "thorium": "🟣",
+                                "scrap": "⚙️", "silicon": "💎", "plastanium": "🟢", "phase-fabric": "🌌",
+                                "surge-alloy": "⚡", "spore-pod": "🍄", "blast-compound": "💥", "pyratite": "🔥"
+                            }
+                            emoji = emoji_map.get(item_name, "📦")
+                        else:
+                            emoji_map = {"water": "💧", "slag": "🌋", "oil": "🛢️", "cryofluid": "❄️"}
+                            emoji = emoji_map.get(item_name, "💧")
+                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 30)).pack(expand=True)
+            except Exception as e:
+                print(f"Error loading icon for {item_name}: {e}")
+                ctk.CTkLabel(icon_frame, text="📦" if item_type == "item" else "💧", font=("Arial", 30)).pack(expand=True)
             
-            # Имя
-            if item_type == "item":
-                display_name = f"ModItems.{item_name}" if item_name in custom_elements else item_name.replace("-", " ").title()
+            # Название
+            if is_custom:
+                display_name = item_name[:12] + ("..." if len(item_name) > 12 else "")
+                name_color = "#4CAF50"
             else:
-                display_name = f"ModLiquids.{item_name}" if item_name in custom_elements else item_name.capitalize()
+                display_name = item_name.replace("-", " ").title() if item_type == "item" else item_name.capitalize()
+                display_name = display_name[:12] + ("..." if len(display_name) > 12 else "")
+                name_color = "#FFFFFF"
             
-            ctk.CTkLabel(
-                row_frame,
-                text=display_name,
-                font=("Arial", 12),
-                width=150,
-                anchor="w",
-                text_color="#FFFFFF"
-            ).grid(row=0, column=2, padx=5)
+            name_label = ctk.CTkLabel(card, text=display_name, font=("Arial", 10, "bold"), 
+                                    wraplength=CARD_WIDTH-15, text_color=name_color)
+            name_label.pack(pady=3)
             
-            if item_name in custom_elements:
-                ctk.CTkLabel(
-                    row_frame,
-                    text=LangT("(Мод)"),
-                    font=("Arial", 10),
-                    text_color="#4CAF50",
-                    width=40
-                ).grid(row=0, column=3, padx=5)
+            # Разделитель
+            ctk.CTkFrame(card, height=1, fg_color="#404040").pack(fill="x", pady=6, padx=8)
             
-            # Поле для ввода количества
-            amount_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-            amount_frame.grid(row=0, column=4, padx=5)
+            # Контролы количества (-, количество, +)
+            amount_frame = ctk.CTkFrame(card, fg_color="transparent")
+            amount_frame.pack(pady=5)
             
-            ctk.CTkLabel(
+            amount_var = tk.StringVar(value="0")
+            item_key = f"{tab_name}_{item_name}"
+            
+            # Фрейм для подсветки выбора
+            selected_frame = ctk.CTkFrame(card, fg_color="transparent")
+            
+            def update_amount(delta):
+                try:
+                    current = int(amount_var.get() or "0")
+                    new_value = max(0, min(999, current + delta))
+                    amount_var.set(str(new_value))
+                    
+                    if new_value > 0:
+                        all_selected[item_key] = new_value
+                        # Подсвечиваем карточку зеленым
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        # Убираем подсветку
+                        card.configure(border_color="#404040", border_width=1)
+                    
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            def on_amount_change(*args):
+                try:
+                    val = int(amount_var.get() or "0")
+                    if val > 0:
+                        all_selected[item_key] = val
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            amount_var.trace_add("write", on_amount_change)
+            
+            # Минус - красный
+            minus_btn = ctk.CTkButton(
                 amount_frame,
-                text=LangT("Кол-во:"),
-                font=("Arial", 10),
-                text_color="#FF9800" if item_type == "item" else "#2196F3"
-            ).pack(side="left", padx=(0, 5))
-            
-            amount_var = tk.StringVar(value="1")
-            amount_vars[item_name] = amount_var
-            
-            def validate_amount(value):
-                if value == "":
-                    return True
-                if not value.isdigit():
-                    return False
-                return int(value) <= 99999
-            
-            vcmd_amount = (editor_window.register(validate_amount), '%P')
+                text="−",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#D32F2F",
+                hover_color="#B71C1C",
+                command=lambda: update_amount(-1)
+            )
+            minus_btn.pack(side="left", padx=1)
             
             amount_entry = ctk.CTkEntry(
                 amount_frame,
                 textvariable=amount_var,
-                width=60,
-                font=("Arial", 10),
+                width=42,
+                height=26,
+                font=("Arial", 10, "bold"),
                 justify="center",
-                validate="key",
-                validatecommand=vcmd_amount,
-                fg_color="#424242",
+                fg_color="#2b2b2b",
                 border_color="#555555",
-                text_color="#FFFFFF"
+                text_color=amount_color
             )
-            amount_entry.pack(side="left")
+            amount_entry.pack(side="left", padx=1)
             
-            ctk.CTkLabel(
+            # Плюс - зеленый
+            plus_btn = ctk.CTkButton(
                 amount_frame,
-                text=LangT("ед"),
-                font=("Arial", 10),
-                text_color="#888888"
-            ).pack(side="left", padx=(5, 0))
+                text="+",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#388E3C",
+                hover_color="#2E7D32",
+                command=lambda: update_amount(1)
+            )
+            plus_btn.pack(side="left", padx=1)
+            
+            return card
         
-        # Создаем элементы
-        for item in items_to_show:
-            create_item_row(item)
+        def populate_tab(parent_tab, elements, is_custom, tab_name):
+            """Заполняет вкладку элементами в grid"""
+            # Очищаем вкладку
+            for widget in parent_tab.winfo_children():
+                widget.destroy()
+            
+            scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+            scroll_frame.pack(fill="both", expand=True)
+            
+            if not elements:
+                empty_label = ctk.CTkLabel(
+                    scroll_frame,
+                    text=LangT("📭 Нет элементов") + (LangT(" в моде") if is_custom else LangT(" (ванильных)")),
+                    font=("Arial", 14),
+                    text_color="#888888"
+                )
+                empty_label.pack(pady=50)
+                return
+            
+            # Контейнер для grid
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            # Сортируем элементы
+            if isinstance(elements, dict):
+                sorted_elements = sorted(elements.keys())
+            else:
+                sorted_elements = sorted(elements)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10:
+                    return 1
+                CARD_WIDTH = 130
+                HORIZONTAL_PADDING = 8
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row
+            
+            def update_grid():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                cards_per_row = calculate_grid()
+                current_row_frame = None
+                
+                for i, item_name in enumerate(sorted_elements):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=2)
+                    
+                    create_grid_card(current_row_frame, item_name, is_custom, tab_name)
+            
+            def on_resize(event):
+                update_grid()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_grid()
         
-        items_frame.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        # Заполняем вкладки
+        populate_tab(mod_tab, custom_elements, True, "mod")
+        populate_tab(vanilla_tab, vanilla_elements, False, "vanilla")
         
-        # Счетчик
+        # Счетчик выбранных внизу
         counter_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        counter_frame.pack(fill="x", pady=(10, 5))
+        counter_frame.pack(fill="x", pady=(8, 5))
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            #"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"
-            textvariable=tk.StringVar(value=LangT("Выбрано: 0 {предметовifitem_typeitemelseжидкостей}").format(предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей')),
-            font=("Arial", 12, "bold"),
+            text=LangT("Выбрано элементов: 0"),
+            font=("Arial", 11, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            #"Выбрано: {selected_count.get()} {'предметов' if item_type == 'item' else 'жидкостей'}"
-            count_label.configure(text=LangT("Выбрано: {selected_countget} {предметовifitem_typeitemelseжидкостей}").format(selected_countget=selected_count.get(),предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей'))
+            count_label.configure(text=LangT("Выбрано элементов: {selected_countget}").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
-        update_counter()
         
-        # Кнопки
+        # Кнопки внизу
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame.pack(fill="x", pady=(8, 0))
         
         def save_selection():
+            if not all_selected:
+                messagebox.showwarning(
+                    LangT("Предупреждение"),
+                    LangT("❌ Не выбран ни один элемент!\n\nПожалуйста, нажмите + чтобы добавить элемент.")
+                )
+                return
+            
             selected_items = []
             
-            # Собираем выбранные элементы с количеством
-            for item_name, checkbox_var in checkbox_vars.items():
-                if checkbox_var.get():
-                    try:
-                        amount = float(amount_vars[item_name].get() or "1")
-                        if amount > 0:
-                            selected_items.append((item_name, amount))
-                    except ValueError:
-                        selected_items.append((item_name, 1.0))
+            # Собираем выбранные элементы
+            for key, amount in all_selected.items():
+                if amount > 0:
+                    parts = key.split("_", 1)
+                    item_name = parts[1]
+                    selected_items.append((item_name, amount))
             
             # Сохраняем в соответствующую переменную
             if target == "consume_items":
-                self.consume_items_with_amount = selected_items
+                self.consume_items_with_amount = selected_items if selected_items else None
             elif target == "consume_liquids":
-                self.consume_liquids_with_amount = selected_items
+                self.consume_liquids_with_amount = selected_items if selected_items else None
             elif target == "output_items":
-                self.output_items_with_amount = selected_items
+                self.output_items_with_amount = selected_items if selected_items else None
             elif target == "output_liquids":
-                self.output_liquids_with_amount = selected_items
+                self.output_liquids_with_amount = selected_items if selected_items else None
             
             # Формируем текст для отображения
             if selected_items:
                 items_list = []
                 for item_name, amount in selected_items:
-                    if item_name in custom_elements:
-                        if item_type == "item":
-                            items_list.append(f"ModItems.{item_name} ×{int(amount)}")
-                        else:
-                            items_list.append(f"ModLiquids.{item_name} ×{int(amount)}")
-                    else:
-                        if item_type == "item":
-                            display_name = item_name.replace("-", " ").title()
-                        else:
-                            display_name = item_name.capitalize()
-                        items_list.append(f"{display_name} ×{int(amount)}")
+                    items_list.append(f"{item_name} ×{int(amount)}")
                 
-                #"Выбрано: {len(selected_items)} {'предметов' if item_type == 'item' else 'жидкостей'} ({', '.join(items_list[:2])})"
-                display_text = LangT("Выбрано: {lenselected_items} {предметовifitem_typeitemelseжидкостей} ({items_list})").format(lenselected_items=len(selected_items),
-                                                                                                                                   предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей',
-                                                                                                                                   items_list=', '.join(items_list[:2]))
-                if len(items_list) > 2:
-                    display_text += "..."
+                display_text = f"{len(selected_items)} элем. ({', '.join(items_list[:3])}"
+                if len(items_list) > 3:
+                    display_text += f" +{len(items_list) - 3})"
+                else:
+                    display_text += ")"
             else:
-                #"Выбрано: 0 {'предметов' if item_type == 'item' else 'жидкостей'}"
-                display_text = LangT("Выбрано: 0 {предметовifitem_typeitemelseжидкостей}").format(предметовifitem_typeitemelseжидкостей='предметов' if item_type == 'item' else 'жидкостей')
+                display_text = LangT("Ничего не выбрано")
             
-            # Обновляем текст на кнопке
             selected_var.set(display_text)
             
-            # Очищаем информацию о редакторе
             self.current_editor_target = None
             self.current_editor_var = None
             self.current_editor_type = None
@@ -10000,7 +10025,6 @@ public class {NAME} {{
             editor_window.destroy()
         
         def cancel_selection():
-            # Очищаем информацию о редакторе
             self.current_editor_target = None
             self.current_editor_var = None
             self.current_editor_type = None
@@ -10009,24 +10033,24 @@ public class {NAME} {{
         ctk.CTkButton(
             button_frame,
             text=LangT("💾 Сохранить"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
             fg_color="#2E7D32",
             hover_color="#1B5E20",
             command=save_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         ctk.CTkButton(
             button_frame,
             text=LangT("❌ Отмена"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
             fg_color="#f44336", 
             hover_color="#d32f2f",
             command=cancel_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         def on_closing():
             cancel_selection()
@@ -10591,19 +10615,28 @@ public class {NAME} {{
         editor_window = ctk.CTkToplevel(self.root)
         title = LangT("Выбор предметов для исследования") if target_type == "research" else LangT("Выбор предметов для строительства")
         editor_window.title(title)
-        editor_window.geometry("700x600")
+        editor_window.geometry("750x550")
         editor_window.configure(fg_color="#2b2b2b")
         editor_window.transient(self.root)
         editor_window.grab_set()
         
         main_frame = ctk.CTkFrame(editor_window, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=8, pady=8)
         
         ctk.CTkLabel(
             main_frame,
             text=title,
             font=("Arial", 16, "bold")
-        ).pack(pady=(0, 15))
+        ).pack(pady=(0, 10))
+        
+        # Информационная метка
+        info_label = ctk.CTkLabel(
+            main_frame,
+            text=LangT("ℹ️ Нажмите + для выбора предмета (автоматически определится ModItems.)"),
+            font=("Arial", 10),
+            text_color="#888888"
+        )
+        info_label.pack(pady=(0, 10))
         
         # Поиск
         search_frame = ctk.CTkFrame(main_frame, fg_color="#363636", corner_radius=8)
@@ -10622,19 +10655,12 @@ public class {NAME} {{
         )
         search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10), pady=5)
         
-        # Canvas для прокрутки
-        canvas_frame = ctk.CTkFrame(main_frame, fg_color="#3a3a3a", corner_radius=8)
-        canvas_frame.pack(fill="both", expand=True, pady=(0, 10))
+        # Создаем вкладки
+        tabview = ctk.CTkTabview(main_frame, fg_color="#2b2b2b")
+        tabview.pack(fill="both", expand=True)
         
-        canvas = tk.Canvas(canvas_frame, bg="#3a3a3a", highlightthickness=0)
-        scrollbar = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=canvas.yview)
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        items_frame = ctk.CTkFrame(canvas, fg_color="#3a3a3a")
-        canvas.create_window((0, 0), window=items_frame, anchor="nw")
+        mod_tab = tabview.add(LangT("📦 Из мода"))
+        vanilla_tab = tabview.add(LangT("⭐ Ванильное"))
         
         # Получаем кастомные предметы
         def get_custom_items():
@@ -10658,81 +10684,62 @@ public class {NAME} {{
         custom_items = get_custom_items()
         
         # Стандартные предметы
-        default_items = [
+        vanilla_items = [
             "copper", "lead", "metaglass", "graphite", "sand", "coal",
             "titanium", "thorium", "scrap", "silicon", "plastanium",
             "phase-fabric", "surge-alloy", "spore-pod", "blast-compound", "pyratite"
         ]
         
-        checkbox_vars = {}
-        amount_vars = {}
+        # Словари для хранения переменных
+        all_selected = {}  # item_name -> amount
         selected_count = tk.IntVar(value=0)
         
-        def validate_amount(value):
-            if value == "":
-                return True
-            if not value.isdigit():
-                return False
-            return 1 <= int(value) <= 999
-        
-        vcmd_amount = (editor_window.register(validate_amount), '%P')
-        
-        def create_item_row(item_name, is_custom_item=False):
-            row_frame = ctk.CTkFrame(items_frame, fg_color="#404040", corner_radius=6)
-            row_frame.pack(fill="x", pady=2, padx=2)
+        def create_grid_card(parent, item_name, is_custom, tab_name):
+            """Создает карточку для предмета"""
+            CARD_WIDTH = 130
+            CARD_HEIGHT = 150
             
-            # Чекбокс
-            checkbox_var = tk.BooleanVar(value=False)
-            checkbox_vars[item_name] = checkbox_var
+            card = ctk.CTkFrame(parent, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                            fg_color="#363636", corner_radius=8, 
+                            border_width=1, border_color="#404040")
+            card.pack_propagate(False)
+            card.pack(side="left", padx=4, pady=4)
             
-            def on_checkbox_change():
-                if checkbox_var.get():
-                    selected_count.set(selected_count.get() + 1)
-                else:
-                    selected_count.set(selected_count.get() - 1)
-            
-            ctk.CTkCheckBox(
-                row_frame,
-                text="",
-                variable=checkbox_var,
-                width=20,
-                command=on_checkbox_change
-            ).grid(row=0, column=0, padx=(10, 5), pady=10)
-            
-            # Иконка
-            icon_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=32, height=32)
-            icon_frame.grid(row=0, column=1, padx=5)
+            # Иконка сверху
+            icon_frame = ctk.CTkFrame(card, fg_color="transparent", width=55, height=55)
+            icon_frame.pack(pady=(10, 5))
             icon_frame.pack_propagate(False)
             
+            # Загрузка иконки
             try:
-                if is_custom_item:
-                    # Ищем иконку модового предмета
+                from PIL import Image
+                
+                if is_custom:
                     item_name_lower = item_name.lower()
-                    icon_found = False
                     icon_paths = [
                         Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{item_name_lower}.png",
                         Path(self.mod_folder) / "sprites" / "items" / f"{item_name_lower}.png",
                     ]
+                    
+                    icon_found = False
                     for icon_path in icon_paths:
                         if icon_path.exists():
                             img = Image.open(icon_path)
-                            img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                            ctk_img = ctk.CTkImage(img, size=(32, 32))
-                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                            img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                            ctk_img = ctk.CTkImage(img, size=(45, 45))
+                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                             icon_found = True
                             break
                     if not icon_found:
-                        ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 16)).pack()
+                        ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 30)).pack(expand=True)
                 else:
-                    # Иконка ванильного предмета
                     icon_path = Path(resource_path("Creator/icons/items")) / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
-                        img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                        ctk_img = ctk.CTkImage(img, size=(32, 32))
-                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                        img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img, size=(45, 45))
+                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                     else:
-                        # Эмодзи по умолчанию
                         emoji_map = {
                             "copper": "🟫", "lead": "🔩", "metaglass": "🔮", "graphite": "⬛",
                             "sand": "🟨", "coal": "🪨", "titanium": "🔷", "thorium": "🟣",
@@ -10740,118 +10747,235 @@ public class {NAME} {{
                             "surge-alloy": "⚡", "spore-pod": "🍄", "blast-compound": "💥", "pyratite": "🔥"
                         }
                         emoji = emoji_map.get(item_name, "📦")
-                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 16)).pack()
-            except Exception:
-                ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 16)).pack()
+                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 30)).pack(expand=True)
+            except Exception as e:
+                print(f"Error loading icon for {item_name}: {e}")
+                ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 30)).pack(expand=True)
             
             # Название
-            display_name = f"ModItems.{item_name}" if is_custom_item else item_name.replace("-", " ").title()
-            ctk.CTkLabel(
-                row_frame,
-                text=display_name,
-                font=("Arial", 13),
-                width=200,
-                anchor="w"
-            ).grid(row=0, column=2, padx=10)
-            
-            if is_custom_item:
-                ctk.CTkLabel(
-                    row_frame,
-                    text=LangT("(Мод)"),
-                    font=("Arial", 10),
-                    text_color="#4CAF50",
-                    width=40
-                ).grid(row=0, column=3, padx=5)
+            if is_custom:
+                display_name = item_name[:12] + ("..." if len(item_name) > 12 else "")
+                name_color = "#4CAF50"
             else:
-                ctk.CTkLabel(
-                    row_frame,
-                    text=LangT("(Ванилла)"),
-                    font=("Arial", 10),
-                    text_color="#FFA500",
-                    width=40
-                ).grid(row=0, column=3, padx=5)
+                display_name = item_name.replace("-", " ").title()
+                display_name = display_name[:12] + ("..." if len(display_name) > 12 else "")
+                name_color = "#FFFFFF"
             
-            # Количество
-            amount_var = tk.StringVar(value="1")
-            amount_vars[item_name] = amount_var
+            name_label = ctk.CTkLabel(card, text=display_name, font=("Arial", 10, "bold"), 
+                                    wraplength=CARD_WIDTH-15, text_color=name_color)
+            name_label.pack(pady=3)
             
-            amount_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-            amount_frame.grid(row=0, column=4, padx=10)
+            # Разделитель
+            ctk.CTkFrame(card, height=1, fg_color="#404040").pack(fill="x", pady=6, padx=8)
             
-            ctk.CTkLabel(amount_frame, text="x", font=("Arial", 14)).pack(side="left")
+            # Контролы количества (-, количество, +)
+            amount_frame = ctk.CTkFrame(card, fg_color="transparent")
+            amount_frame.pack(pady=5)
             
-            ctk.CTkEntry(
+            amount_var = tk.StringVar(value="0")
+            item_key = f"{tab_name}_{item_name}"
+            
+            def update_amount(delta):
+                try:
+                    current = int(amount_var.get() or "0")
+                    new_value = max(0, min(999, current + delta))
+                    amount_var.set(str(new_value))
+                    
+                    if new_value > 0:
+                        all_selected[item_key] = new_value
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            def on_amount_change(*args):
+                try:
+                    val = int(amount_var.get() or "0")
+                    if val > 0:
+                        all_selected[item_key] = val
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            amount_var.trace_add("write", on_amount_change)
+            
+            # Минус - красный
+            minus_btn = ctk.CTkButton(
+                amount_frame,
+                text="−",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#D32F2F",
+                hover_color="#B71C1C",
+                command=lambda: update_amount(-1)
+            )
+            minus_btn.pack(side="left", padx=1)
+            
+            amount_entry = ctk.CTkEntry(
                 amount_frame,
                 textvariable=amount_var,
-                width=50,
-                height=30,
-                font=("Arial", 12),
+                width=42,
+                height=26,
+                font=("Arial", 10, "bold"),
                 justify="center",
-                validate="key",
-                validatecommand=vcmd_amount,
-                fg_color="#424242",
-                border_color="#555555"
-            ).pack(side="left", padx=(5, 0))
-        
-        # Функция для фильтрации и отображения предметов
-        def filter_items():
-            search_text = search_var.get().lower()
+                fg_color="#2b2b2b",
+                border_color="#555555",
+                text_color="#FF9800"
+            )
+            amount_entry.pack(side="left", padx=1)
             
-            # Очищаем items_frame
-            for widget in items_frame.winfo_children():
+            # Плюс - зеленый
+            plus_btn = ctk.CTkButton(
+                amount_frame,
+                text="+",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#388E3C",
+                hover_color="#2E7D32",
+                command=lambda: update_amount(1)
+            )
+            plus_btn.pack(side="left", padx=1)
+            
+            ctk.CTkLabel(
+                amount_frame,
+                text=LangT("шт"),
+                font=("Arial", 8),
+                text_color="#888888"
+            ).pack(side="left", padx=2)
+            
+            return card
+        
+        def populate_tab(parent_tab, elements, is_custom, tab_name):
+            """Заполняет вкладку элементами в grid"""
+            for widget in parent_tab.winfo_children():
                 widget.destroy()
             
-            # Показываем стандартные предметы
-            for item in default_items:
-                if search_text in item.lower() or search_text in item.replace("-", " ").lower():
-                    create_item_row(item, False)
+            scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+            scroll_frame.pack(fill="both", expand=True)
             
-            # Показываем кастомные предметы
-            for item in custom_items:
-                if search_text in item.lower():
-                    create_item_row(item, True)
+            if not elements:
+                empty_label = ctk.CTkLabel(
+                    scroll_frame,
+                    text=LangT("📭 Нет элементов") + (LangT(" в моде") if is_custom else LangT(" (ванильных)")),
+                    font=("Arial", 14),
+                    text_color="#888888"
+                )
+                empty_label.pack(pady=50)
+                return
             
-            items_frame.update_idletasks()
-            canvas.configure(scrollregion=canvas.bbox("all"))
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            if isinstance(elements, dict):
+                sorted_elements = sorted(elements.keys())
+            else:
+                sorted_elements = sorted(elements)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10:
+                    return 1
+                CARD_WIDTH = 130
+                HORIZONTAL_PADDING = 8
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row
+            
+            def update_grid():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                cards_per_row = calculate_grid()
+                current_row_frame = None
+                
+                for i, item_name in enumerate(sorted_elements):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=2)
+                    
+                    # Фильтр по поиску
+                    search_text = search_var.get().lower()
+                    if search_text:
+                        if is_custom:
+                            if search_text not in item_name.lower():
+                                continue
+                        else:
+                            display_name = item_name.replace("-", " ").lower()
+                            if search_text not in item_name.lower() and search_text not in display_name:
+                                continue
+                    
+                    create_grid_card(current_row_frame, item_name, is_custom, tab_name)
+            
+            def on_resize(event):
+                update_grid()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_grid()
+            
+            # Обновляем grid при изменении поиска
+            def on_search_change(*args):
+                update_grid()
+            
+            search_var.trace_add("write", on_search_change)
         
-        # Привязываем поиск
-        search_var.trace_add("write", lambda *args: filter_items())
+        # Заполняем вкладки
+        populate_tab(mod_tab, custom_items, True, "mod")
+        populate_tab(vanilla_tab, vanilla_items, False, "vanilla")
         
-        # Первоначальное отображение
-        filter_items()
-        
-        # Счетчик выбранных предметов
+        # Счетчик выбранных
         counter_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        counter_frame.pack(fill="x", pady=(5, 10))
+        counter_frame.pack(fill="x", pady=(8, 5))
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            text=LangT("Выбрано: 0 предметов"),
-            font=("Arial", 12, "bold"),
+            text=LangT("Выбрано предметов: 0"),
+            font=("Arial", 11, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            count_label.configure(text=LangT("Выбрано: {selected_countget} предметов").format(selected_countget=selected_count.get()))
+            count_label.configure(text=LangT("Выбрано предметов: {selected_countget}").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
         
         # Кнопки
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(0, 5))
+        button_frame.pack(fill="x", pady=(8, 0))
         
         def save_selection():
+            if not all_selected:
+                messagebox.showwarning(
+                    LangT("Предупреждение"),
+                    LangT("❌ Не выбран ни один предмет!\n\nПожалуйста, нажмите + чтобы добавить предмет.")
+                )
+                return
+            
             selected_items = []
-            for item_name, checkbox_var in checkbox_vars.items():
-                if checkbox_var.get():
-                    try:
-                        amount = int(amount_vars[item_name].get())
-                        if amount < 1:
-                            amount = 1
-                        for _ in range(amount):
-                            selected_items.append(item_name)
-                    except ValueError:
+            for key, amount in all_selected.items():
+                if amount > 0:
+                    parts = key.split("_", 1)
+                    item_name = parts[1]
+                    for _ in range(amount):
                         selected_items.append(item_name)
             
             if target_type == "research":
@@ -10859,27 +10983,28 @@ public class {NAME} {{
             else:
                 self.build_items = selected_items
             
-            # Формируем текст для отображения
+            # Подсчитываем количество каждого предмета
             item_counts = {}
             for item in selected_items:
                 item_counts[item] = item_counts.get(item, 0) + 1
             
             items_list = []
             for item_name, count in item_counts.items():
-                if item_name in custom_items:
+                is_custom = item_name in custom_items
+                if is_custom:
                     items_list.append(f"ModItems.{item_name} ×{count}")
                 else:
                     display_name = item_name.replace("-", " ").title()
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                #"Выбрано: {len(selected_items)} предметов ({', '.join(items_list[:3])})"
-                display_text = LangT("Выбрано: {lenselected_items} предметов ({joinitems_list})").format(lenselected_items=len(selected_items),
-                                                                                                         joinitems_list=', '.join(items_list[:3]))
+                display_text = f"{len(selected_items)} предметов ({', '.join(items_list[:3])}"
                 if len(items_list) > 3:
-                    display_text += "..."
+                    display_text += f" +{len(items_list) - 3})"
+                else:
+                    display_text += ")"
             else:
-                display_text = LangT("Выбрано: 0 предметов")
+                display_text = LangT("Ничего не выбрано")
             
             target_var.set(display_text)
             editor_window.destroy()
@@ -10887,24 +11012,24 @@ public class {NAME} {{
         ctk.CTkButton(
             button_frame,
             text=LangT("💾 Сохранить"),
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
             fg_color="#2E7D32",
             hover_color="#1B5E20",
             command=save_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         ctk.CTkButton(
             button_frame,
             text=LangT("❌ Отмена"),
-            width=140,
-            height=35,
-            font=("Arial", 13),
-            fg_color="#e62525",
-            hover_color="#701c1c",
+            width=130,
+            height=32,
+            font=("Arial", 12),
+            fg_color="#f44336",
+            hover_color="#d32f2f",
             command=editor_window.destroy
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
 
     def open_fuel_items_editor_with_amount(self, selected_var, fuel_type):
         """Открывает редактор выбора топлива с указанием количества потребления"""
@@ -10917,128 +11042,73 @@ public class {NAME} {{
         
         if fuel_type == "item":
             editor_window.title(LangT("Выбор предметов для топлива"))
-            title = LangT("Выберите предметы и количество")
         else:  # "liquid"
             editor_window.title(LangT("Выбор жидкостей для топлива"))
-            title = LangT("Выберите жидкости и количество")
         
-        editor_window.geometry("650x500")
+        editor_window.geometry("750x550")
         editor_window.configure(fg_color="#2b2b2b")
         editor_window.transient(self.root)
         editor_window.grab_set()
         
         main_frame = ctk.CTkFrame(editor_window, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=8, pady=8)
         
-        ctk.CTkLabel(
+        # Информационная метка
+        info_label = ctk.CTkLabel(
             main_frame,
-            text=title,
-            font=("Arial", 16, "bold"),
-            text_color="#FFFFFF"
-        ).pack(pady=(0, 15))
+            text=LangT("ℹ️ Нажмите + для выбора топлива (автоматически определится ModItems./ModLiquids.)"),
+            font=("Arial", 10),
+            text_color="#888888"
+        )
+        info_label.pack(pady=(0, 10))
         
-        # Canvas для прокрутки
-        canvas_frame = ctk.CTkFrame(main_frame, fg_color="#3a3a3a", corner_radius=8)
-        canvas_frame.pack(fill="both", expand=True)
+        # Создаем вкладки
+        tabview = ctk.CTkTabview(main_frame, fg_color="#2b2b2b")
+        tabview.pack(fill="both", expand=True)
         
-        canvas = tk.Canvas(canvas_frame, bg="#3a3a3a", highlightthickness=0)
-        scrollbar = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=canvas.yview)
-        canvas.configure(yscrollcommand=scrollbar.set)
+        mod_tab = tabview.add(LangT("📦 Из мода"))
+        vanilla_tab = tabview.add(LangT("⭐ Ванильное"))
         
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        items_frame = ctk.CTkFrame(canvas, fg_color="#3a3a3a")
-        canvas.create_window((0, 0), window=items_frame, anchor="nw")
-        
-        # Определяем какие элементы показывать
-        items_to_show = []
+        # Получаем кастомные и ванильные элементы
         custom_elements = {}
+        vanilla_elements = []
         
         if fuel_type == "item":
-            # Получаем предметы (ванильные + кастомные)
-            items_to_show = self.default_items.copy()
-            custom_items = {}
-            
-            # Добавляем кастомные предметы
-            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
-            
-            if items_file_path.exists():
-                try:
-                    with open(items_file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    pattern = r'public\s+static\s+Item\s+(\w+);'
-                    matches = re.findall(pattern, content)
-                    for item_name in matches:
-                        if item_name and item_name not in items_to_show:
-                            items_to_show.append(item_name)
-                            custom_items[item_name] = True
-                except Exception:
-                    pass
-            
-            custom_elements = custom_items
+            vanilla_elements = self.default_items.copy()
+            custom_elements = self.get_custom_items()
             icon_dir = "items"
-            
+            amount_color = "#FF9800"
+            unit_text = "ед/сек"
         else:  # "liquid"
-            # Получаем жидкости (ванильные + кастомные)
-            items_to_show = self.default_liquids.copy()
-            custom_liquids = {}
-            
-            # Добавляем кастомные жидкости
-            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            liquids_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "liquids" / "ModLiquids.java"
-            
-            if liquids_file_path.exists():
-                try:
-                    with open(liquids_file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    pattern = r'public\s+static\s+Liquid\s+(\w+);'
-                    matches = re.findall(pattern, content)
-                    for liquid_name in matches:
-                        if liquid_name and liquid_name not in items_to_show:
-                            items_to_show.append(liquid_name)
-                            custom_liquids[liquid_name] = True
-                except Exception:
-                    pass
-            
-            custom_elements = custom_liquids
+            vanilla_elements = self.default_liquids.copy()
+            custom_elements = self.get_custom_liquids()
             icon_dir = "liquids"
+            amount_color = "#2196F3"
+            unit_text = "ед/сек"
         
-        checkbox_vars = {}
-        amount_vars = {}
+        # Словари для хранения переменных
+        all_selected = {}  # item_name -> amount
         selected_count = tk.IntVar(value=0)
         
-        def create_item_row(item_name):
-            row_frame = ctk.CTkFrame(items_frame, fg_color="transparent")
-            row_frame.pack(fill="x", pady=2)
+        def create_grid_card(parent, item_name, is_custom, tab_name):
+            """Создает карточку для топлива"""
+            CARD_WIDTH = 130
+            CARD_HEIGHT = 150
             
-            checkbox_var = tk.BooleanVar(value=False)
-            checkbox_vars[item_name] = checkbox_var
+            card = ctk.CTkFrame(parent, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                            fg_color="#363636", corner_radius=8, 
+                            border_width=1, border_color="#404040")
+            card.pack_propagate(False)
+            card.pack(side="left", padx=4, pady=4)
             
-            def on_checkbox_change():
-                if checkbox_var.get():
-                    selected_count.set(selected_count.get() + 1)
-                else:
-                    selected_count.set(selected_count.get() - 1)
-            
-            ctk.CTkCheckBox(
-                row_frame,
-                text="",
-                variable=checkbox_var,
-                width=20,
-                command=on_checkbox_change,
-                fg_color="#4CAF50",
-                hover_color="#45a049"
-            ).grid(row=0, column=0, padx=(5, 10))
-            
-            # Иконка
-            icon_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=32, height=32)
-            icon_frame.grid(row=0, column=1, padx=5)
+            # Иконка сверху
+            icon_frame = ctk.CTkFrame(card, fg_color="transparent", width=55, height=55)
+            icon_frame.pack(pady=(10, 5))
             icon_frame.pack_propagate(False)
             
+            # Загрузка иконки
             try:
-                is_custom = item_name in custom_elements
+                from PIL import Image
                 
                 if is_custom:
                     item_name_lower = item_name.lower()
@@ -11047,7 +11117,7 @@ public class {NAME} {{
                             Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{item_name_lower}.png",
                             Path(self.mod_folder) / "sprites" / "items" / f"{item_name_lower}.png",
                         ]
-                    else:  # liquid
+                    else:
                         icon_paths = [
                             Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{item_name_lower}.png",
                             Path(self.mod_folder) / "sprites" / "liquids" / f"{item_name_lower}.png",
@@ -11057,226 +11127,275 @@ public class {NAME} {{
                     for icon_path in icon_paths:
                         if icon_path.exists():
                             img = Image.open(icon_path)
-                            img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                            ctk_img = ctk.CTkImage(img, size=(32, 32))
-                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                            img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                            ctk_img = ctk.CTkImage(img, size=(45, 45))
+                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                             icon_found = True
                             break
                     if not icon_found:
-                        if fuel_type == "item":
-                            ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 14)).pack()
-                        else:
-                            ctk.CTkLabel(icon_frame, text="💧", font=("Arial", 14)).pack()
+                        ctk.CTkLabel(icon_frame, text="📦" if fuel_type == "item" else "💧", font=("Arial", 30)).pack(expand=True)
                 else:
                     icon_path = Path(resource_path("Creator/icons")) / icon_dir / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
-                        img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                        ctk_img = ctk.CTkImage(img, size=(32, 32))
-                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                        img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img, size=(45, 45))
+                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                     else:
-                        # Эмодзи для стандартных элементов
                         if fuel_type == "item":
-                            emoji = "📦"
-                            if item_name == "copper": emoji = "🟫"
-                            elif item_name == "lead": emoji = "🔩"
-                            elif item_name == "metaglass": emoji = "🔮"
-                            elif item_name == "graphite": emoji = "⬛"
-                            elif item_name == "sand": emoji = "🟨"
-                            elif item_name == "coal": emoji = "🪨"
-                            elif item_name == "titanium": emoji = "🔷"
-                            elif item_name == "thorium": emoji = "🟣"
-                            elif item_name == "scrap": emoji = "⚙️"
-                            elif item_name == "silicon": emoji = "💎"
-                            elif item_name == "plastanium": emoji = "🟢"
-                            elif item_name == "phase-fabric": emoji = "🌌"
-                            elif item_name == "surge-alloy": emoji = "⚡"
-                            elif item_name == "spore-pod": emoji = "🍄"
-                            elif item_name == "blast-compound": emoji = "💥"
-                            elif item_name == "pyratite": emoji = "🔥"
-                        else:  # liquid
-                            emoji = "💧"
-                            if item_name == "water": emoji = "💧"
-                            elif item_name == "slag": emoji = "🌋"
-                            elif item_name == "oil": emoji = "🛢️"
-                            elif item_name == "cryofluid": emoji = "❄️"
-                        
-                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 14)).pack()
-            except Exception:
-                ctk.CTkLabel(icon_frame, text="📦" if fuel_type == "item" else "💧", font=("Arial", 14)).pack()
+                            emoji_map = {
+                                "copper": "🟫", "lead": "🔩", "metaglass": "🔮", "graphite": "⬛",
+                                "sand": "🟨", "coal": "🪨", "titanium": "🔷", "thorium": "🟣",
+                                "scrap": "⚙️", "silicon": "💎", "plastanium": "🟢", "phase-fabric": "🌌",
+                                "surge-alloy": "⚡", "spore-pod": "🍄", "blast-compound": "💥", "pyratite": "🔥"
+                            }
+                            emoji = emoji_map.get(item_name, "📦")
+                        else:
+                            emoji_map = {"water": "💧", "slag": "🌋", "oil": "🛢️", "cryofluid": "❄️"}
+                            emoji = emoji_map.get(item_name, "💧")
+                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 30)).pack(expand=True)
+            except Exception as e:
+                print(f"Error loading icon for {item_name}: {e}")
+                ctk.CTkLabel(icon_frame, text="📦" if fuel_type == "item" else "💧", font=("Arial", 30)).pack(expand=True)
             
-            # Имя
-            if fuel_type == "item":
-                display_name = f"ModItems.{item_name}" if item_name in custom_elements else item_name.replace("-", " ").title()
+            # Название
+            if is_custom:
+                display_name = item_name[:12] + ("..." if len(item_name) > 12 else "")
+                name_color = "#4CAF50"
             else:
-                display_name = f"ModLiquids.{item_name}" if item_name in custom_elements else item_name.capitalize()
+                display_name = item_name.replace("-", " ").title() if fuel_type == "item" else item_name.capitalize()
+                display_name = display_name[:12] + ("..." if len(display_name) > 12 else "")
+                name_color = "#FFFFFF"
             
-            ctk.CTkLabel(
-                row_frame,
-                text=display_name,
-                font=("Arial", 12),
-                width=150,
-                anchor="w",
-                text_color="#FFFFFF"
-            ).grid(row=0, column=2, padx=5)
+            name_label = ctk.CTkLabel(card, text=display_name, font=("Arial", 10, "bold"), 
+                                    wraplength=CARD_WIDTH-15, text_color=name_color)
+            name_label.pack(pady=3)
             
-            if item_name in custom_elements:
-                ctk.CTkLabel(
-                    row_frame,
-                    text=LangT("(Мод)"),
-                    font=("Arial", 10),
-                    text_color="#4CAF50",
-                    width=40
-                ).grid(row=0, column=3, padx=5)
+            # Разделитель
+            ctk.CTkFrame(card, height=1, fg_color="#404040").pack(fill="x", pady=6, padx=8)
             
-            # Поле для ввода количества
-            amount_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-            amount_frame.grid(row=0, column=4, padx=5)
+            # Контролы количества (-, количество, +)
+            amount_frame = ctk.CTkFrame(card, fg_color="transparent")
+            amount_frame.pack(pady=5)
             
-            ctk.CTkLabel(
+            amount_var = tk.StringVar(value="0")
+            item_key = f"{tab_name}_{item_name}"
+            
+            def update_amount(delta):
+                try:
+                    current = int(amount_var.get() or "0")
+                    new_value = max(0, min(999, current + delta))
+                    amount_var.set(str(new_value))
+                    
+                    if new_value > 0:
+                        all_selected[item_key] = new_value
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            def on_amount_change(*args):
+                try:
+                    val = int(amount_var.get() or "0")
+                    if val > 0:
+                        all_selected[item_key] = val
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+            
+            amount_var.trace_add("write", on_amount_change)
+            
+            # Минус - красный
+            minus_btn = ctk.CTkButton(
                 amount_frame,
-                text=LangT("Кол-во:"),
-                font=("Arial", 10),
-                text_color="#FF9800" if fuel_type == "item" else "#2196F3"
-            ).pack(side="left", padx=(0, 5))
-            
-            amount_var = tk.StringVar(value="1")
-            amount_vars[item_name] = amount_var
-            
-            def validate_amount(value):
-                if value == "":
-                    return True
-                if not value.isdigit():
-                    return False
-                return int(value) <= 99999
-            
-            vcmd_amount = (editor_window.register(validate_amount), '%P')
+                text="−",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#D32F2F",
+                hover_color="#B71C1C",
+                command=lambda: update_amount(-1)
+            )
+            minus_btn.pack(side="left", padx=1)
             
             amount_entry = ctk.CTkEntry(
                 amount_frame,
                 textvariable=amount_var,
-                width=60,
-                font=("Arial", 10),
+                width=42,
+                height=26,
+                font=("Arial", 10, "bold"),
                 justify="center",
-                validate="key",
-                validatecommand=vcmd_amount,
-                fg_color="#424242",
+                fg_color="#2b2b2b",
                 border_color="#555555",
-                text_color="#FFFFFF"
+                text_color=amount_color
             )
-            amount_entry.pack(side="left")
+            amount_entry.pack(side="left", padx=1)
             
+            # Плюс - зеленый
+            plus_btn = ctk.CTkButton(
+                amount_frame,
+                text="+",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#388E3C",
+                hover_color="#2E7D32",
+                command=lambda: update_amount(1)
+            )
+            plus_btn.pack(side="left", padx=1)
+            
+            # Единица измерения
             ctk.CTkLabel(
                 amount_frame,
-                text=LangT("ед"),
-                font=("Arial", 10),
+                text=unit_text,
+                font=("Arial", 8),
                 text_color="#888888"
-            ).pack(side="left", padx=(5, 0))
+            ).pack(side="left", padx=2)
+            
+            return card
         
-        # Создаем элементы
-        for item in items_to_show:
-            create_item_row(item)
+        def populate_tab(parent_tab, elements, is_custom, tab_name):
+            """Заполняет вкладку элементами в grid"""
+            for widget in parent_tab.winfo_children():
+                widget.destroy()
+            
+            scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+            scroll_frame.pack(fill="both", expand=True)
+            
+            if not elements:
+                empty_label = ctk.CTkLabel(
+                    scroll_frame,
+                    text=LangT("📭 Нет элементов") + (LangT(" в моде") if is_custom else LangT(" (ванильных)")),
+                    font=("Arial", 14),
+                    text_color="#888888"
+                )
+                empty_label.pack(pady=50)
+                return
+            
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            if isinstance(elements, dict):
+                sorted_elements = sorted(elements.keys())
+            else:
+                sorted_elements = sorted(elements)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10:
+                    return 1
+                CARD_WIDTH = 130
+                HORIZONTAL_PADDING = 8
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row
+            
+            def update_grid():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                cards_per_row = calculate_grid()
+                current_row_frame = None
+                
+                for i, item_name in enumerate(sorted_elements):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=2)
+                    
+                    create_grid_card(current_row_frame, item_name, is_custom, tab_name)
+            
+            def on_resize(event):
+                update_grid()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_grid()
         
-        items_frame.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        populate_tab(mod_tab, custom_elements, True, "mod")
+        populate_tab(vanilla_tab, vanilla_elements, False, "vanilla")
         
         # Счетчик
         counter_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        counter_frame.pack(fill="x", pady=(10, 5))
+        counter_frame.pack(fill="x", pady=(8, 5))
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            #"Выбрано: 0 {'предметов' if fuel_type == 'item' else 'жидкостей'}"
-            textvariable=tk.StringVar(value=LangT("Выбрано: 0 {предметовiffueltypeitemelseжидкостей}").format(предметовiffueltypeitemelseжидкостей='предметов' if fuel_type == 'item' else 'жидкостей')),
-            font=("Arial", 12, "bold"),
+            text=LangT("Выбрано элементов: 0"),
+            font=("Arial", 11, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            #"Выбрано: {selected_count.get()} {'предметов' if fuel_type == 'item' else 'жидкостей'}"
-            count_label.configure(text=LangT("Выбрано: {selected_countget} {предметовiffueltypeitemelseжидкостей}").format(selected_countget=selected_count.get(),
-                                                                                                                           предметовiffueltypeitemelseжидкостей='предметов' if fuel_type == 'item' else 'жидкостей'))
+            count_label.configure(text=LangT("Выбрано элементов: {selected_countget}").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
-        update_counter()
         
         # Кнопки
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame.pack(fill="x", pady=(8, 0))
         
         def save_selection():
+            if not all_selected:
+                messagebox.showwarning(
+                    LangT("Предупреждение"),
+                    LangT("❌ Не выбран ни один элемент!\n\nПожалуйста, нажмите + чтобы добавить топливо.")
+                )
+                return
+            
+            selected_items = []
+            for key, amount in all_selected.items():
+                if amount > 0:
+                    parts = key.split("_", 1)
+                    item_name = parts[1]
+                    selected_items.append((item_name, amount))
+            
             if fuel_type == "item":
-                # Сохраняем предметы для топлива с количеством
-                self.fuel_items_with_amount = []
-                for item_name, checkbox_var in checkbox_vars.items():
-                    if checkbox_var.get():
-                        try:
-                            amount = float(amount_vars[item_name].get() or "1")
-                            if amount > 0:
-                                self.fuel_items_with_amount.append((item_name, amount))
-                        except ValueError:
-                            self.fuel_items_with_amount.append((item_name, 1.0))
-                
-                # Формируем текст для отображения
-                if self.fuel_items_with_amount:
-                    items_list = []
-                    for item_name, amount in self.fuel_items_with_amount:
-                        if item_name in custom_elements:
-                            items_list.append(f"ModItems.{item_name} ×{int(amount)}")
-                        else:
-                            display_name = item_name.replace("-", " ").title()
-                            items_list.append(f"{display_name} ×{int(amount)}")
-                    
-                    #"Выбрано: {len(self.fuel_items_with_amount)} предметов ({', '.join(items_list[:2])})"
-                    display_text = LangT("Выбрано: {lenselffuel_items_with_amount} предметов ({joinitems_list})").format(lenselffuel_items_with_amount=len(self.fuel_items_with_amount),
-                                                                                                                         joinitems_list=', '.join(items_list[:2]))
-                    if len(items_list) > 2:
-                        display_text += "..."
+                self.fuel_items_with_amount = selected_items if selected_items else None
+                # Формируем текст
+                if selected_items:
+                    items_list = [f"{name} ×{int(amt)}/сек" for name, amt in selected_items[:3]]
+                    display_text = f"{len(selected_items)} топлив ({', '.join(items_list)}"
+                    if len(selected_items) > 3:
+                        display_text += f" +{len(selected_items) - 3})"
+                    else:
+                        display_text += ")"
                 else:
-                    display_text = LangT("Выбрано: 0 предметов")
-                
-            else:  # "liquid"
-                # Сохраняем жидкости для топлива с количеством
-                self.fuel_liquids_with_amount = []
-                for liquid_name, checkbox_var in checkbox_vars.items():
-                    if checkbox_var.get():
-                        try:
-                            amount = float(amount_vars[liquid_name].get() or "1")
-                            if amount > 0:
-                                self.fuel_liquids_with_amount.append((liquid_name, amount))
-                        except ValueError:
-                            self.fuel_liquids_with_amount.append((liquid_name, 1.0))
-                
-                # Формируем текст для отображения
-                if self.fuel_liquids_with_amount:
-                    liquids_list = []
-                    for liquid_name, amount in self.fuel_liquids_with_amount:
-                        if liquid_name in custom_elements:
-                            liquids_list.append(f"ModLiquids.{liquid_name} ×{int(amount)}")
-                        else:
-                            display_name = liquid_name.capitalize()
-                            liquids_list.append(f"{display_name} ×{int(amount)}")
-                    
-                    #"Выбрано: {len(self.fuel_liquids_with_amount)} жидкостей ({', '.join(liquids_list[:2])})"
-                    display_text = LangT("Выбрано: {lenselffuel_liquids_with_amount} жидкостей ({joinliquids_list})").format(lenselffuel_liquids_with_amount=len(self.fuel_liquids_with_amount),
-                                                                                                                             joinliquids_list=', '.join(liquids_list[:2]))
-                    if len(liquids_list) > 2:
-                        display_text += "..."
+                    display_text = LangT("Ничего не выбрано")
+            else:
+                self.fuel_liquids_with_amount = selected_items if selected_items else None
+                if selected_items:
+                    items_list = [f"{name} ×{int(amt)}/сек" for name, amt in selected_items[:3]]
+                    display_text = f"{len(selected_items)} топлив ({', '.join(items_list)}"
+                    if len(selected_items) > 3:
+                        display_text += f" +{len(selected_items) - 3})"
+                    else:
+                        display_text += ")"
                 else:
-                    display_text = LangT("Выбрано: 0 жидкостей")
+                    display_text = LangT("Ничего не выбрано")
             
-            # Обновляем текст на кнопке
             selected_var.set(display_text)
-            
-            # Очищаем информацию о типе топлива
             self.current_fuel_type = None
             self.current_fuel_var = None
-            
             editor_window.destroy()
         
         def cancel_selection():
-            # Очищаем информацию о типе топлива
             self.current_fuel_type = None
             self.current_fuel_var = None
             editor_window.destroy()
@@ -11284,24 +11403,24 @@ public class {NAME} {{
         ctk.CTkButton(
             button_frame,
             text=LangT("💾 Сохранить"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
             fg_color="#2E7D32",
             hover_color="#1B5E20",
             command=save_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         ctk.CTkButton(
             button_frame,
             text=LangT("❌ Отмена"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
             fg_color="#f44336", 
             hover_color="#d32f2f",
             command=cancel_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         def on_closing():
             cancel_selection()
@@ -11312,245 +11431,328 @@ public class {NAME} {{
         """Открывает редактор предметов для строительства"""
         editor_window = ctk.CTkToplevel(self.root)
         editor_window.title(LangT("Выбор предметов для строительства"))
-        editor_window.geometry("600x500")
+        editor_window.geometry("750x550")
         editor_window.configure(fg_color="#2b2b2b")
         editor_window.transient(self.root)
         editor_window.grab_set()
         
         main_frame = ctk.CTkFrame(editor_window, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=8, pady=8)
         
-        ctk.CTkLabel(
+        info_label = ctk.CTkLabel(
             main_frame,
-            text=LangT("Выберите предметы и их количество"),
-            font=("Arial", 16, "bold")
-        ).pack(pady=(0, 15))
+            text=LangT("ℹ️ Нажмите + для выбора предмета (автоматически определится ModItems.)"),
+            font=("Arial", 10),
+            text_color="#888888"
+        )
+        info_label.pack(pady=(0, 10))
         
-        # Canvas для прокрутки
-        canvas_frame = ctk.CTkFrame(main_frame, fg_color="#3a3a3a", corner_radius=8)
-        canvas_frame.pack(fill="both", expand=True)
+        # Создаем вкладки
+        tabview = ctk.CTkTabview(main_frame, fg_color="#2b2b2b")
+        tabview.pack(fill="both", expand=True)
         
-        canvas = tk.Canvas(canvas_frame, bg="#3a3a3a", highlightthickness=0)
-        scrollbar = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=canvas.yview)
-        canvas.configure(yscrollcommand=scrollbar.set)
+        mod_tab = tabview.add(LangT("📦 Из мода"))
+        vanilla_tab = tabview.add(LangT("⭐ Ванильное"))
         
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        # Получаем кастомные и ванильные предметы
+        custom_items = self.get_custom_items()
+        vanilla_items = self.default_items.copy()
         
-        items_frame = ctk.CTkFrame(canvas, fg_color="#3a3a3a")
-        canvas.create_window((0, 0), window=items_frame, anchor="nw")
-        
-        # Получаем кастомные предметы
-        def get_custom_items():
-            custom_items = {}
-            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
-            
-            if items_file_path.exists():
-                try:
-                    with open(items_file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    pattern = r'public\s+static\s+Item\s+(\w+);'
-                    matches = re.findall(pattern, content)
-                    for item_name in matches:
-                        if item_name:
-                            custom_items[item_name] = item_name
-                except Exception:
-                    pass
-            return custom_items
-        
-        custom_items = get_custom_items()
-        checkbox_vars = {}
-        amount_vars = {}
+        # Словари для хранения переменных
+        all_selected = {}  # item_name -> amount
         selected_count = tk.IntVar(value=0)
         
-        def create_item_row(item_name, is_custom_item=False):
-            row_frame = ctk.CTkFrame(items_frame, fg_color="transparent")
-            row_frame.pack(fill="x", pady=2)
+        def create_grid_card(parent, item_name, is_custom, tab_name):
+            """Создает карточку для строительства"""
+            CARD_WIDTH = 130
+            CARD_HEIGHT = 150
             
-            checkbox_var = tk.BooleanVar(value=False)
-            checkbox_vars[item_name] = checkbox_var
+            card = ctk.CTkFrame(parent, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                            fg_color="#363636", corner_radius=8, 
+                            border_width=1, border_color="#404040")
+            card.pack_propagate(False)
+            card.pack(side="left", padx=4, pady=4)
             
-            def on_checkbox_change():
-                if checkbox_var.get():
-                    selected_count.set(selected_count.get() + 1)
-                else:
-                    selected_count.set(selected_count.get() - 1)
-            
-            ctk.CTkCheckBox(
-                row_frame,
-                text="",
-                variable=checkbox_var,
-                width=20,
-                command=on_checkbox_change
-            ).grid(row=0, column=0, padx=(5, 10))
-            
-            # Иконка
-            icon_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=32, height=32)
-            icon_frame.grid(row=0, column=1, padx=5)
+            # Иконка сверху
+            icon_frame = ctk.CTkFrame(card, fg_color="transparent", width=55, height=55)
+            icon_frame.pack(pady=(10, 5))
             icon_frame.pack_propagate(False)
             
+            # Загрузка иконки
             try:
-                if is_custom_item:
+                from PIL import Image
+                
+                if is_custom:
                     item_name_lower = item_name.lower()
                     icon_paths = [
                         Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{item_name_lower}.png",
                         Path(self.mod_folder) / "sprites" / "items" / f"{item_name_lower}.png",
                     ]
+                    
                     icon_found = False
                     for icon_path in icon_paths:
                         if icon_path.exists():
                             img = Image.open(icon_path)
-                            img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                            ctk_img = ctk.CTkImage(img, size=(32, 32))
-                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                            img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                            ctk_img = ctk.CTkImage(img, size=(45, 45))
+                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                             icon_found = True
                             break
                     if not icon_found:
-                        ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 14)).pack()
+                        ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 30)).pack(expand=True)
                 else:
                     icon_path = Path(resource_path("Creator/icons/items")) / f"{item_name.lower()}.png"
                     if icon_path.exists():
                         img = Image.open(icon_path)
-                        img = img.resize((32, 32), Image.Resampling.LANCZOS)
-                        ctk_img = ctk.CTkImage(img, size=(32, 32))
-                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack()
+                        img = img.resize((45, 45), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img, size=(45, 45))
+                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
                     else:
-                        emoji = "📦"
-                        if item_name == "copper": emoji = "🟫"
-                        elif item_name == "lead": emoji = "🔩"
-                        elif item_name == "metaglass": emoji = "🔮"
-                        elif item_name == "graphite": emoji = "⬛"
-                        elif item_name == "sand": emoji = "🟨"
-                        elif item_name == "coal": emoji = "🪨"
-                        elif item_name == "titanium": emoji = "🔷"
-                        elif item_name == "thorium": emoji = "🟣"
-                        elif item_name == "scrap": emoji = "⚙️"
-                        elif item_name == "silicon": emoji = "💎"
-                        elif item_name == "plastanium": emoji = "🟢"
-                        elif item_name == "phase-fabric": emoji = "🌌"
-                        elif item_name == "surge-alloy": emoji = "⚡"
-                        elif item_name == "spore-pod": emoji = "🍄"
-                        elif item_name == "blast-compound": emoji = "💥"
-                        elif item_name == "pyratite": emoji = "🔥"
-                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 14)).pack()
-            except Exception:
-                ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 14)).pack()
+                        emoji_map = {
+                            "copper": "🟫", "lead": "🔩", "metaglass": "🔮", "graphite": "⬛",
+                            "sand": "🟨", "coal": "🪨", "titanium": "🔷", "thorium": "🟣",
+                            "scrap": "⚙️", "silicon": "💎", "plastanium": "🟢", "phase-fabric": "🌌",
+                            "surge-alloy": "⚡", "spore-pod": "🍄", "blast-compound": "💥", "pyratite": "🔥"
+                        }
+                        emoji = emoji_map.get(item_name, "📦")
+                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 30)).pack(expand=True)
+            except Exception as e:
+                print(f"Error loading icon for {item_name}: {e}")
+                ctk.CTkLabel(icon_frame, text="📦", font=("Arial", 30)).pack(expand=True)
             
-            # Имя
-            display_name = f"ModItems.{item_name}" if is_custom_item else item_name.replace("-", " ").title()
-            ctk.CTkLabel(
-                row_frame,
-                text=display_name,
-                font=("Arial", 12),
-                width=150,
-                anchor="w"
-            ).grid(row=0, column=2, padx=5)
+            # Название
+            if is_custom:
+                display_name = item_name[:12] + ("..." if len(item_name) > 12 else "")
+                name_color = "#4CAF50"
+            else:
+                display_name = item_name.replace("-", " ").title()
+                display_name = display_name[:12] + ("..." if len(display_name) > 12 else "")
+                name_color = "#FFFFFF"
             
-            if is_custom_item:
-                ctk.CTkLabel(
-                    row_frame,
-                    text=LangT("(Мод)"),
-                    font=("Arial", 10),
-                    text_color="#4CAF50",
-                    width=40
-                ).grid(row=0, column=3, padx=5)
+            name_label = ctk.CTkLabel(card, text=display_name, font=("Arial", 10, "bold"), 
+                                    wraplength=CARD_WIDTH-15, text_color=name_color)
+            name_label.pack(pady=3)
             
-            # Количество
-            amount_var = tk.StringVar(value="1")
-            amount_vars[item_name] = amount_var
+            # Разделитель
+            ctk.CTkFrame(card, height=1, fg_color="#404040").pack(fill="x", pady=6, padx=8)
             
-            def validate_amount(value):
-                if value == "":
-                    return True
-                if not value.isdigit():
-                    return False
-                return 1 <= int(value) <= 999
+            # Контролы количества (-, количество, +)
+            amount_frame = ctk.CTkFrame(card, fg_color="transparent")
+            amount_frame.pack(pady=5)
             
-            vcmd_amount = (editor_window.register(validate_amount), '%P')
+            amount_var = tk.StringVar(value="0")
+            item_key = f"{tab_name}_{item_name}"
             
-            amount_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-            amount_frame.grid(row=0, column=4, padx=5)
+            def update_amount(delta):
+                try:
+                    current = int(amount_var.get() or "0")
+                    new_value = max(0, min(999, current + delta))
+                    amount_var.set(str(new_value))
+                    
+                    if new_value > 0:
+                        all_selected[item_key] = new_value
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
             
-            ctk.CTkLabel(amount_frame, text=LangT("Кол-во:"), font=("Arial", 10)).pack(side="left", padx=(0, 5))
+            def on_amount_change(*args):
+                try:
+                    val = int(amount_var.get() or "0")
+                    if val > 0:
+                        all_selected[item_key] = val
+                        card.configure(border_color="#4CAF50", border_width=2)
+                    else:
+                        if item_key in all_selected:
+                            del all_selected[item_key]
+                        card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
+                except ValueError:
+                    amount_var.set("0")
+                    if item_key in all_selected:
+                        del all_selected[item_key]
+                    card.configure(border_color="#404040", border_width=1)
+                    selected_count.set(len(all_selected))
             
-            ctk.CTkEntry(
+            amount_var.trace_add("write", on_amount_change)
+            
+            # Минус - красный
+            minus_btn = ctk.CTkButton(
+                amount_frame,
+                text="−",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#D32F2F",
+                hover_color="#B71C1C",
+                command=lambda: update_amount(-1)
+            )
+            minus_btn.pack(side="left", padx=1)
+            
+            amount_entry = ctk.CTkEntry(
                 amount_frame,
                 textvariable=amount_var,
-                width=50,
-                font=("Arial", 10),
+                width=42,
+                height=26,
+                font=("Arial", 10, "bold"),
                 justify="center",
-                validate="key",
-                validatecommand=vcmd_amount
-            ).pack(side="left")
+                fg_color="#2b2b2b",
+                border_color="#555555",
+                text_color="#FF9800"
+            )
+            amount_entry.pack(side="left", padx=1)
             
-            ctk.CTkLabel(amount_frame, text=LangT("шт"), font=("Arial", 10)).pack(side="left", padx=(5, 0))
+            # Плюс - зеленый
+            plus_btn = ctk.CTkButton(
+                amount_frame,
+                text="+",
+                width=28,
+                height=26,
+                font=("Arial", 14, "bold"),
+                fg_color="#388E3C",
+                hover_color="#2E7D32",
+                command=lambda: update_amount(1)
+            )
+            plus_btn.pack(side="left", padx=1)
+            
+            ctk.CTkLabel(
+                amount_frame,
+                text=LangT("шт"),
+                font=("Arial", 8),
+                text_color="#888888"
+            ).pack(side="left", padx=2)
+            
+            return card
         
-        # Создаем предметы
-        for item in self.default_items:
-            create_item_row(item, False)
+        def populate_tab(parent_tab, elements, is_custom, tab_name):
+            """Заполняет вкладку элементами в grid"""
+            for widget in parent_tab.winfo_children():
+                widget.destroy()
+            
+            scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+            scroll_frame.pack(fill="both", expand=True)
+            
+            if not elements:
+                empty_label = ctk.CTkLabel(
+                    scroll_frame,
+                    text=LangT("📭 Нет элементов") + (LangT(" в моде") if is_custom else LangT(" (ванильных)")),
+                    font=("Arial", 14),
+                    text_color="#888888"
+                )
+                empty_label.pack(pady=50)
+                return
+            
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            if isinstance(elements, dict):
+                sorted_elements = sorted(elements.keys())
+            else:
+                sorted_elements = sorted(elements)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10:
+                    return 1
+                CARD_WIDTH = 130
+                HORIZONTAL_PADDING = 8
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row
+            
+            def update_grid():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                cards_per_row = calculate_grid()
+                current_row_frame = None
+                
+                for i, item_name in enumerate(sorted_elements):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=2)
+                    
+                    create_grid_card(current_row_frame, item_name, is_custom, tab_name)
+            
+            def on_resize(event):
+                update_grid()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_grid()
         
-        for item in custom_items:
-            create_item_row(item, True)
-        
-        items_frame.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        populate_tab(mod_tab, custom_items, True, "mod")
+        populate_tab(vanilla_tab, vanilla_items, False, "vanilla")
         
         # Счетчик
         counter_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        counter_frame.pack(fill="x", pady=(10, 5))
+        counter_frame.pack(fill="x", pady=(8, 5))
         
         count_label = ctk.CTkLabel(
             counter_frame,
-            textvariable=tk.StringVar(value=LangT("Выбрано: 0 предметов")),
-            font=("Arial", 12, "bold"),
+            text=LangT("Выбрано предметов: 0"),
+            font=("Arial", 11, "bold"),
             text_color="#4CAF50"
         )
         count_label.pack()
         
         def update_counter(*args):
-            #"Выбрано: {selected_count.get()} предметов"
-            count_label.configure(text=LangT("Выбрано: {selected_countget} предметов").format(selected_countget=selected_count.get()))
+            count_label.configure(text=LangT("Выбрано предметов: {selected_countget}").format(selected_countget=selected_count.get()))
         
         selected_count.trace_add("write", update_counter)
-        update_counter()
         
         # Кнопки
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame.pack(fill="x", pady=(8, 0))
         
         def save_selection():
-            self.build_items = []
-            for item_name, checkbox_var in checkbox_vars.items():
-                if checkbox_var.get():
-                    try:
-                        amount = int(amount_vars[item_name].get())
-                        if amount > 0:
-                            for _ in range(amount):
-                                self.build_items.append(item_name)
-                    except ValueError:
-                        self.build_items.append(item_name)
+            if not all_selected:
+                messagebox.showwarning(
+                    LangT("Предупреждение"),
+                    LangT("❌ Не выбран ни один предмет!\n\nПожалуйста, нажмите + чтобы добавить предмет.")
+                )
+                return
             
+            # Собираем все предметы с учетом количества
+            build_items = []
+            for key, amount in all_selected.items():
+                if amount > 0:
+                    parts = key.split("_", 1)
+                    item_name = parts[1]
+                    for _ in range(amount):
+                        build_items.append(item_name)
+            
+            self.build_items = build_items
+            
+            # Подсчитываем количество каждого предмета
             item_counts = {}
-            for item in self.build_items:
+            for item in build_items:
                 item_counts[item] = item_counts.get(item, 0) + 1
             
             items_list = []
             for item_name, count in item_counts.items():
-                if item_name in custom_items:
+                is_custom = item_name in custom_items
+                if is_custom:
                     items_list.append(f"ModItems.{item_name} ×{count}")
                 else:
                     display_name = item_name.replace("-", " ").title()
                     items_list.append(f"{display_name} ×{count}")
             
             if items_list:
-                #"Выбрано: {len(self.build_items)} предметов ({', '.join(items_list[:3])})"
-                display_text = LangT("Выбрано: {lenselfbuild_items} предметов ({items_list})").format(lenselfbuild_items=len(self.build_items),
-                                                                                                      items_list=', '.join(items_list[:3]))
+                display_text = f"{len(build_items)} предметов ({', '.join(items_list[:3])}"
                 if len(items_list) > 3:
-                    display_text += "..."
+                    display_text += f" +{len(items_list) - 3})"
+                else:
+                    display_text += ")"
             else:
-                display_text = LangT("Выбрано: 0 предметов")
+                display_text = LangT("Ничего не выбрано")
             
             selected_items_var.set(display_text)
             editor_window.destroy()
@@ -11561,22 +11763,24 @@ public class {NAME} {{
         ctk.CTkButton(
             button_frame,
             text=LangT("💾 Сохранить"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
+            width=130,
+            height=32,
+            font=("Arial", 12),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
             command=save_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         ctk.CTkButton(
             button_frame,
             text=LangT("❌ Отмена"), 
-            width=140,
-            height=35,
-            font=("Arial", 13),
-            fg_color="#e62525", 
-            hover_color="#701c1c",
+            width=130,
+            height=32,
+            font=("Arial", 12),
+            fg_color="#f44336", 
+            hover_color="#d32f2f",
             command=cancel_selection
-        ).pack(side="left", padx=20)
+        ).pack(side="left", padx=15)
         
         def on_closing():
             cancel_selection()
