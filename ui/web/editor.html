@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор мода / Mod Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2b2b2b;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Таб-панель */
+        .tab-bar {
+            display: flex;
+            background-color: #1e1e1e;
+            border-bottom: 2px solid #404040;
+            padding: 0 20px;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tabs-container {
+            display: flex;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: #ccc;
+        }
+
+        .tab-button.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        /* Кнопка языка */
+        .lang-btn {
+            background-color: #397E3C;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 20px;
+        }
+        
+        .lang-btn:hover {
+            background-color: #2e6d31;
+        }
+
+        /* Контент табов */
+        .tab-content {
+            display: none;
+            height: calc(100vh - 50px);
+            overflow: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Стили для блоков */
+        .blocks-container, .textures-container {
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Панель фильтра */
+        .filter-bar {
+            background-color: #363636;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .settings-btn {
+            background-color: #397E3C;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .settings-btn:hover {
+            background-color: #2e6d31;
+        }
+
+        .filter-status {
+            font-size: 11px;
+            color: #aaa;
+            margin-left: 10px;
+        }
+
+        /* Сетка карточек */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            padding: 5px;
+        }
+
+        .card {
+            background-color: #363636;
+            border: 1px solid #404040;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            background-color: #404040;
+            transform: translateY(-2px);
+        }
+
+        .card-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .card-icon-img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
+        .card-name {
+            font-size: 11px;
+            font-weight: bold;
+            word-wrap: break-word;
+        }
+
+        .card-type {
+            font-size: 9px;
+            color: #aaa;
+            margin-top: 3px;
+        }
+
+        .card-status {
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+        .status-ok {
+            color: #4CAF50;
+        }
+
+        .status-bad {
+            color: #F44336;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #2b2b2b;
+            border-radius: 12px;
+            min-width: 400px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #404040;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: #4CAF50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #404040;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Формы */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: #424242;
+            border: 1px solid #555;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input {
+            width: auto;
+        }
+
+        /* Кнопки */
+        .btn-primary {
+            background-color: #397E3C;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background-color: #555;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-danger {
+            background-color: #F44336;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #2e6d31;
+        }
+
+        /* Уведомления */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #333;
+            border-left: 4px solid #4CAF50;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1100;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error {
+            border-left-color: #F44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Индикатор загрузки */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        /* Пустое состояние */
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tab-bar">
+        <div class="tabs-container">
+            <button class="tab-button active" data-tab="blocks">🏗️ <span data-i18n="tab_blocks">Блоки</span></button>
+            <button class="tab-button" data-tab="textures">🖼️ <span data-i18n="tab_textures">Текстуры</span></button>
+        </div>
+        <button class="lang-btn" onclick="toggleLanguage()">EN</button>
+    </div>
+
+    <div id="blocks-tab" class="tab-content active">
+        <div class="blocks-container" id="blocks-container">
+            <div class="loading"><span data-i18n="loading">Загрузка...</span></div>
+        </div>
+    </div>
+
+    <div id="textures-tab" class="tab-content">
+        <div class="textures-container" id="textures-container">
+            <div class="loading"><span data-i18n="loading">Загрузка...</span></div>
+        </div>
+    </div>
+
+    <!-- Модальное окно ПКМ меню -->
+    <div id="context-menu" class="modal">
+        <div class="modal-content" style="min-width: 300px;">
+            <div class="modal-header">
+                <h3 id="context-title"><span data-i18n="actions_for">Действия для</span>: </h3>
+                <button class="modal-close" onclick="closeContextMenu()">×</button>
+            </div>
+            <div class="modal-body" id="context-body">
+                <button class="btn-danger" style="width: 100%;" onclick="executeDelete()">
+                    🗑️ <span data-i18n="delete_item">Удалить элемент</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек фильтра -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content" style="min-width: 400px;">
+            <div class="modal-header">
+                <h3>⚙️ <span data-i18n="display_settings">Настройки отображения</span></h3>
+                <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            </div>
+            <div class="modal-body" id="settings-body">
+                <div class="loading"><span data-i18n="loading">Загрузка...</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSettingsModal()"><span data-i18n="cancel">Отмена</span></button>
+                <button class="btn-primary" onclick="applySettings()"><span data-i18n="apply">Применить</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/eel.js"></script>
+    <script>
+        // ==================== ПЕРЕВОДЫ ====================
+        let currentLang = localStorage.getItem('language') || 'ru';
+        
+        const translations = {
+            ru: {
+                // Табы
+                tab_blocks: "Блоки",
+                tab_textures: "Текстуры",
+                loading: "Загрузка...",
+                
+                // Блоки
+                filter: "🔍 Фильтр:",
+                settings: "⚙️ Настройки",
+                all_categories: "Все категории",
+                empty_blocks_title: "Нет созданного контента",
+                empty_blocks_desc: "Используйте создатель блоков для добавления контента",
+                has_texture: "🖼️ Есть текстура",
+                no_texture: "❌ Нет текстуры",
+                
+                // Текстуры
+                textures_filter: "🔍 Фильтр:",
+                back: "← Назад",
+                all_types: "Все типы",
+                only_folders: "Только папки",
+                only_textures: "Только текстуры",
+                nothing_selected: "Ничего не выбрано",
+                path_prefix: "Путь: assets/sprites",
+                empty_textures_title: "Нет текстур в папке sprites",
+                empty_textures_desc: "Поместите текстуры (.png) в папку assets/sprites",
+                folder_empty: "Папка пуста",
+                no_items_to_show: "Нет элементов для отображения",
+                items_count: "элементов",
+                texture_open_error: "Ошибка загрузки",
+                copy_path: "📋 Копировать путь",
+                open_folder: "📂 Открыть",
+                open_texture: "🖼️ Открыть",
+                path_copied: "Путь скопирован в буфер обмена",
+                folder_not_found_title: "Папка textures не найдена",
+                folder_not_found_desc: "Создайте папку: ",
+                
+                // Модальные окна
+                display_settings: "Настройки отображения",
+                cancel: "Отмена",
+                apply: "Применить",
+                actions_for: "Действия для",
+                delete_item: "Удалить элемент",
+                confirm_delete: "Вы уверены, что хотите удалить элемент",
+                delete_warning: "Это действие необратимо!",
+                
+                // Статусы
+                elements_count: "элементов",
+                select_all: "✓ Выбрать все",
+                deselect_all: "✗ Сбросить все",
+                select_at_least_one: "Выберите хотя бы один тип",
+                
+                // Типы блоков
+                type_item: "Предмет",
+                type_liquid: "Жидкость",
+                type_wall: "Стена",
+                type_solar_panel: "Солнечная панель",
+                type_batterys: "Батарея",
+                type_consume_generators: "Генератор",
+                type_beam_nodes: "Энергетическая башня",
+                type_power_nodes: "Энергетический узел",
+                type_shield_walls: "Экранированная стена",
+                type_generic_crafter: "Завод",
+                type_circular_bridge: "Мост",
+                type_conveyor: "Конвейер",
+                
+                // Уведомления
+                delete_success: "✅ Элемент успешно удалён",
+                delete_error: "❌ Ошибка при удалении",
+                
+                // Кнопка языка
+                switch_to_en: "EN",
+                switch_to_ru: "RU"
+            },
+            en: {
+                // Tabs
+                tab_blocks: "Blocks",
+                tab_textures: "Textures",
+                loading: "Loading...",
+                
+                // Blocks
+                filter: "🔍 Filter:",
+                settings: "⚙️ Settings",
+                all_categories: "All categories",
+                empty_blocks_title: "No content created",
+                empty_blocks_desc: "Use the block creator to add content",
+                has_texture: "🖼️ Has texture",
+                no_texture: "❌ No texture",
+                
+                // Textures
+                textures_filter: "🔍 Filter:",
+                back: "← Back",
+                all_types: "All types",
+                only_folders: "Only folders",
+                only_textures: "Only textures",
+                nothing_selected: "Nothing selected",
+                path_prefix: "Path: assets/sprites",
+                empty_textures_title: "No textures in sprites folder",
+                empty_textures_desc: "Place textures (.png) in assets/sprites folder",
+                folder_empty: "Folder is empty",
+                no_items_to_show: "No items to show",
+                items_count: "items",
+                texture_open_error: "Load error",
+                copy_path: "📋 Copy path",
+                open_folder: "📂 Open",
+                open_texture: "🖼️ Open",
+                path_copied: "Path copied to clipboard",
+                folder_not_found_title: "Textures folder not found",
+                folder_not_found_desc: "Create folder: ",
+                
+                // Modals
+                display_settings: "Display Settings",
+                cancel: "Cancel",
+                apply: "Apply",
+                actions_for: "Actions for",
+                delete_item: "Delete item",
+                confirm_delete: "Are you sure you want to delete",
+                delete_warning: "This action is irreversible!",
+                
+                // Statuses
+                elements_count: "elements",
+                select_all: "✓ Select all",
+                deselect_all: "✗ Deselect all",
+                select_at_least_one: "Select at least one type",
+                
+                // Block types
+                type_item: "Item",
+                type_liquid: "Liquid",
+                type_wall: "Wall",
+                type_solar_panel: "Solar Panel",
+                type_batterys: "Battery",
+                type_consume_generators: "Generator",
+                type_beam_nodes: "Beam Node",
+                type_power_nodes: "Power Node",
+                type_shield_walls: "Shield Wall",
+                type_generic_crafter: "Factory",
+                type_circular_bridge: "Bridge",
+                type_conveyor: "Conveyor",
+                
+                // Notifications
+                delete_success: "✅ Element deleted successfully",
+                delete_error: "❌ Error deleting",
+                
+                // Language button
+                switch_to_en: "EN",
+                switch_to_ru: "RU"
+            }
+        };
+        
+        function t(key) {
+            return translations[currentLang][key] || key;
+        }
+        
+        function updateLanguage() {
+            // Обновляем все элементы с data-i18n
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (el.tagName === 'INPUT' && el.type === 'button') {
+                    el.value = t(key);
+                } else {
+                    el.textContent = t(key);
+                }
+            });
+            
+            // Обновляем кнопку языка
+            const langBtn = document.querySelector('.lang-btn');
+            if (langBtn) {
+                langBtn.textContent = currentLang === 'ru' ? 'EN' : 'RU';
+            }
+            
+            // Обновляем динамический контент
+            if (currentBlocks.length > 0) {
+                renderBlocks();
+            }
+            if (texturesData) {
+                loadCurrentTextureFolder();
+            }
+        }
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'ru' ? 'en' : 'ru';
+            localStorage.setItem('language', currentLang);
+            updateLanguage();
+            
+            // Перезагружаем данные для обновления текстов
+            loadBlocks();
+            loadTextures();
+        }
+        
+        // Глобальные переменные
+        let currentBlocks = [];
+        let selectedTypes = new Set();
+        let allTypes = [];
+        let contextElement = null;
+        let contextBlockName = null;
+        let contextBlockType = null;
+        
+        let texturesData = null;
+        let textureNavStack = [];
+        let currentTexturePath = null;
+        let selectedTextureTypes = new Set(['folder', 'texture']);
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            updateLanguage(); // Применяем язык при загрузке
+            loadBlocks();
+            loadTextures();
+        });
+
+        // Настройка табов
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab-button');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.dataset.tab;
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    document.getElementById('blocks-tab').classList.remove('active');
+                    document.getElementById('textures-tab').classList.remove('active');
+                    
+                    if (tabId === 'blocks') {
+                        document.getElementById('blocks-tab').classList.add('active');
+                    } else {
+                        document.getElementById('textures-tab').classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Загрузка блоков
+        async function loadBlocks() {
+            try {
+                const blocks = await eel.get_blocks_list()();
+                currentBlocks = blocks;
+                
+                // Получаем все типы
+                const types = new Set();
+                blocks.forEach(block => types.add(block.type));
+                allTypes = Array.from(types);
+                selectedTypes = new Set(allTypes);
+                
+                renderBlocks();
+            } catch (error) {
+                console.error('Ошибка загрузки блоков:', error);
+                showError('Не удалось загрузить блоки');
+            }
+        }
+
+        // Рендер блоков
+        function renderBlocks() {
+            const container = document.getElementById('blocks-container');
+            
+            const filteredBlocks = currentBlocks.filter(block => selectedTypes.has(block.type));
+            
+            if (filteredBlocks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <div>${t('empty_blocks_title')}</div>
+                        <div style="font-size: 12px; margin-top: 10px;">${t('empty_blocks_desc')}</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const filterBar = `
+                <div class="filter-bar">
+                    <span class="filter-label">${t('filter')}</span>
+                    <button class="settings-btn" onclick="showSettingsModal()">${t('settings')}</button>
+                    <span class="filter-status">${getFilterStatusText()}</span>
+                </div>
+                <div class="cards-grid" id="blocks-grid"></div>
+            `;
+            
+            container.innerHTML = filterBar;
+            
+            const grid = document.getElementById('blocks-grid');
+            
+            filteredBlocks.forEach(block => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => showBlockContextMenu(block.name, block.type, card);
+                card.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showBlockContextMenu(block.name, block.type, card);
+                    return false;
+                };
+                
+                // Иконка или текстура
+                if (block.hasSprite) {
+                    const img = document.createElement('img');
+                    img.className = 'card-icon-img';
+                    img.src = block.spriteData || 'data:image/png;base64,...';
+                    img.onerror = () => { img.style.display = 'none'; img.parentElement.innerHTML += '<div class="card-icon">' + block.icon + '</div>'; };
+                    card.appendChild(img);
+                } else {
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'card-icon';
+                    iconDiv.textContent = block.icon;
+                    card.appendChild(iconDiv);
+                }
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'card-name';
+                nameDiv.textContent = block.name;
+                card.appendChild(nameDiv);
+                
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'card-type';
+                typeDiv.textContent = getDisplayName(block.type);
+                card.appendChild(typeDiv);
+                
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `card-status ${block.hasSprite ? 'status-ok' : 'status-bad'}`;
+                statusDiv.textContent = block.hasSprite ? t('has_texture') : t('no_texture');
+                card.appendChild(statusDiv);
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function getFilterStatusText() {
+            if (selectedTypes.size === allTypes.length) {
+                return t('all_categories');
+            }
+            const names = Array.from(selectedTypes).slice(0, 3);
+            let text = names.join(', ');
+            if (selectedTypes.size > 3) {
+                text += ` и ещё ${selectedTypes.size - 3}`;
+            }
+            return text;
+        }
+
+        async function showSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            const body = document.getElementById('settings-body');
+            
+            // Создаем чекбоксы для типов
+            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            
+            for (const type of allTypes) {
+                const display = getDisplayName(type);
+                const icon = getIconForType(type);
+                const isChecked = selectedTypes.has(type);
+                
+                html += `
+                    <div style="background-color: #363636; border-radius: 10px; padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span style="font-size: 28px;">${icon}</span>
+                            <div>
+                                <div style="font-weight: bold;">${display}</div>
+                                <div style="font-size: 11px; color: #aaa;">${getCountForType(type)} ${t('elements_count')}</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" data-type="${type}" ${isChecked ? 'checked' : ''} style="width: 20px; height: 20px;">
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-secondary" onclick="selectAllTypes()">${t('select_all')}</button>
+                    <button class="btn-secondary" onclick="deselectAllTypes()">${t('deselect_all')}</button>
+                </div>
+            `;
+            
+            html += '</div>';
+            body.innerHTML = html;
+            modal.classList.add('active');
+        }
+
+        function selectAllTypes() {
+            document.querySelectorAll('#settings-body input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function deselectAllTypes() {
+            document.querySelectorAll('#settings-body input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        function applySettings() {
+            const newSelected = new Set();
+            document.querySelectorAll('#settings-body input[type="checkbox"]:checked').forEach(cb => {
+                newSelected.add(cb.dataset.type);
+            });
+            
+            if (newSelected.size === 0) {
+                showToast(t('select_at_least_one'), 'error');
+                return;
+            }
+            
+            selectedTypes = newSelected;
+            closeSettingsModal();
+            renderBlocks();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function getDisplayName(type) {
+            const displays = {
+                'item': t('type_item'), 'liquid': t('type_liquid'), 'wall': t('type_wall'),
+                'solar_panel': t('type_solar_panel'), 'batterys': t('type_batterys'),
+                'consume_generators': t('type_consume_generators'), 'beam_nodes': t('type_beam_nodes'),
+                'power_nodes': t('type_power_nodes'), 'shield_walls': t('type_shield_walls'),
+                'generic_crafter': t('type_generic_crafter'), 'circular_bridge': t('type_circular_bridge'),
+                'conveyor': t('type_conveyor')
+            };
+            return displays[type] || type;
+        }
+
+        function getIconForType(type) {
+            const icons = {
+                'item': '📦', 'liquid': '💧', 'wall': '🧱',
+                'solar_panel': '☀️', 'batterys': '🔋', 'consume_generators': '⚡',
+                'beam_nodes': '📡', 'power_nodes': '🔌', 'shield_walls': '🛡️',
+                'generic_crafter': '🏭', 'circular_bridge': '🌉', 'conveyor': '➡️'
+            };
+            return icons[type] || '📦';
+        }
+
+        function getCountForType(type) {
+            return currentBlocks.filter(b => b.type === type).length;
+        }
+
+        function showBlockContextMenu(name, type, element) {
+            contextBlockName = name;
+            contextBlockType = type;
+            contextElement = element;
+            
+            document.getElementById('context-title').innerHTML = `${t('actions_for')}: ${name}`;
+            document.getElementById('context-menu').classList.add('active');
+        }
+
+        function closeContextMenu() {
+            document.getElementById('context-menu').classList.remove('active');
+        }
+
+        async function executeDelete() {
+            if (!contextBlockName || !contextBlockType) return;
+            
+            if (confirm(`${t('confirm_delete')} "${contextBlockName}"?\n\n${t('delete_warning')}`)) {
+                try {
+                    const result = await eel.delete_block(contextBlockName, contextBlockType)();
+                    if (result.success) {
+                        showToast(`${t('delete_success')}`);
+                        await loadBlocks();
+                    } else {
+                        showToast(`${t('delete_error')}: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    showToast(`Ошибка: ${error}`, 'error');
+                }
+            }
+            closeContextMenu();
+        }
+
+        // Текстуры
+        async function loadTextures() {
+            try {
+                const data = await eel.get_textures_tree()();
+                texturesData = data;
+                currentTexturePath = data.rootPath;
+                renderTextures();
+            } catch (error) {
+                console.error('Ошибка загрузки текстур:', error);
+                showErrorTextures();
+            }
+        }
+
+        function renderTextures() {
+            const container = document.getElementById('textures-container');
+            
+            const filterBar = `
+                <div class="filter-bar">
+                    <span class="filter-label">${t('textures_filter')}</span>
+                    <button class="settings-btn" onclick="showTextureSettings()">${t('settings')}</button>
+                    <button class="settings-btn" onclick="goBackTexture()" id="texture-back-btn" style="display: none;">${t('back')}</button>
+                    <span class="filter-status" id="texture-filter-status"></span>
+                    <span class="filter-status" id="texture-path" style="margin-left: auto;"></span>
+                </div>
+                <div class="cards-grid" id="textures-grid"></div>
+            `;
+            
+            container.innerHTML = filterBar;
+            
+            const backBtn = document.getElementById('texture-back-btn');
+            if (textureNavStack.length > 0) {
+                backBtn.style.display = 'block';
+            } else {
+                backBtn.style.display = 'none';
+            }
+            
+            loadCurrentTextureFolder();
+        }
+
+        async function loadCurrentTextureFolder() {
+            const grid = document.getElementById('textures-grid');
+            grid.innerHTML = '<div class="loading">' + t('loading') + '</div>';
+            
+            try {
+                const items = await eel.get_texture_folder_content(currentTexturePath)();
+                
+                if (items.length === 0) {
+                    if (currentTexturePath === texturesData.rootPath) {
+                        grid.innerHTML = `
+                            <div class="empty-state">
+                                <div class="icon">📭</div>
+                                <div>${t('empty_textures_title')}</div>
+                                <div style="font-size: 12px; margin-top: 10px;">${t('empty_textures_desc')}</div>
+                            </div>
+                        `;
+                    } else {
+                        grid.innerHTML = `
+                            <div class="empty-state">
+                                <div class="icon">📭</div>
+                                <div>${t('folder_empty')}</div>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                const filtered = items.filter(item => selectedTextureTypes.has(item.type));
+                
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🚫</div>
+                            <div>${t('no_items_to_show')}</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = '';
+                
+                for (const item of filtered) {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    if (item.type === 'folder') {
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'card-icon';
+                        iconDiv.textContent = '📁';
+                        card.appendChild(iconDiv);
+                        
+                        const nameDiv = document.createElement('div');
+                        nameDiv.className = 'card-name';
+                        nameDiv.textContent = item.name;
+                        card.appendChild(nameDiv);
+                        
+                        const countDiv = document.createElement('div');
+                        countDiv.className = 'card-type';
+                        countDiv.textContent = `${item.itemCount || 0} ${t('items_count')}`;
+                        card.appendChild(countDiv);
+                        
+                        card.ondblclick = () => openTextureFolder(item.path);
+                        
+                    } else {
+                        try {
+                            const imgData = await eel.get_texture_image(item.path)();
+                            if (imgData) {
+                                const img = document.createElement('img');
+                                img.className = 'card-icon-img';
+                                img.src = imgData;
+                                card.appendChild(img);
+                            } else {
+                                const iconDiv = document.createElement('div');
+                                iconDiv.className = 'card-icon';
+                                iconDiv.textContent = '🖼️';
+                                card.appendChild(iconDiv);
+                            }
+                        } catch (e) {
+                            const iconDiv = document.createElement('div');
+                            iconDiv.className = 'card-icon';
+                            iconDiv.textContent = '🖼️';
+                            card.appendChild(iconDiv);
+                        }
+                        
+                        const nameDiv = document.createElement('div');
+                        nameDiv.className = 'card-name';
+                        nameDiv.textContent = item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name;
+                        card.appendChild(nameDiv);
+                        
+                        const sizeDiv = document.createElement('div');
+                        sizeDiv.className = 'card-type';
+                        sizeDiv.textContent = `${item.width || '?'}x${item.height || '?'}`;
+                        card.appendChild(sizeDiv);
+                        
+                        const formatDiv = document.createElement('div');
+                        formatDiv.className = 'card-status status-ok';
+                        formatDiv.textContent = item.extension;
+                        card.appendChild(formatDiv);
+                        
+                        card.ondblclick = () => openTextureFile(item.path);
+                    }
+                    
+                    card.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        showTextureContextMenu(item, card);
+                        return false;
+                    };
+                    
+                    grid.appendChild(card);
+                }
+                
+                updateTexturePathDisplay();
+                updateTextureFilterStatus();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки папки:', error);
+                grid.innerHTML = '<div class="empty-state"><div class="icon">❌</div><div>' + t('texture_open_error') + '</div></div>';
+            }
+        }
+
+        async function openTextureFolder(path) {
+            textureNavStack.push(currentTexturePath);
+            currentTexturePath = path;
+            renderTextures();
+        }
+
+        function goBackTexture() {
+            if (textureNavStack.length > 0) {
+                currentTexturePath = textureNavStack.pop();
+                renderTextures();
+            }
+        }
+
+        function updateTexturePathDisplay() {
+            const pathSpan = document.getElementById('texture-path');
+            if (pathSpan) {
+                if (currentTexturePath === texturesData?.rootPath) {
+                    pathSpan.textContent = t('path_prefix');
+                } else {
+                    const relPath = currentTexturePath.replace(texturesData?.rootPath || '', '').replace(/\\/g, '/');
+                    pathSpan.textContent = `${t('path_prefix')}${relPath}`;
+                }
+            }
+        }
+
+        function updateTextureFilterStatus() {
+            const statusSpan = document.getElementById('texture-filter-status');
+            if (statusSpan) {
+                if (selectedTextureTypes.size === 2) {
+                    statusSpan.textContent = t('all_types');
+                } else if (selectedTextureTypes.has('folder')) {
+                    statusSpan.textContent = t('only_folders');
+                } else if (selectedTextureTypes.has('texture')) {
+                    statusSpan.textContent = t('only_textures');
+                } else {
+                    statusSpan.textContent = t('nothing_selected');
+                }
+            }
+        }
+
+        function showTextureSettings() {
+            const modal = document.getElementById('settings-modal');
+            const body = document.getElementById('settings-body');
+            
+            body.innerHTML = `
+                <div style="background-color: #363636; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px;">📁</span>
+                        <div><div style="font-weight: bold;">${t('only_folders')}</div></div>
+                    </div>
+                    <input type="checkbox" id="folder-filter" ${selectedTextureTypes.has('folder') ? 'checked' : ''} style="width: 20px; height: 20px;">
+                </div>
+                <div style="background-color: #363636; border-radius: 10px; padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px;">🖼️</span>
+                        <div><div style="font-weight: bold;">${t('only_textures')}</div></div>
+                    </div>
+                    <input type="checkbox" id="texture-filter" ${selectedTextureTypes.has('texture') ? 'checked' : ''} style="width: 20px; height: 20px;">
+                </div>
+                <div class="modal-footer" style="margin-top: 15px; padding: 0;">
+                    <button class="btn-secondary" onclick="closeSettingsModal()">${t('cancel')}</button>
+                    <button class="btn-primary" onclick="applyTextureSettings()">${t('apply')}</button>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        function applyTextureSettings() {
+            const newSelected = new Set();
+            if (document.getElementById('folder-filter')?.checked) newSelected.add('folder');
+            if (document.getElementById('texture-filter')?.checked) newSelected.add('texture');
+            
+            selectedTextureTypes = newSelected.size > 0 ? newSelected : new Set(['folder', 'texture']);
+            closeSettingsModal();
+            loadCurrentTextureFolder();
+        }
+
+        function showTextureContextMenu(item, card) {
+            const modal = document.getElementById('context-menu');
+            const body = document.getElementById('context-body');
+            
+            if (item.type === 'folder') {
+                body.innerHTML = `
+                    <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="openTextureFolder('${item.path}')">
+                        ${t('open_folder')}
+                    </button>
+                    <button class="btn-secondary" style="width: 100%;" onclick="copyToClipboard('${item.path}')">
+                        ${t('copy_path')}
+                    </button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="openTextureFile('${item.path}')">
+                        ${t('open_texture')}
+                    </button>
+                    <button class="btn-secondary" style="width: 100%;" onclick="copyToClipboard('${item.path}')">
+                        ${t('copy_path')}
+                    </button>
+                `;
+            }
+            
+            document.getElementById('context-title').innerHTML = `${t('actions_for')}: ${item.name}`;
+            modal.classList.add('active');
+        }
+
+        async function openTextureFile(path) {
+            await eel.open_file_externally(path)();
+        }
+
+        async function copyToClipboard(text) {
+            await navigator.clipboard.writeText(text);
+            showToast(t('path_copied'));
+            closeContextMenu();
+        }
+
+        function showErrorTextures() {
+            const container = document.getElementById('textures-container');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📁❌</div>
+                    <div>${t('folder_not_found_title')}</div>
+                    <div style="font-size: 12px; margin-top: 10px;">${t('folder_not_found_desc')}${texturesData?.rootPath || 'assets/sprites'}</div>
+                </div>
+            `;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function showError(message) {
+            showToast(message, 'error');
+        }
+    </script>
+</body>
+</html>
