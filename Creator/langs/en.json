@@ -587,5 +587,30 @@
   "Выбрано элементов: 0": "Selected items: 0",
   "Выбрано элементов: {selected_countget}": "Selected items: {selected_countget}",
   "Выбрано предметов: 0": "Selected items: 0",
-  "Выбрано предметов: {selected_countget}": "Selected items: {selected_countget}"
+  "Выбрано предметов: {selected_countget}": "Selected items: {selected_countget}",
+
+
+
+
+
+
+
+
+  "Веб-интерфейс редактора": "Editor Web Interface",
+  "Редактор работает через веб-интерфейс": "Editor works via web interface",
+  "⚠️ ВАЖНО:": "⚠️ IMPORTANT:",
+  "Это окно должно оставаться открытым,\nтак как программа хостит веб-интерфейс.": "This window must remain open,\nas the program hosts the web interface.",
+  "🌐 Адрес в браузере:": "🌐 Browser address:",
+  "🚀 Открыть в браузере": "🚀 Open in browser",
+  "💡 Веб-интерфейс в данный момент не поддерживает создания": "💡 Web interface currently does not support creation",
+  "💡 Для удобства откройте браузер на втором мониторе": "💡 For convenience, open the browser on a second monitor",
+  "💡 При закрытии этого окна веб-интерфейс перестанет работать": "💡 Closing this window will stop the web interface",
+  "Веб-сервер запущен на порту {port} (только для просмотра)": "Web server running on port {port} (view only)",
+  "📝 Примечание: Для создания контента используйте кнопки в левой панели": "📝 Note: Use the buttons in the left panel to create content",
+  "✅ Копировано!": "✅ Copied!",
+  "Папка": "Folder",
+  "Открыть": "Open",
+  "Копировать путь": "Copy path",
+  "Обновить": "Refresh",
+  "📭 Папка textures не найдена": "📭 Textures folder not found"
 }
