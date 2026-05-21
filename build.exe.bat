@@ -23,6 +23,12 @@ pyinstaller --onefile ^
     --add-data "Creator;icons" ^
     --add-data "Creator;utils" ^
     --add-data "Creator;langs" ^
+    --hidden-import "eel" ^
+    --hidden-import "bottle" ^
+    --hidden-import "webbrowser" ^
+    --hidden-import "tempfile" ^
+    --hidden-import "base64" ^
+    --hidden-import "io" ^
     --hidden-import "PIL" ^
     --hidden-import "PIL._imaging" ^
     --hidden-import "customtkinter" ^
@@ -36,12 +42,19 @@ pyinstaller --onefile ^
     --collect-all "customtkinter" ^
     --collect-all "PIL" ^
     main.py
+
 pyinstaller --onefile ^
     --name "MindustryModCreatorConsole" ^
     --add-data "Creator;Creator" ^
     --add-data "Creator;icons" ^
     --add-data "Creator;utils" ^
     --add-data "Creator;langs" ^
+    --hidden-import "eel" ^
+    --hidden-import "bottle" ^
+    --hidden-import "webbrowser" ^
+    --hidden-import "tempfile" ^
+    --hidden-import "base64" ^
+    --hidden-import "io" ^
     --hidden-import "PIL" ^
     --hidden-import "PIL._imaging" ^
     --hidden-import "customtkinter" ^
