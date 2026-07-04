@@ -11,6 +11,7 @@ import platform
 import re
 import base64
 import requests
+import ctypes
 import zipfile
 import io
 import tempfile
@@ -66,7 +67,300 @@ def save_settings():
         return True
     except:
         return False
+# ===================== JAVA DOWNLOAD =====================
+@eel.expose
+def install_java_web(callback_id=None):
+    """Установка Java 17 из веб-интерфейса"""
+    # Проверяем, не выполняется ли уже установка
+    if hasattr(install_java_web, '_is_running') and install_java_web._is_running:
+        return {"success": False, "message": "Установка уже выполняется"}
+    
+    # Запускаем установку
+    install_java_web._is_running = True
+    result = install_java_17(callback_id)
+    install_java_web._is_running = False
+    return result
 
+@eel.expose
+def restart_pc_jdk_100_i():
+    os.system("shutdown /r /t 5")
+
+@eel.expose
+def get_admin_rights_status():
+    """Проверяет наличие прав администратора"""
+    return {"has_admin": check_admin_rights()}
+
+def check_admin_rights():
+    """Проверяет права администратора на Windows"""
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        except:
+            pass
+    return False
+
+def get_java_version_from_exe(java_exe):
+    """Получает версию Java из исполняемого файла"""
+    try:
+        result = subprocess.run([java_exe, "-version"], capture_output=True, text=True, shell=True)
+        version_output = result.stderr if result.stderr else result.stdout
+        patterns = [r'version "(\d+)', r'(\d+)\.\d+']
+        for pattern in patterns:
+            match = re.search(pattern, version_output)
+            if match:
+                return match.group(1)
+    except:
+        pass
+    return None
+
+def find_java_17_in_all_paths():
+    """Ищет Java 17 во всех возможных местах"""
+    paths_to_check = []
+    
+    # PATH
+    for path in os.environ.get("PATH", "").split(os.pathsep):
+        java_exe = os.path.join(path, "java.exe")
+        if os.path.exists(java_exe):
+            paths_to_check.append(java_exe)
+    
+    # JAVA_HOME
+    java_home = os.environ.get("JAVA_HOME", "")
+    if java_home:
+        java_exe = os.path.join(java_home, "bin", "java.exe")
+        if os.path.exists(java_exe):
+            paths_to_check.append(java_exe)
+    
+    # Стандартные пути
+    standard_paths = [
+        r"C:\Program Files\Java",
+        r"C:\Program Files (x86)\Java",
+        r"C:\Program Files\Eclipse Adoptium",
+        r"C:\mmc_java",
+    ]
+    for base_path in standard_paths:
+        if os.path.exists(base_path):
+            for item in os.listdir(base_path):
+                item_path = os.path.join(base_path, item)
+                if os.path.isdir(item_path):
+                    java_exe = os.path.join(item_path, "bin", "java.exe")
+                    if os.path.exists(java_exe):
+                        paths_to_check.append(java_exe)
+    
+    # Проверяем версию
+    for java_exe in paths_to_check:
+        version = get_java_version_from_exe(java_exe)
+        if version == "17":
+            return java_exe
+    return None
+
+def install_java_17(callback_id=None):
+    """Устанавливает Java 17 - вызывается из eel"""
+    def install_thread():
+        try:
+            # Сначала проверяем, установлена ли уже Java 17
+            java_check = check_java()
+            if java_check.get("has_java"):
+                send_java_complete(True, f"Java 17 уже установлена по пути: {java_check.get('path')}", callback_id)
+                return
+            
+            # Проверяем права администратора
+            has_admin = check_admin_rights()
+            
+            if not has_admin:
+                send_java_progress(0.05, LangT("no_admin_download"), callback_id)
+            
+            # Определяем путь установки
+            if has_admin:
+                install_path = Path(r"C:\Program Files\Java\jdk-17")
+            else:
+                install_path = Path(r"C:\mmc_java")
+            
+            # Создаем папку
+            try:
+                install_path.mkdir(parents=True, exist_ok=True)
+            except PermissionError:
+                send_java_complete(False, "Нет прав для создания папки. Запустите программу от имени администратора.", callback_id)
+                return
+            
+            # URL для скачивания
+            jdk_url = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.12_7.zip"
+            
+            send_java_progress(0.1, LangT("java_t_1"), callback_id)
+            
+            # Скачиваем
+            temp_dir = Path(tempfile.gettempdir())
+            temp_zip = temp_dir / "jdk_temp.zip"
+            
+            try:
+                response = requests.get(jdk_url, stream=True, timeout=60)
+                response.raise_for_status()
+            except requests.RequestException as e:
+                send_java_complete(False, f"Ошибка скачивания: {str(e)}", callback_id)
+                return
+            
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            
+            send_java_progress(0.2, LangT("java_download_m1"), callback_id)
+            
+            try:
+                with open(temp_zip, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size > 0:
+                                progress = 0.2 + (downloaded / total_size * 0.6)
+                                percent = int((downloaded / total_size) * 100)
+                                send_java_progress(progress, f"{LangT("download")}: {downloaded/1024/1024:.1f}MB / {total_size/1024/1024:.1f}MB ({percent}%)", callback_id)
+            except Exception as e:
+                send_java_complete(False, f"Ошибка при скачивании: {str(e)}", callback_id)
+                return
+            
+            send_java_progress(0.8, LangT("unpack_jdk"), callback_id)
+            
+            # Распаковываем
+            try:
+                with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
+                    # Удаляем старую папку если есть
+                    if install_path.exists():
+                        shutil.rmtree(install_path, ignore_errors=True)
+                    
+                    # Распаковываем во временную папку
+                    extract_temp = temp_dir / "jdk_extract"
+                    if extract_temp.exists():
+                        shutil.rmtree(extract_temp, ignore_errors=True)
+                    extract_temp.mkdir(exist_ok=True)
+                    
+                    zip_ref.extractall(str(extract_temp))
+                    
+                    # Находим распакованную папку
+                    extracted_items = list(extract_temp.iterdir())
+                    if extracted_items:
+                        extracted_dir = extracted_items[0]
+                        # Перемещаем в нужное место
+                        shutil.move(str(extracted_dir), str(install_path))
+                        # Удаляем временную папку
+                        shutil.rmtree(extract_temp, ignore_errors=True)
+            except Exception as e:
+                send_java_complete(False, f"Ошибка распаковки: {str(e)}", callback_id)
+                return
+            
+            # Удаляем временный файл
+            try:
+                temp_zip.unlink()
+            except:
+                pass
+            
+            send_java_progress(0.95, "⚙️ Настройка окружения...", callback_id)
+            
+            # Проверяем установку
+            java_exe = install_path / "bin" / "java.exe"
+            if java_exe.exists():
+                # Устанавливаем JAVA_HOME
+                set_java_home(str(install_path))
+                
+                # Добавляем в PATH для текущей сессии
+                os.environ["JAVA_HOME"] = str(install_path)
+                os.environ["PATH"] = f"{str(install_path / 'bin')};{os.environ.get('PATH', '')}"
+                
+                send_java_progress(1.0, "✅ Установка завершена!", callback_id)
+                send_java_complete(True, f"✅ JDK 17 успешно установлена!\n📂 Путь: {install_path}\n🔄 Перезапустите программу для применения изменений.", callback_id)
+            else:
+                send_java_complete(False, "❌ JDK не установилась корректно. Попробуйте установить вручную.", callback_id)
+                
+        except Exception as e:
+            send_java_complete(False, f"❌ Ошибка: {str(e)}", callback_id)
+    
+    threading.Thread(target=install_thread, daemon=True).start()
+    return {"success": True, "message": "Установка начата"}
+
+def set_java_home(java_path):
+    """Устанавливает JAVA_HOME в системе и в текущем процессе"""
+    if platform.system() != "Windows":
+        return
+    
+    try:
+        # Устанавливаем в реестре для постоянного хранения
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            "Environment",
+            0,
+            winreg.KEY_SET_VALUE | winreg.KEY_READ | winreg.KEY_WRITE
+        )
+        
+        # Устанавливаем JAVA_HOME
+        winreg.SetValueEx(key, "JAVA_HOME", 0, winreg.REG_EXPAND_SZ, java_path)
+        
+        # Добавляем bin в PATH
+        bin_path = os.path.join(java_path, "bin")
+        try:
+            current_path, path_type = winreg.QueryValueEx(key, "PATH")
+            path_str = current_path if current_path else ""
+            if bin_path not in path_str:
+                new_path = f"{bin_path};{path_str}" if path_str else bin_path
+                winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, new_path)
+        except WindowsError:
+            winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, bin_path)
+        
+        winreg.CloseKey(key)
+        
+        # Обновляем переменные в текущем процессе
+        os.environ["JAVA_HOME"] = java_path
+        
+        # Обновляем PATH в текущем процессе
+        current_path = os.environ.get("PATH", "")
+        if bin_path not in current_path:
+            os.environ["PATH"] = f"{bin_path};{current_path}"
+        
+        # Уведомляем систему об изменении
+        broadcast_environment_change()
+        
+        print(f"✅ JAVA_HOME установлен: {java_path}")
+        print(f"✅ PATH обновлен: {bin_path}")
+        
+    except Exception as e:
+        print(f"Ошибка установки JAVA_HOME: {e}")
+
+def broadcast_environment_change():
+    """Уведомляет систему об изменении переменных окружения"""
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            HWND_BROADCAST = 0xFFFF
+            WM_SETTINGCHANGE = 0x001A
+            SMTO_ABORTIFHUNG = 0x0002
+            
+            # Отправляем сообщение всем окнам
+            ctypes.windll.user32.SendMessageTimeoutW(
+                HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment",
+                SMTO_ABORTIFHUNG, 5000, None
+            )
+            
+            # Дополнительно обновляем для текущего процесса
+            ctypes.windll.user32.SendMessageTimeoutW(
+                HWND_BROADCAST, WM_SETTINGCHANGE, 0, None,
+                SMTO_ABORTIFHUNG, 5000, None
+            )
+        except Exception as e:
+            print(f"Ошибка уведомления системы: {e}")
+
+def send_java_progress(percent, message, callback_id):
+    """Отправляет прогресс установки Java в веб-интерфейс"""
+    if callback_id:
+        try:
+            eel.java_install_progress(callback_id, percent, message)()
+        except:
+            pass
+
+def send_java_complete(success, message, callback_id):
+    """Отправляет завершение установки Java"""
+    if callback_id:
+        try:
+            eel.java_install_complete(callback_id, success, message)()
+        except:
+            pass
 # ===================== РАБОТА С МОДАМИ =====================
 def get_mods_list():
     mods_dir = Path(MODS_WORK_DIR)
@@ -843,35 +1137,49 @@ public class ModLiquid {{
 
     def _get_texture_folder_content(self, folder_path):
         folder = Path(folder_path)
+        print(f"Получение содержимого папки: {folder_path}")
+        
         if not folder.exists():
+            print(f"Папка не существует: {folder_path}")
             return []
+        
         items = []
         for item in sorted(folder.iterdir()):
-            if item.is_dir():
-                try:
-                    item_count = len(list(item.iterdir()))
-                except:
-                    item_count = 0
-                items.append({
-                    "type": "folder",
-                    "name": item.name,
-                    "path": str(item),
-                    "itemCount": item_count
-                })
-            elif item.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
-                width, height = 0, 0
-                try:
-                    with Image.open(item) as img:
-                        width, height = img.size
-                except:
-                    pass
-                items.append({
-                    "type": "texture",
-                    "name": item.name,
-                    "path": str(item),
-                    "width": width,
-                    "height": height
-                })
+            try:
+                # Возвращаем только имя файла, а не полный путь
+                # Полный путь будем формировать в JavaScript
+                if item.is_dir():
+                    try:
+                        item_count = len(list(item.iterdir()))
+                    except:
+                        item_count = 0
+                    items.append({
+                        "type": "folder",
+                        "name": item.name,
+                        "path": item.name,  # Только имя
+                        "fullPath": str(item).replace('\\', '/'),  # Полный путь для операций
+                        "itemCount": item_count
+                    })
+                elif item.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
+                    width, height = 0, 0
+                    try:
+                        with Image.open(item) as img:
+                            width, height = img.size
+                    except:
+                        pass
+                    items.append({
+                        "type": "texture",
+                        "name": item.name,
+                        "path": item.name,  # Только имя
+                        "fullPath": str(item).replace('\\', '/'),  # Полный путь для операций
+                        "width": width,
+                        "height": height
+                    })
+            except Exception as e:
+                print(f"Ошибка обработки {item}: {e}")
+                continue
+        
+        print(f"Всего элементов: {len(items)}")
         return items
 
     def _get_texture_base64(self, texture_path):
@@ -1001,6 +1309,382 @@ public class ModLiquid {{
             
             return {"success": True, "message": f"Иконка сохранена как {target_name}.png", "path": str(full_path)}
         except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def _create_texture_folder(self, parent_path, folder_name):
+        """Создаёт новую папку в указанной директории текстур"""
+        try:
+            parent = Path(parent_path)
+            if not parent.exists():
+                return {"success": False, "error": "Родительская папка не найдена"}
+            
+            clean_name = re.sub(r'[<>:"/\\|?*]', '_', folder_name.strip())
+            if not clean_name:
+                return {"success": False, "error": "Некорректное имя папки"}
+            
+            new_folder = parent / clean_name
+            if new_folder.exists():
+                return {"success": False, "error": f"Папка '{clean_name}' уже существует"}
+            
+            new_folder.mkdir(parents=True, exist_ok=True)
+            return {"success": True, "message": f"Папка '{clean_name}' создана", "path": str(new_folder)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def _upload_texture_file(self, target_path, base64_data, filename):
+        """Загружает PNG файл в указанную папку текстур"""
+        try:
+            target = Path(target_path)
+            if not target.exists():
+                return {"success": False, "error": "Целевая папка не найдена"}
+            
+            image_data = base64.b64decode(base64_data)
+            image = Image.open(BytesIO(image_data))
+            if image.format != 'PNG':
+                return {"success": False, "error": "Файл должен быть в формате PNG"}
+            
+            clean_name = re.sub(r'[<>:"/\\|?*]', '_', filename.strip())
+            if not clean_name:
+                clean_name = "texture.png"
+            if not clean_name.lower().endswith('.png'):
+                clean_name += '.png'
+            
+            file_path = target / clean_name
+            if file_path.exists():
+                base = file_path.stem
+                ext = file_path.suffix
+                counter = 1
+                while file_path.exists():
+                    file_path = target / f"{base}_{counter}{ext}"
+                    counter += 1
+            
+            with open(file_path, 'wb') as f:
+                f.write(image_data)
+            
+            return {"success": True, "message": f"Файл '{file_path.name}' загружен", "path": str(file_path)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def _rename_texture_item(self, old_path, new_name):
+        """Переименовывает файл или папку в текстурах"""
+        try:
+            old = Path(old_path)
+            if not old.exists():
+                return {"success": False, "error": "Элемент не найден"}
+            
+            clean_name = re.sub(r'[<>:"/\\|?*]', '_', new_name.strip())
+            if not clean_name:
+                return {"success": False, "error": "Некорректное имя"}
+            
+            parent = old.parent
+            new_path = parent / clean_name
+            
+            if new_path.exists():
+                return {"success": False, "error": f"Элемент с именем '{clean_name}' уже существует"}
+            
+            old.rename(new_path)
+            return {"success": True, "message": f"Переименован в '{clean_name}'", "new_path": str(new_path)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def _delete_texture_item(self, item_path):
+        """Удаляет файл или папку из текстур"""
+        try:
+            # Очищаем путь от невидимых символов и нормализуем
+            import re
+            # Удаляем невидимые символы (кроме пробелов)
+            item_path = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', item_path)
+            # Заменяем обратные слеши на прямые
+            item_path = item_path.replace('\\', '/')
+            # Удаляем лишние пробелы
+            item_path = item_path.strip()
+            
+            print(f"Очищенный путь: {item_path}")
+            
+            # Пробуем найти файл в папке текстур по имени
+            textures_root = self.mod_folder / "assets" / "sprites"
+            
+            # Если путь содержит только имя файла, ищем его в папке текстур
+            if '/' not in item_path and '\\' not in item_path:
+                print(f"Ищем файл по имени: {item_path}")
+                for root, dirs, files in os.walk(textures_root):
+                    for f in files:
+                        if f == item_path:
+                            full_path = Path(root) / f
+                            print(f"Найден файл: {full_path}")
+                            item = full_path
+                            break
+                    if 'item' in locals() and item.exists():
+                        break
+                else:
+                    return {"success": False, "error": f"Файл не найден: {item_path}"}
+            else:
+                item = Path(item_path)
+            
+            print(f"Итоговый путь для удаления: {item}")
+            print(f"Существует: {item.exists()}")
+            
+            if not item.exists():
+                return {"success": False, "error": f"Элемент не найден: {item_path}"}
+            
+            # Защита от удаления корневой папки
+            if str(item).lower() == str(textures_root).lower():
+                return {"success": False, "error": "Нельзя удалить корневую папку текстур"}
+            
+            # Проверяем, что элемент внутри папки текстур
+            if str(textures_root) not in str(item.parent):
+                return {"success": False, "error": "Можно удалять только файлы внутри папки текстур"}
+            
+            if item.is_dir():
+                shutil.rmtree(item)
+                print(f"Папка удалена: {item}")
+            else:
+                item.unlink()
+                print(f"Файл удалён: {item}")
+            
+            return {"success": True, "message": f"Элемент '{item.name}' удалён"}
+        except PermissionError as e:
+            return {"success": False, "error": f"Нет прав доступа: {str(e)}"}
+        except Exception as e:
+            print(f"Ошибка удаления: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
+    
+    def _get_source_files(self, rel_path=""):
+        """Получает список файлов - принимает ОТНОСИТЕЛЬНЫЙ путь"""
+        mod_name_lower = self.mod_name.lower()
+        src_root = self.mod_folder / "src" / mod_name_lower
+        
+        # Сохраняем текущий относительный путь
+        self._current_source_path = rel_path
+        
+        # Если путь пустой - используем корень
+        if not rel_path or rel_path.strip() == "":
+            current_path = src_root
+            self._current_source_path = ""
+        else:
+            # Очищаем путь от лишних слешей
+            clean_path = rel_path.replace('\\', '/').strip('/')
+            current_path = src_root / clean_path
+        
+        # Если путь не существует - возвращаем корень
+        if not current_path.exists():
+            current_path = src_root
+            self._current_source_path = ""
+            if not current_path.exists():
+                return {"success": False, "error": "Корневая папка не найдена"}
+        
+        items = []
+        for item in sorted(current_path.iterdir()):
+            try:
+                if item.is_dir():
+                    item_count = len(list(item.iterdir())) if item.exists() else 0
+                    # Сохраняем и полный путь, и имя для относительного пути
+                    items.append({
+                        "type": "folder",
+                        "name": item.name,
+                        "path": str(item).replace('\\', '/'),  # Полный путь для операций
+                        "relPath": str(item.relative_to(src_root)).replace('\\', '/'),  # Относительный путь
+                        "itemCount": item_count
+                    })
+                else:
+                    items.append({
+                        "type": "file",
+                        "name": item.name,
+                        "path": str(item).replace('\\', '/'),  # Полный путь
+                        "size": item.stat().st_size
+                    })
+            except Exception as e:
+                print(f"Ошибка обработки {item}: {e}")
+                continue
+        
+        # Возвращаем ОТНОСИТЕЛЬНЫЙ путь для отображения
+        rel_current = str(current_path.relative_to(src_root)).replace('\\', '/')
+        if rel_current == '.':
+            rel_current = ''
+        
+        return {
+            "success": True,
+            "files": items,
+            "currentPath": rel_current,  # Относительный путь
+            "rootPath": str(src_root).replace('\\', '/')
+        }
+
+    def _get_source_file_content(self, file_path):
+        """Читает содержимое файла по полному пути"""
+        full_path = Path(file_path)
+        
+        if not full_path.exists():
+            return {"success": False, "error": "Файл не найден"}
+        
+        try:
+            content = full_path.read_text(encoding='utf-8')
+            return {"success": True, "content": content, "filename": full_path.name}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def _create_java_file(self, class_name):
+        """
+        Создает новый Java файл в текущей папке
+        """
+        try:
+            import re
+            from pathlib import Path
+            
+            mod_name_lower = self.mod_name.lower()
+            
+            # Получаем текущий путь
+            if not hasattr(self, '_current_source_path'):
+                self._current_source_path = ""
+            
+            rel_path = self._current_source_path or ""
+            src_root = self.mod_folder / "src" / mod_name_lower
+            
+            if rel_path:
+                current_path = src_root / rel_path.replace('\\', '/').strip('/')
+            else:
+                current_path = src_root
+            
+            if not current_path.exists():
+                current_path.mkdir(parents=True, exist_ok=True)
+            
+            # Очищаем имя класса
+            clean_name = re.sub(r'[^a-zA-Z0-9_]', '', class_name.strip())
+            if not clean_name:
+                return {"success": False, "error": "Некорректное имя класса"}
+            
+            # Проверяем, существует ли уже файл
+            file_path = current_path / f"{clean_name}.java"
+            if file_path.exists():
+                return {"success": False, "error": f"Файл '{clean_name}.java' уже существует"}
+            
+            # Создаем содержимое Java файла
+            # Определяем пакет
+            package_parts = []
+            if rel_path:
+                package_parts = rel_path.replace('\\', '/').strip('/').split('/')
+            
+            # Убираем имя мода из пакета, если оно есть
+            package_name = mod_name_lower
+            if package_parts:
+                # Проверяем, не является ли первая часть именем мода
+                if package_parts[0] == mod_name_lower:
+                    package_parts = package_parts[1:]
+                if package_parts:
+                    package_name = f"{mod_name_lower}.{'.'.join(package_parts)}"
+            
+            # Базовый шаблон класса
+            java_content = f"""package {package_name};
+
+    import arc.*;
+    import arc.util.*;
+    import mindustry.*;
+    import mindustry.gen.*;
+    import mindustry.mod.*;
+    import mindustry.world.*;
+    import mindustry.type.*;
+
+    public class {clean_name} {{
+        
+        public {clean_name}() {{
+            // Конструктор
+        }}
+        
+        public void init() {{
+            // Инициализация
+        }}
+    }}
+    """
+            
+            # Записываем файл
+            file_path.write_text(java_content, encoding='utf-8')
+            
+            return {"success": True, "message": f"Файл '{clean_name}.java' создан", "filePath": str(file_path).replace('\\', '/')}
+            
+        except Exception as e:
+            print(f"Ошибка создания Java файла: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
+    
+    def _rename_source_file(self, old_path, new_name):
+        """Переименовывает файл в исходных кодах"""
+        try:
+            from pathlib import Path
+            
+            old = Path(old_path)
+            if not old.exists():
+                return {"success": False, "error": "Файл не найден"}
+            
+            if old.is_dir():
+                return {"success": False, "error": "Указанный путь является папкой, а не файлом"}
+            
+            # Проверяем расширение
+            old_ext = old.suffix
+            new_name_clean = new_name.strip()
+            
+            # Если новое имя не имеет расширения, добавляем старое
+            if not Path(new_name_clean).suffix:
+                new_name_clean += old_ext
+            
+            clean_name = re.sub(r'[<>:"/\\|?*]', '_', new_name_clean)
+            if not clean_name:
+                return {"success": False, "error": "Некорректное имя файла"}
+            
+            parent = old.parent
+            new_path = parent / clean_name
+            
+            if new_path.exists():
+                return {"success": False, "error": f"Файл с именем '{clean_name}' уже существует"}
+            
+            old.rename(new_path)
+            
+            return {"success": True, "message": f"Файл переименован в '{clean_name}'", "new_path": str(new_path)}
+            
+        except Exception as e:
+            print(f"Ошибка переименования файла в source: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
+
+    def _delete_source_file(self, file_path):
+        """Удаляет файл из исходных кодов"""
+        try:
+            from pathlib import Path
+            
+            file = Path(file_path)
+            if not file.exists():
+                return {"success": False, "error": "Файл не найден"}
+            
+            if file.is_dir():
+                return {"success": False, "error": "Указанный путь является папкой, а не файлом"}
+            
+            # Защита от удаления важных файлов
+            mod_name_lower = self.mod_name.lower()
+            src_root = self.mod_folder / "src" / mod_name_lower
+            
+            # Проверяем, что файл внутри src
+            if str(src_root) not in str(file.parent):
+                return {"success": False, "error": "Можно удалять только файлы внутри папки src"}
+            
+            # Проверяем, не является ли файл главным классом мода
+            main_class_name = f"{mod_name_lower.capitalize()}JavaMod.java"
+            if file.name == main_class_name:
+                return {"success": False, "error": f"Нельзя удалить главный класс мода: {main_class_name}"}
+            
+            # Удаляем файл
+            file.unlink()
+            print(f"Файл удалён: {file}")
+            
+            return {"success": True, "message": f"Файл '{file.name}' удалён"}
+            
+        except PermissionError as e:
+            return {"success": False, "error": f"Нет прав доступа: {str(e)}"}
+        except Exception as e:
+            print(f"Ошибка удаления файла в source: {e}")
+            import traceback
+            traceback.print_exc()
             return {"success": False, "error": str(e)}
 
 # ===================== EEL ФУНКЦИИ =====================
@@ -1135,13 +1819,266 @@ def send_compile_log(callback_id, message, level):
 def compile_completed(callback_id):
     pass
 
+@eel.expose
+def editor_create_texture_folder(parent_path, folder_name):
+    return current_editor._create_texture_folder(parent_path, folder_name) if current_editor else {"success": False}
+
+@eel.expose
+def editor_upload_texture_file(target_path, base64_data, filename):
+    return current_editor._upload_texture_file(target_path, base64_data, filename) if current_editor else {"success": False}
+
+@eel.expose
+def editor_rename_texture_item(old_path, new_name):
+    return current_editor._rename_texture_item(old_path, new_name) if current_editor else {"success": False}
+
+@eel.expose
+def editor_delete_texture_item(item_path):
+    print(f"editor_delete_texture_item вызван с параметром: {item_path}")  # Отладка
+    if current_editor is None:
+        print("current_editor is None!")  # Отладка
+        return {"success": False, "error": "Редактор не инициализирован"}
+    
+    result = current_editor._delete_texture_item(item_path)
+    print(f"Результат: {result}")  # Отладка
+    return result
+
+@eel.expose
+def editor_get_source_files(path=""):
+    """Получает список файлов в папке source"""
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._get_source_files(path)
+
+@eel.expose
+def editor_open_source_folder(path):
+    """Открывает папку в source - принимает относительный путь"""
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._get_source_files(path)
+
+@eel.expose
+def editor_get_source_file_content(file_path):
+    """Читает содержимое файла"""
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._get_source_file_content(file_path)
+
+@eel.expose
+def editor_create_source_folder(folder_name):
+    """
+    Создает папку в текущей директории исходных кодов
+    """
+    try:
+        from pathlib import Path
+        
+        if current_editor is None:
+            return {"success": False, "error": "Редактор не инициализирован"}
+        
+        # Получаем текущий относительный путь из редактора
+        # Для этого нужно сохранять текущий путь при навигации
+        # Используем атрибут объекта редактора
+        if not hasattr(current_editor, '_current_source_path'):
+            current_editor._current_source_path = ""
+        
+        rel_path = current_editor._current_source_path or ""
+        
+        # Формируем полный путь
+        mod_name_lower = current_editor.mod_name.lower()
+        src_root = current_editor.mod_folder / "src" / mod_name_lower
+        
+        if rel_path:
+            current_path = src_root / rel_path.replace('\\', '/').strip('/')
+        else:
+            current_path = src_root
+        
+        # Создаем новую папку
+        clean_name = re.sub(r'[<>:"/\\|?*]', '_', folder_name.strip())
+        if not clean_name:
+            return {"success": False, "error": "Некорректное имя папки"}
+        
+        new_folder = current_path / clean_name
+        
+        if new_folder.exists():
+            return {"success": False, "error": f"Папка '{clean_name}' уже существует"}
+        
+        new_folder.mkdir(parents=True, exist_ok=True)
+        
+        return {"success": True, "message": f"Папка '{clean_name}' создана", "path": str(new_folder)}
+        
+    except Exception as e:
+        print(f"Ошибка создания папки в source: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+@eel.expose
+def editor_rename_source_folder(old_path, new_name):
+    """
+    Переименовывает папку в исходных кодах
+    """
+    try:
+        from pathlib import Path
+        
+        if current_editor is None:
+            return {"success": False, "error": "Редактор не инициализирован"}
+        
+        old = Path(old_path)
+        if not old.exists():
+            return {"success": False, "error": "Папка не найдена"}
+        
+        if not old.is_dir():
+            return {"success": False, "error": "Указанный путь не является папкой"}
+        
+        clean_name = re.sub(r'[<>:"/\\|?*]', '_', new_name.strip())
+        if not clean_name:
+            return {"success": False, "error": "Некорректное имя папки"}
+        
+        parent = old.parent
+        new_path = parent / clean_name
+        
+        if new_path.exists():
+            return {"success": False, "error": f"Папка с именем '{clean_name}' уже существует"}
+        
+        old.rename(new_path)
+        
+        # Обновляем текущий путь в редакторе, если он был внутри переименованной папки
+        if hasattr(current_editor, '_current_source_path') and current_editor._current_source_path:
+            current_path = current_editor._current_source_path.replace('\\', '/')
+            old_name = old.name
+            if old_name in current_path:
+                # Обновляем путь в стеке навигации
+                current_editor._current_source_path = current_path.replace(old_name, clean_name, 1)
+        
+        return {"success": True, "message": f"Папка переименована в '{clean_name}'", "new_path": str(new_path)}
+        
+    except Exception as e:
+        print(f"Ошибка переименования папки в source: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+@eel.expose
+def editor_delete_source_folder(folder_path):
+    """
+    Удаляет папку из исходных кодов
+    """
+    try:
+        from pathlib import Path
+        import shutil
+        
+        if current_editor is None:
+            return {"success": False, "error": "Редактор не инициализирован"}
+        
+        # Нормализуем путь
+        folder_path = folder_path.replace('\\', '/').strip()
+        print(f"Удаление папки: {folder_path}")
+        
+        folder = Path(folder_path)
+        if not folder.exists():
+            return {"success": False, "error": "Папка не найдена"}
+        
+        if not folder.is_dir():
+            return {"success": False, "error": "Указанный путь не является папкой"}
+        
+        # Защита от удаления корневой папки
+        mod_name_lower = current_editor.mod_name.lower()
+        src_root = current_editor.mod_folder / "src" / mod_name_lower
+        
+        if str(folder).lower() == str(src_root).lower():
+            return {"success": False, "error": "Нельзя удалить корневую папку src"}
+        
+        # Проверяем, что папка внутри src
+        if str(src_root) not in str(folder.parent):
+            return {"success": False, "error": "Можно удалять только папки внутри src"}
+        
+        # Удаляем папку
+        shutil.rmtree(folder)
+        print(f"Папка удалена: {folder}")
+        
+        # Сбрасываем текущий путь, если он был внутри удалённой папки
+        if hasattr(current_editor, '_current_source_path'):
+            current_path = current_editor._current_source_path.replace('\\', '/')
+            if current_path.startswith(folder.name) or f"/{folder.name}" in current_path:
+                current_editor._current_source_path = ""
+        
+        return {"success": True, "message": f"Папка '{folder.name}' удалена"}
+        
+    except PermissionError as e:
+        return {"success": False, "error": f"Нет прав доступа: {str(e)}"}
+    except Exception as e:
+        print(f"Ошибка удаления папки в source: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+    
+@eel.expose
+def editor_save_source_file(file_path, content):
+    """
+    Сохраняет содержимое файла исходного кода
+    """
+    try:
+        from pathlib import Path
+        
+        if current_editor is None:
+            return {"success": False, "error": "Редактор не инициализирован"}
+        
+        full_path = Path(file_path)
+        if not full_path.exists():
+            return {"success": False, "error": "Файл не найден"}
+        
+        # Проверяем, что файл находится в папке мода
+        mod_name_lower = current_editor.mod_name.lower()
+        src_root = current_editor.mod_folder / "src" / mod_name_lower
+        
+        if str(src_root) not in str(full_path.parent):
+            return {"success": False, "error": "Можно редактировать только файлы внутри папки src"}
+        
+        # Сохраняем файл
+        full_path.write_text(content, encoding='utf-8')
+        
+        return {"success": True, "message": f"Файл '{full_path.name}' сохранён"}
+        
+    except Exception as e:
+        print(f"Ошибка сохранения файла: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+@eel.expose
+def editor_create_java_file(class_name):
+    """
+    Создает новый Java файл в текущей папке исходных кодов
+    """
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._create_java_file(class_name)
+
+@eel.expose
+def editor_rename_source_file(old_path, new_name):
+    """
+    Переименовывает файл в исходных кодах
+    """
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._rename_source_file(old_path, new_name)
+
+@eel.expose
+def editor_delete_source_file(file_path):
+    """
+    Удаляет файл из исходных кодов
+    """
+    print(f"editor_delete_source_file вызван с параметром: {file_path}")
+    if current_editor is None:
+        return {"success": False, "error": "Редактор не инициализирован"}
+    return current_editor._delete_source_file(file_path)
+
 # ===================== ЗАПУСК =====================
 def start_eel():
     Path(MODS_WORK_DIR).mkdir(parents=True, exist_ok=True)
     load_settings()
     webpath = resource_path("Creator/ui/web")
     eel.init(webpath, allowed_extensions=['.js', '.html'])
-    eel.start("manager.html", port=8000, mode='default')
+    eel.start("manager.html", port=8000, size=(1200, 1000))
 
 if __name__ == "__main__":
     print("="*50)

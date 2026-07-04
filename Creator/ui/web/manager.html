@@ -968,6 +968,92 @@
         .center-tab-btn {
             pointer-events: auto;
         }
+
+        /* Стили для кнопок в модальном окне действия 7 */
+        #action7-grid button {
+            transition: all 0.2s ease !important;
+        }
+
+        #action7-grid button:hover {
+            transform: translateY(-4px) !important;
+            border-color: #4ade80 !important;
+            background: #2d3a4e !important;
+        }
+
+        #action7-grid button:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* ============= СТИЛИ ДЛЯ ВКЛАДКИ SOURCE ============= */
+        .editor-source-container {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .editor-source-container .editor-card {
+            aspect-ratio: auto;
+            min-height: 120px;
+        }
+
+        #source-content-text {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            tab-size: 4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #d4d4d4;
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 16px;
+            overflow: auto;
+            flex: 1;
+        }
+        /* ============= СТИЛИ ДЛЯ РЕДАКТОРА В SOURCE ============= */
+        #source-content-textarea {
+            scrollbar-width: thin;
+            scrollbar-color: #3d3d5c #0f172a;
+        }
+
+        #source-content-textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #source-content-textarea::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        #source-content-textarea::-webkit-scrollbar-thumb {
+            background: #3d3d5c;
+            border-radius: 4px;
+        }
+
+        #source-content-textarea::-webkit-scrollbar-thumb:hover {
+            background: #4d4d6c;
+        }
+
+        #source-content-display {
+            scrollbar-width: thin;
+            scrollbar-color: #3d3d5c #0f172a;
+        }
+
+        #source-content-display::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #source-content-display::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        #source-content-display::-webkit-scrollbar-thumb {
+            background: #3d3d5c;
+            border-radius: 4px;
+        }
+
+        #source-content-display::-webkit-scrollbar-thumb:hover {
+            background: #4d4d6c;
+        }
     </style>
 </head>
 <body>
@@ -995,6 +1081,7 @@
                 <div class="editor-left-panel">
                     <div class="editor-panel-header">🎮 <span data-i18n="panel_title"></span></div>
                     <div class="editor-panel-buttons">
+                        <button class="editor-action-btn" onclick="onActionClick(7)"><span class="btn-icon"><img src="png/copper-wall.png"></span><span class="btn-text" data-i18n="action7"></span></button>
                         <button class="editor-action-btn" onclick="onActionClick(1)"><span class="btn-icon"><img src="png/copper.png"></span><span class="btn-text" data-i18n="action1"></span></button>
                         <button class="editor-action-btn" onclick="onActionClick(2)"><span class="btn-icon"><img src="png/water.png"></span><span class="btn-text" data-i18n="action2"></span></button>
                         <button class="editor-action-btn" onclick="onActionClick(3)"><span class="btn-icon">🔧</span><span class="btn-text" data-i18n="action3"></span></button>
@@ -1016,6 +1103,9 @@
                         </button>
                         <button class="editor-center-tab-btn" data-tab="textures">
                             <span>🖼️</span> <span data-i18n="tab_textures"></span>
+                        </button>
+                        <button class="editor-center-tab-btn" data-tab="source">
+                            <span>S</span> <span data-i18n="tab_source">Source</span>
                         </button>
                         <button class="editor-center-tab-btn" data-tab="translations">
                             <span>🌐</span> <span data-i18n="action4"></span>
@@ -1057,6 +1147,18 @@
                             </div>
                         </div>
                     </div>
+                    <div id="source-tab" class="editor-tab-content">
+                        <div class="editor-filter-bar">
+                            <span class="editor-filter-label"><span data-i18n="tab_source">Source Code</span></span>
+                            <button class="editor-settings-btn" onclick="createSourceFolder()">📁 <span data-i18n="create_folder">Создать папку</span></button>
+                            <button class="editor-settings-btn" onclick="createJavaFile()">☕ <span data-i18n="create_java_file">Создать Java файл</span></button>
+                            <button class="editor-settings-btn" id="source-back-btn" style="display:none" onclick="goBackSource()">← <span data-i18n="back">Назад</span></button>
+                            <span class="editor-filter-status" id="source-path">src/</span>
+                        </div>
+                        <div class="editor-source-container" id="source-container" style="padding: 20px; flex: 1; overflow-y: auto;">
+                            <div class="editor-empty-state">☕ Загрузка исходных файлов...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1066,11 +1168,11 @@
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header" data-i18n="settings_title">⚙</div>
+            <!-- Замените существующий select на этот -->
             <div class="form-group">
                 <label data-i18n="language_label">Язык / Language</label>
                 <select id="langSelect" style="width:100%; padding:12px; background:#25253a; border:1px solid #3d3d5c; border-radius:8px; color:#fff;">
-                    <option value="ru">Русский</option>
-                    <option value="en">English</option>
+                    <!-- Опции будут добавлены динамически через JS -->
                 </select>
             </div>
             <div class="form-group">
@@ -1127,13 +1229,13 @@
     <div id="confirm-modal" class="editor-modal confirm-modal">
         <div class="editor-modal-content">
             <div class="editor-modal-header">
-                <h3 id="confirm-title">⚠️ Подтверждение</h3>
+                <h3 id="confirm-title"><samp data-i18n="confirm_title"></h3>
                 <button class="editor-modal-close" onclick="closeConfirmModal()">×</button>
             </div>
             <div class="editor-modal-body" id="confirm-message"></div>
             <div class="editor-modal-footer">
-                <button class="btn-secondary" id="confirm-cancel-btn"></button>
-                <button class="btn-danger" id="confirm-ok-btn"></button>
+                <button class="btn-secondary" id="confirm-cancel-btn" data-i18n="cancel"></button>
+                <button class="btn-danger" id="confirm-ok-btn">ok</button>
             </div>
         </div>
     </div>
@@ -1258,6 +1360,68 @@
         </div>
     </div>
 
+    <!-- Модальное окно для установки Java с прогрессом -->
+    <div id="java-install-modal" class="editor-modal">
+        <div class="editor-modal-content" style="min-width: 450px;">
+            <div class="editor-modal-header">
+                <h3>📥 Установка Java 17</h3>
+                <button class="editor-modal-close" onclick="closeJavaInstallModal()">×</button>
+            </div>
+            <div class="editor-modal-body">
+                <div id="java-install-status" style="margin-bottom: 20px;">
+                    <div id="java-install-message" style="margin-bottom: 15px; text-align: center;">Подготовка к установке...</div>
+                    <div class="editor-progress-bar-container" style="margin: 10px 0;">
+                        <div class="editor-progress-bar" id="java-install-progress" style="width: 0%; background: #4ade80;"></div>
+                    </div>
+                    <div id="java-install-percent" style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 8px;">0%</div>
+                    <div id="java-install-log" style="font-size: 12px; color: #94a3b8; max-height: 150px; overflow-y: auto; margin-top: 15px; padding: 10px; background: #1e293b; border-radius: 8px; font-family: monospace;"></div>
+                </div>
+            </div>
+            <div class="editor-modal-footer">
+                <button class="btn-secondary" id="java-install-close-btn" onclick="closeJavaInstallModal()" disabled>Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- редактор блоков -->
+    <div id="action7-modal" class="editor-modal">
+        <div class="editor-modal-content" style="min-width: 500px; max-width: 700px;">
+            <div class="editor-modal-header">
+                <h3><samp data-i18n="select_BT"></h3>
+                <button class="editor-modal-close" onclick="closeAction7Modal()">×</button>
+            </div>
+            <div class="editor-modal-body" id="action7-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 10px 0;" id="action7-grid">
+                    <!-- Кнопки будут добавлены через JS -->
+                </div>
+            </div>
+            <div class="editor-modal-footer">
+                <button class="btn-secondary" onclick="closeAction7Modal()"><samp data-i18n="close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для ввода текста -->
+    <div id="text-input-modal" class="editor-modal">
+        <div class="editor-modal-content" style="min-width: 400px; max-width: 500px;">
+            <div class="editor-modal-header">
+                <h3 id="text-input-title">📝 Ввод</h3>
+                <button class="editor-modal-close" onclick="closeTextInputModal()">×</button>
+            </div>
+            <div class="editor-modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label id="text-input-label" style="display: block; margin-bottom: 8px; font-weight: 600; color: #86efac;">Введите имя:</label>
+                    <input type="text" id="text-input-field" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: #e2e8f0; font-size: 14px;" placeholder="Введите текст...">
+                </div>
+                <div id="text-input-error" style="color: #f87171; font-size: 13px; display: none; margin-bottom: 10px;"></div>
+            </div>
+            <div class="editor-modal-footer">
+                <button class="btn-secondary" onclick="closeTextInputModal()" data-i18n="cancel">Отмена</button>
+                <button class="btn-primary" id="text-input-confirm-btn" onclick="confirmTextInput()" data-i18n="create_button">✅ Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/eel.js"></script>
     <script>
         // ============= ПЕРЕКЛЮЧЕНИЕ СТРАНИЦ =============
@@ -1322,17 +1486,57 @@
             "Found", "Translation_Editor", "Translations_Update", "Translation_Save",
             "Translation_t_format", "Translation_description", "Translation_name",
             "Translation_description_2", "Translation_name_2", "t1s", "t2s", "t3s",
-            "action5", "action6", "Обновить", "iconload", "geticon", "no_element_translation"
+            "action5", "action6", "Обновить", "iconload", "geticon", "no_element_translation",
+            "java_download_title", "java_t_1", "java_t_2", "error", "download_complete",
+            "jdk_download_complete", "java_100_install", "action7", "wall_name", "select_BT",
+            "create_folder", "upload_texture", "rename_texture", "delete_texture",
+            "rename_texture_title", "enter_new_name", "texture_renamed_success",
+            "texture_renamed_error", "texture_deleted_success", "texture_deleted_error",
+            "texture_upload_success", "texture_upload_error", "folder_created_success",
+            "folder_created_error", "enter_folder_name", "select_png_file", "no_folder_name",
+            "Confirmation", "no_name_i", "tab_source", "open_java", "files", "open_file",
+            "create_java_file", "create_java_n1", "create_java_n2", "error_java_n1", "error_java_n2",
+            "file", "created", "Actionsfor", "file_saved", "no_save_file_ch", "copy_class"
         ];
         
         // Объединяем ключи
         const ALL_TRANSLATION_KEYS = [...TRANSLATION_KEYS_MANAGER, ...TRANSLATION_KEYS_EDITOR];
+
         
         function t(key) {
             if (translations[key] !== undefined && translations[key] !== '') {
                 return translations[key];
             }
             return key;
+        }
+        // Добавьте эту функцию перед или после loadTranslations()
+        async function loadLanguageList() {
+            try {
+                const langInfo = await eel.get_current_lang_info()();
+                const langSelect = document.getElementById('langSelect');
+                if (!langSelect) return;
+                
+                langSelect.innerHTML = '';
+                
+                const availableLangs = langInfo.available;
+                const availableNames = langInfo.available_names;
+                
+                for (let i = 0; i < availableLangs.length; i++) {
+                    const langCode = availableLangs[i];
+                    const langName = availableNames[i] || langCode;
+                    const option = document.createElement('option');
+                    option.value = langCode;
+                    option.textContent = langName;
+                    langSelect.appendChild(option);
+                }
+            } catch(e) {
+                console.error("Ошибка загрузки списка языков:", e);
+                // Fallback - добавим ru и en по умолчанию
+                const langSelect = document.getElementById('langSelect');
+                if (langSelect && langSelect.children.length === 0) {
+                    langSelect.innerHTML = '<option value="ru">Русский</option><option value="en">English</option>';
+                }
+            }
         }
         
         async function loadTranslations() {
@@ -1369,6 +1573,11 @@
             setTimeout(() => toast.remove(), 2800);
         }
         
+        // ============= ДАННЫЕ ДЛЯ ДЕЙСТВИЯ 7 =============
+        const ACTION7_BLOCKS = [
+            { type: 'wall', name: t('wall_name'), icon: '🧱' },
+        ];
+
         // ============= ОСНОВНАЯ ЛОГИКА МЕНЕДЖЕРА (ОРИГИНАЛ) =============
         let deleteModName = null;
 
@@ -1463,7 +1672,8 @@
                 if (status.has_java) {
                     javaStatus.innerHTML = `<div class="java-status success">✅ ${t('java_status_ok')}: ${status.version}<br>${status.path}</div>`;
                 } else {
-                    javaStatus.innerHTML = `<div class="java-status error">❌ ${t('java_status_error')}<br><button class="btn btn-primary" style="margin-top:10px" onclick="openCreateModal()">📥 ${t('java_install_btn')}</button></div>`;
+                    // ИСПРАВЛЕНО: теперь вызывает installJava(), а не openCreateModal()
+                    javaStatus.innerHTML = `<div class="java-status error">❌ ${t('java_status_error')}<br><button class="btn btn-primary" style="margin-top:10px" onclick="installJava()">📥 ${t('java_install_btn')}</button></div>`;
                 }
             } catch (e) {
                 javaStatus.innerHTML = `<div class="java-status error">❌ ${t('java_checking')}</div>`;
@@ -1481,8 +1691,32 @@
 
         async function loadSettingsToModal() {
             try {
+                // Загружаем список языков перед установкой значения
+                await loadLanguageList();
+                
                 const settings = await eel.get_settings()();
-                document.getElementById('langSelect').value = settings.language || 'ru';
+                const langSelect = document.getElementById('langSelect');
+                
+                // Устанавливаем выбранный язык
+                if (langSelect) {
+                    // Проверяем, есть ли такое значение в select
+                    let optionExists = false;
+                    for (let i = 0; i < langSelect.options.length; i++) {
+                        if (langSelect.options[i].value === settings.language) {
+                            langSelect.selectedIndex = i;
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    // Если языка нет в списке, добавляем его
+                    if (!optionExists && settings.language) {
+                        const option = document.createElement('option');
+                        option.value = settings.language;
+                        option.textContent = settings.language;
+                        langSelect.appendChild(option);
+                        langSelect.value = settings.language;
+                    }
+                }
                 
                 const freePath = await eel.get_free_game_path()();
                 const freeOption = document.getElementById('freeGameOption');
@@ -1620,6 +1854,7 @@
 
         // ============= ИНИЦИАЛИЗАЦИЯ МЕНЕДЖЕРА =============
         document.addEventListener('DOMContentLoaded', async () => {
+            await loadLanguageList();
             await loadTranslations();
             await loadMods();
             showMainPanel();
@@ -1880,12 +2115,25 @@
                 if (btn.dataset.tab === tabId) btn.classList.add('active');
                 else btn.classList.remove('active');
             });
-            document.getElementById('blocks-tab').classList.remove('active');
-            document.getElementById('textures-tab').classList.remove('active');
-            document.getElementById('translations-tab').classList.remove('active');
-            if (tabId === 'blocks') document.getElementById('blocks-tab').classList.add('active');
-            else if (tabId === 'textures') { document.getElementById('textures-tab').classList.add('active'); if (!texturesData) loadTextures(); }
-            else if (tabId === 'translations') { document.getElementById('translations-tab').classList.add('active'); loadTranslationsData(); }
+            
+            document.querySelectorAll('.editor-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            const targetElement = document.getElementById(`${tabId}-tab`);
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
+            
+            if (tabId === 'textures' && !texturesData) {
+                loadTextures();
+            } else if (tabId === 'translations') {
+                loadTranslationsData();
+            } else if (tabId === 'source') {
+                // ДОБАВЬТЕ ЭТУ СТРОЧКУ:
+                updateSourceBackButton();
+                loadSourceFiles();
+            }
         }
         
         // Функции для предметов
@@ -2091,7 +2339,20 @@
         function renderTextures() {
             const container = document.getElementById('textures-container');
             const backBtnDisplay = textureNavStack.length > 0 ? 'block' : 'none';
-            container.innerHTML = `<div class="editor-filter-bar"><span class="editor-filter-label">🎨 ${t('textures_filter')}</span><button class="editor-settings-btn" onclick="openTextureSettingsModal()">⚙️ ${t('settings')}</button><button class="editor-settings-btn" id="texture-back-btn" style="display:${backBtnDisplay}" onclick="goBackTexture()">← ${t('back')}</button><span class="editor-filter-status" id="texture-filter-status"></span><span class="editor-filter-status" id="texture-path" style="margin-left:auto"></span></div><div class="editor-cards-grid" id="textures-grid"></div>`;
+            
+            container.innerHTML = `
+                <div class="editor-filter-bar">
+                    <span class="editor-filter-label">🎨 ${t('textures_filter')}</span>
+                    <button class="editor-settings-btn" onclick="openTextureSettingsModal()">⚙️ ${t('settings')}</button>
+                    <button class="editor-settings-btn" onclick="createTextureFolder()">📁 ${t('create_folder')}</button>
+                    <button class="editor-settings-btn" onclick="uploadTextureFile()">📤 ${t('upload_texture')}</button>
+                    <button class="editor-settings-btn" id="texture-back-btn" style="display:${backBtnDisplay}" onclick="goBackTexture()">← ${t('back')}</button>
+                    <span class="editor-filter-status" id="texture-filter-status"></span>
+                    <span class="editor-filter-status" id="texture-path" style="margin-left:auto"></span>
+                </div>
+                <div class="editor-cards-grid" id="textures-grid"></div>
+            `;
+            
             loadCurrentTextureFolder();
         }
         
@@ -2101,44 +2362,100 @@
             grid.innerHTML = '<div class="editor-empty-state">✨ Загрузка...</div>';
             try {
                 const items = await eel.editor_get_texture_folder_content(currentTexturePath)();
-                if (!items || items.length === 0) { grid.innerHTML = `<div class="editor-empty-state">📭<br>${currentTexturePath === texturesData?.rootPath ? t('empty_textures_title') : t('folder_empty')}</div>`; updateTexturePathDisplay(); updateTextureFilterStatus(); return; }
+                //console.log('Получено элементов:', items ? items.length : 0);
+                
+                if (!items || items.length === 0) {
+                    grid.innerHTML = `<div class="editor-empty-state">📭<br>${currentTexturePath === texturesData?.rootPath ? t('empty_textures_title') : t('folder_empty')}</div>`;
+                    updateTexturePathDisplay();
+                    updateTextureFilterStatus();
+                    return;
+                }
                 const filtered = items.filter(item => selectedTextureTypes.has(item.type));
-                if (filtered.length === 0) { grid.innerHTML = `<div class="editor-empty-state">🚫<br>${t('no_items_to_show')}</div>`; updateTexturePathDisplay(); updateTextureFilterStatus(); return; }
+                if (filtered.length === 0) {
+                    grid.innerHTML = `<div class="editor-empty-state">🚫<br>${t('no_items_to_show')}</div>`;
+                    updateTexturePathDisplay();
+                    updateTextureFilterStatus();
+                    return;
+                }
                 grid.innerHTML = '';
                 for (const item of filtered) {
                     const card = document.createElement('div');
                     card.className = 'editor-card';
                     const iconDiv = document.createElement('div');
                     iconDiv.className = 'editor-card-icon';
-                    if (item.type === 'folder') iconDiv.textContent = '📁';
-                    else {
+                    if (item.type === 'folder') {
+                        iconDiv.textContent = '📁';
+                    } else {
                         try {
-                            const imgData = await eel.editor_get_texture_image(item.path)();
-                            if (imgData) { const img = document.createElement('img'); img.className = 'editor-card-icon-img'; img.src = imgData; iconDiv.appendChild(img); }
-                            else iconDiv.textContent = '🖼️';
-                        } catch(e) { iconDiv.textContent = '🖼️'; }
+                            const imgData = await eel.editor_get_texture_image(item.fullPath || item.path)();
+                            if (imgData) {
+                                const img = document.createElement('img');
+                                img.className = 'editor-card-icon-img';
+                                img.src = imgData;
+                                iconDiv.appendChild(img);
+                            } else {
+                                iconDiv.textContent = '🖼️';
+                            }
+                        } catch(e) {
+                            iconDiv.textContent = '🖼️';
+                        }
                     }
                     card.appendChild(iconDiv);
+                    
                     const nameDiv = document.createElement('div');
                     nameDiv.className = 'editor-card-name';
                     let displayName = item.name;
-                    if (item.type !== 'folder') displayName = item.name.replace(/\.[^/.]+$/, '');
-                    if (displayName.length > 25) displayName = displayName.slice(0, 22) + '...';
+                    if (item.type !== 'folder') {
+                        displayName = item.name.replace(/\.[^/.]+$/, '');
+                    }
+                    if (displayName.length > 25) {
+                        displayName = displayName.slice(0, 22) + '...';
+                    }
                     nameDiv.textContent = displayName;
                     card.appendChild(nameDiv);
+                    
                     const typeDiv = document.createElement('div');
                     typeDiv.className = 'editor-card-type';
-                    if (item.type === 'folder') typeDiv.textContent = `📂 ${item.itemCount || 0} ${t('elements')}`;
-                    else typeDiv.textContent = `${item.width || '?'}x${item.height || '?'}`;
+                    if (item.type === 'folder') {
+                        typeDiv.textContent = `📂 ${item.itemCount || 0} ${t('elements')}`;
+                    } else {
+                        typeDiv.textContent = `${item.width || '?'}x${item.height || '?'}`;
+                    }
                     card.appendChild(typeDiv);
-                    if (item.type === 'folder') card.onclick = () => openTextureFolder(item.path);
-                    else card.onclick = () => openTextureFile(item.path);
-                    card.oncontextmenu = (e) => { e.preventDefault(); showTextureMenu(item); return false; };
+                    
+                    // Используем fullPath для операций
+                    const itemPath = item.fullPath || item.path;
+                    
+                    if (item.type === 'folder') {
+                        card.onclick = () => openTextureFolder(itemPath);
+                    } else {
+                        // Для файлов - открываем меню действий по ЛКМ
+                        card.onclick = () => {
+                            showTextureMenu({
+                                type: item.type,
+                                name: item.name,
+                                path: itemPath
+                            });
+                        };
+                    }
+                    
+                    card.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        showTextureMenu({
+                            type: item.type,
+                            name: item.name,
+                            path: itemPath  // Используем полный путь
+                        });
+                        return false;
+                    };
                     grid.appendChild(card);
                 }
                 updateTexturePathDisplay();
                 updateTextureFilterStatus();
-            } catch(e) { grid.innerHTML = `<div class="editor-empty-state">⚠️<br>${t('texture_open_error')}</div>`; }
+            } catch(e) {
+                console.error('Ошибка загрузки:', e);
+                grid.innerHTML = `<div class="editor-empty-state">⚠️<br>${t('texture_open_error')}</div>`;
+            }
         }
         
         async function openTextureFolder(path) { textureNavStack.push(currentTexturePath); currentTexturePath = path; renderTextures(); }
@@ -2165,7 +2482,7 @@
         }
         
         function showTextureMenu(item) {
-            document.getElementById('context-title').innerHTML = `🎯 Действия для: ${item.name}`;
+            document.getElementById('context-title').innerHTML = `${t('Actionsfor')}: ${item.name}`;
             let body = '';
             const escapedPath = item.path.replace(/'/g, "\\'");
             if (item.type === 'folder') body = `<button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="openTextureFolder('${escapedPath}')">${t('open_folder')}</button><button class="btn-secondary" style="width:100%" onclick="copyToClipboard('${escapedPath}')">${t('copy_path')}</button>`;
@@ -2276,6 +2593,7 @@
             else if (action === 5) await eel.editor_open_mod_folder();
             else if (action === 6) openUploadIconModal();
             else if (action === 'refresh') { await loadBlocks(); if (document.querySelector('.editor-center-tab-btn[data-tab="textures"].active')) loadTextures(); if (document.querySelector('.editor-center-tab-btn[data-tab="translations"].active')) loadTranslationsData(); showToast(`${t('Обновить')}`); }
+            else if (action === 7) openAction7Modal();
             else showToast(`Действие ${action} выполнено`);
         }
         
@@ -2299,6 +2617,1282 @@
                 return false;
             });
         });
+        // JAVA DOWNLOAD
+        let isJavaInstalling = false;
+        let currentJavaInstallCallback = null;
+
+        async function installJava() {
+            // Запрещаем повторную установку
+            if (isJavaInstalling) {
+                showToast('⚠️ Установка Java уже выполняется', 'warning');
+                return;
+            }
+            
+            try {
+                isJavaInstalling = true;
+                
+                // Сохраняем текущий контент главной панели для восстановления
+                const mainPanel = document.getElementById('mainPanel');
+                const originalContent = mainPanel.innerHTML;
+                
+                // Показываем интерфейс установки
+                mainPanel.innerHTML = `
+                    <div class="panel-card">
+                        <div class="panel-title">${t('java_download_title')}</div>
+                        <p style="text-align:center" id="javaInstallMessage">${t('java_t_1')}</p>
+                        <div class="progress-bar"><div class="progress-fill" id="javaInstallProgress"></div></div>
+                        <p id="javaInstallStatus" style="text-align:center; font-size:12px; color:#aaa"></p>
+                        <div id="javaInstallLog" style="font-size:12px; max-height:200px; overflow-y:auto; margin-top:15px; background:#1e1e2e; border-radius:8px; padding:10px;"></div>
+                        <div style="text-align:center; margin-top:20px;">
+                            <button class="btn btn-secondary" id="cancelJavaInstallBtn" onclick="cancelJavaInstall()">${t('cancel')}</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Проверяем права администратора
+                const adminStatus = await eel.get_admin_rights_status()();
+                const installPath = adminStatus.has_admin ? 
+                    "C:\\Program Files\\Java\\jdk-17" : 
+                    "C:\\mmc_java";
+                
+                const msgEl = document.getElementById('javaInstallMessage');
+                if (msgEl) {
+                    msgEl.innerHTML = `
+                        📂 Путь установки: ${installPath}<br>
+                        👑 Права администратора: ${adminStatus.has_admin ? '✅ Да' : '⚠️ Нет (установка в папку C:\\mmc_java)'}<br>
+                        <span style="font-size:11px; color:#888;">Установка может занять 1-3 минуты...</span>
+                    `;
+                }
+                
+                currentJavaInstallCallback = Date.now().toString();
+                
+                const result = await eel.install_java_web(currentJavaInstallCallback)();
+                
+                if (!result.success) {
+                    showToast(`${t('error')}: ${result.message}`, 'error');
+                    // Восстанавливаем интерфейс при ошибке
+                    mainPanel.innerHTML = originalContent;
+                    isJavaInstalling = false;
+                    checkJava();
+                }
+            } catch(e) {
+                showToast(`${t('error')}: ${e}`, 'error');
+                const mainPanel = document.getElementById('mainPanel');
+                showMainPanel();
+                isJavaInstalling = false;
+                checkJava();
+            }
+        }
+
+        function cancelJavaInstall() {
+            if (isJavaInstalling) {
+                showToast('Установка отменена', 'warning');
+                isJavaInstalling = false;
+                currentJavaInstallCallback = null;
+                showMainPanel();
+                checkJava();
+            }
+        }
+
+        eel.expose(java_install_progress);
+        function java_install_progress(callbackId, percent, message) {
+            if (callbackId === currentJavaInstallCallback) {
+                const progressFill = document.getElementById('javaInstallProgress');
+                const statusEl = document.getElementById('javaInstallStatus');
+                const msgEl = document.getElementById('javaInstallMessage');
+                const logEl = document.getElementById('javaInstallLog');
+                
+                if (progressFill) progressFill.style.width = (percent * 100) + '%';
+                if (statusEl) statusEl.innerHTML = `${Math.round(percent * 100)}%`;
+                if (msgEl) msgEl.innerHTML = message;
+                
+                if (logEl && message && !message.includes('%')) {
+                    const logLine = document.createElement('div');
+                    logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                    logEl.appendChild(logLine);
+                    logEl.scrollTop = logEl.scrollHeight;
+                }
+            }
+        }
+
+        eel.expose(java_install_complete);
+        function java_install_complete(callbackId, success, message) {
+            if (callbackId === currentJavaInstallCallback) {
+                isJavaInstalling = false;
+                
+                if (success) {
+                    showToast(`${t('jdk_download_complete')}`, 'success');
+                    // Добавляем кнопку для обновления Java статуса
+                    const mainPanel = document.getElementById('mainPanel');
+                    mainPanel.innerHTML = `
+                        <div class="panel-card">
+                            <div class="panel-title">${t('download_complete')}</div>
+                            <p style="text-align:center">${t('jdk_download_complete')}</p>
+                            <div style="text-align:center; margin-top:20px;">
+                                <button class="btn btn-primary" onclick="checkJavaAndRefresh()">${t('java_100_install')}</button>
+                            </div>
+                        </div>
+                    `;
+                    // Обновляем статус Java
+                    setTimeout(() => {
+                        checkJava();
+                    }, 2000);
+                } else {
+                    showToast(`❌ Ошибка: ${message}`, 'error');
+                    showMainPanel();
+                    checkJava();
+                }
+                currentJavaInstallCallback = null;
+            }
+        }
+
+        // Функция для обновления статуса Java и возврата в главное меню
+        async function checkJavaAndRefresh() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                // Вызываем Python-функцию и ждем ответ
+                let result = await eel.restart_pc_jdk_100_i();
+                statusDiv.textContent = result;
+                console.log(result);
+            } catch (error) {
+                statusDiv.textContent = `${t('error')}` + error;
+                console.error(error);
+            }
+        }
+
+        // БЛОКИРУЕМ ОТКРЫТИЕ МОДА ВО ВРЕМЯ УСТАНОВКИ JAVA
+        // Переопределяем функцию openMod
+        const originalOpenMod = window.openMod;
+        window.openMod = async function(modName) {
+            if (isJavaInstalling) {
+                showToast(`${t("java_t_2")}`, 'warning');
+                return;
+            }
+            if (originalOpenMod) {
+                return originalOpenMod(modName);
+            }
+        };
+
+        // Также блокируем открытие через модальное окно
+        function openDeleteModal(modName) {
+            if (isJavaInstalling) {
+                showToast(`${t("java_t_2")}`, 'warning');
+                return;
+            }
+            deleteModName = modName;
+            document.getElementById('deleteModName').innerText = modName;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        function openCreateModal() {
+            if (isJavaInstalling) {
+                showToast(`${t("java_t_2")}`, 'warning');
+                return;
+            }
+            document.getElementById('modNameInput').value = '';
+            document.getElementById('createModModal').classList.add('show');
+        }
+
+        // blocks creator
+        function openAction7Modal() {
+            const modal = document.getElementById('action7-modal');
+            const grid = document.getElementById('action7-grid');
+            
+            // Очищаем сетку
+            grid.innerHTML = '';
+            
+            // Создаем кнопки для каждого типа блока
+            ACTION7_BLOCKS.forEach(block => {
+                const btn = document.createElement('button');
+                btn.className = 'editor-action-btn';
+                btn.style.cssText = `
+                    background: linear-gradient(105deg, #1e293b, #0f172a);
+                    border: 1px solid rgba(74, 222, 128, 0.3);
+                    border-radius: 16px;
+                    padding: 16px;
+                    color: #e2e8f0;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    text-align: center;
+                    width: 100%;
+                    min-height: 100px;
+                `;
+                
+                // Используем t() здесь, когда переводы уже загружены
+                const displayName = t(block.name);
+                
+                btn.innerHTML = `
+                    <span style="font-size: 40px; display: block;">${block.icon}</span>
+                    <span style="font-size: 13px;">${displayName}</span>
+                `;
+                
+                btn.onmouseover = function() {
+                    this.style.transform = 'translateY(-4px)';
+                    this.style.borderColor = '#4ade80';
+                    this.style.background = '#2d3a4e';
+                };
+                
+                btn.onmouseout = function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                    this.style.background = 'linear-gradient(105deg, #1e293b, #0f172a)';
+                };
+                
+                btn.onclick = function() {
+                    closeAction7Modal();
+                    handleAction7Block(block);
+                };
+                
+                grid.appendChild(btn);
+            });
+            
+            modal.classList.add('active');
+        }
+
+        // Закрытие модального окна действия 7
+        function closeAction7Modal() {
+            document.getElementById('action7-modal').classList.remove('active');
+        }
+
+        // Обработчик выбора блока
+        function handleAction7Block(block) {
+            switch(block.type) {
+                case 'wall':
+                    // Для этих типов открываем модальное окно создания соответствующего блока
+                    showBlockCreationModal(block);
+                    break;
+                default:
+                    showToast(`Создание блока типа "${block.name}" будет доступно в следующей версии`, 'info');
+            }
+        }
+
+        // Модальное окно для создания блока
+        function showBlockCreationModal(block) {
+            // Здесь можно добавить специфическую логику для каждого типа блока
+            // Например, создать модальное окно с настройками для стены, конвейера и т.д.
+            showToast(`📝 Создание блока: ${block.name} (тип: ${block.type})`, 'info');
+            // Временно показываем сообщение, что функция в разработке
+            // В будущем здесь можно открыть отдельное модальное окно с настройками
+        }
+        // ============= ЗАКРЫТИЕ МОДАЛЬНОГО ОКНА УСТАНОВКИ JAVA =============
+        function closeJavaInstallModal() {
+            const modal = document.getElementById('java-install-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            // Если установка еще выполняется, отменяем её
+            if (isJavaInstalling) {
+                isJavaInstalling = false;
+                currentJavaInstallCallback = null;
+                showMainPanel();
+                checkJava();
+            }
+        }
+
+        // ============= УПРАВЛЕНИЕ ТЕКСТУРАМИ =============
+        // Создание папки в текстурах
+        function createTextureFolder() {
+            showTextInputModal(
+                t('create_folder') || '📁 Создать папку',
+                t('enter_folder_name') || 'Введите имя папки:',
+                '',
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(t('no_folder_name'), 'error');
+                        return false;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_create_texture_folder(currentTexturePath, value.trim())();
+                        if (result && result.success) {
+                            showToast(`✅ ${t('folder_created_success')}`, 'success');
+                            loadCurrentTextureFolder();
+                            return true;
+                        } else {
+                            showToast(`❌ ${t('folder_created_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        showToast(`❌ ${t('folder_created_error')}`, 'error');
+                        return false;
+                    }
+                }
+            );
+        }
+
+        // Загрузка текстуры в текущую папку
+        function uploadTextureFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/png';
+            input.onchange = async function(e) {
+                if (!e.target.files || e.target.files.length === 0) return;
+                const file = e.target.files[0];
+                
+                if (file.type !== 'image/png') {
+                    showToast(t('select_png_file') || 'Выберите PNG файл', 'error');
+                    return;
+                }
+                
+                try {
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    const result = await eel.editor_upload_texture_file(currentTexturePath, base64, file.name)();
+                    if (result && result.success) {
+                        showToast(`✅ ${t('texture_upload_success')}`, 'success');
+                        loadCurrentTextureFolder();
+                    } else {
+                        showToast(`❌ ${t('texture_upload_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                    }
+                } catch(e) {
+                    showToast(`❌ ${t('texture_upload_error')}`, 'error');
+                }
+            };
+            input.click();
+        }
+
+        // Обновлённое меню для текстуры (ПКМ) - с переименованием и удалением
+        function showTextureMenu(item) {
+            document.getElementById('context-title').innerHTML = `${t('Actionsfor')}: ${item.name}`;
+            
+            // Нормализуем путь - заменяем \ на / и удаляем лишние пробелы
+            const itemPath = item.path.replace(/\\/g, '/').trim();
+            console.log('Исходный путь:', item.path);
+            console.log('Нормализованный путь:', itemPath);
+            
+            let body = '';
+            if (item.type === 'folder') {
+                body = `
+                    <button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="openTextureFolder('${itemPath}')">📂 ${t('open_folder')}</button>
+                    <button class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="renameTextureItem('${itemPath}', 'folder')">✏️ ${t('rename_texture')}</button>
+                    <button class="btn-danger" style="width:100%" onclick="deleteTextureItem('${itemPath}', 'folder')">🗑️ ${t('delete_texture')}</button>
+                    <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="copyToClipboard('${itemPath}')">📋 ${t('copy_path')}</button>
+                `;
+            } else {
+                body = `
+                    <button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="openTextureFile('${itemPath}')">🖼️ ${t('open_texture')}</button>
+                    <button class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="renameTextureItem('${itemPath}', 'file')">✏️ ${t('rename_texture')}</button>
+                    <button class="btn-danger" style="width:100%" onclick="deleteTextureItem('${itemPath}', 'file')">🗑️ ${t('delete_texture')}</button>
+                    <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="copyToClipboard('${itemPath}')">📋 ${t('copy_path')}</button>
+                `;
+            }
+            
+            document.getElementById('context-body').innerHTML = body;
+            document.getElementById('context-menu').classList.add('active');
+        }
+
+        // Переименование текстуры/папки
+        async function renameTextureItem(path, type) {
+            closeModal('context-menu');
+            
+            const pathParts = path.split(/[\\/]/);
+            const currentName = pathParts[pathParts.length - 1];
+            
+            const typeLabel = type === 'folder' ? '' : '';
+            
+            showTextInputModal(
+                `✏️ ${t('rename_texture_title') || 'Переименование'}`,
+                `${t('rename_texture_title') || 'Введите новое имя'} ${typeLabel}:`,
+                currentName,
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(`${t('no_name_i')}`, 'error');
+                        return false;
+                    }
+                    
+                    if (value.trim() === currentName) {
+                        showToast('Имя не изменено', 'warning');
+                        return true;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_rename_texture_item(path, value.trim())();
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_renamed_success')}`, 'success');
+                            loadCurrentTextureFolder();
+                            return true;
+                        } else {
+                            showToast(`❌ ${t('texture_renamed_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        showToast(`❌ ${t('texture_renamed_error')}`, 'error');
+                        return false;
+                    }
+                }
+            );
+        }
+
+        // Удаление текстуры/папки
+        async function deleteTextureItem(path, type) {
+            console.log('=== deleteTextureItem вызван ===');
+            console.log('Исходный path:', path);
+            
+            // Нормализуем путь
+            let normalizedPath = path.replace(/\\/g, '/').trim();
+            console.log('Нормализованный path:', normalizedPath);
+            
+            closeModal('context-menu');
+            
+            const pathParts = normalizedPath.split(/[\\/]/);
+            const displayName = pathParts[pathParts.length - 1];
+            
+            const typeLabel = type === 'folder' ? 'папку' : 'файл';
+            customConfirm(
+                `${t('confirm_delete') || 'Удалить'} ${typeLabel} "${displayName}"?<br><span style="color:#f87171;font-size:13px">${t('delete_warning') || 'Это действие нельзя отменить!'}</span>`,
+                async () => {
+                    try {
+                        console.log('Отправка на удаление:', normalizedPath);
+                        const result = await eel.editor_delete_texture_item(normalizedPath)();
+                        console.log('Результат от Python:', result);
+                        
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_deleted_success')}`, 'success');
+                            await loadCurrentTextureFolder();
+                        } else {
+                            showToast(`❌ ${t('texture_deleted_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                        }
+                    } catch(e) {
+                        console.error('Ошибка удаления:', e);
+                        showToast(`❌ ${t('texture_deleted_error')}`, 'error');
+                    }
+                }
+            );
+        }
+    
+        // ============= МОДАЛЬНОЕ ОКНО ДЛЯ ВВОДА ТЕКСТА =============
+        let textInputCallback = null;
+
+        function showTextInputModal(title, label, defaultValue, onConfirm) {
+            const modal = document.getElementById('text-input-modal');
+            document.getElementById('text-input-title').textContent = title;
+            document.getElementById('text-input-label').textContent = label;
+            const field = document.getElementById('text-input-field');
+            field.value = defaultValue || '';
+            field.placeholder = label;
+            document.getElementById('text-input-error').style.display = 'none';
+            textInputCallback = onConfirm;
+            
+            // Очищаем предыдущее событие
+            const confirmBtn = document.getElementById('text-input-confirm-btn');
+            // Удаляем все обработчики и добавляем новый
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            newConfirmBtn.onclick = () => confirmTextInput();
+            
+            // Обработка Enter
+            field.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmTextInput();
+                }
+            };
+            
+            modal.classList.add('active');
+            setTimeout(() => field.focus(), 100);
+            field.select();
+        }
+
+        function closeTextInputModal() {
+            document.getElementById('text-input-modal').classList.remove('active');
+            textInputCallback = null;
+        }
+
+        async function confirmTextInput() {
+            const field = document.getElementById('text-input-field');
+            const errorEl = document.getElementById('text-input-error');
+            const value = field.value;
+            
+            if (!textInputCallback) {
+                closeTextInputModal();
+                return;
+            }
+            
+            try {
+                const result = await textInputCallback(value);
+                if (result === true) {
+                    closeTextInputModal();
+                } else if (result === false) {
+                    // Ошибка уже показана в callback
+                }
+            } catch(e) {
+                errorEl.textContent = e.message || 'Произошла ошибка';
+                errorEl.style.display = 'block';
+            }
+        }
+        // ============= УПРАВЛЕНИЕ ИСХОДНЫМИ ФАЙЛАМИ =============
+        let sourceFiles = [];
+        let sourceCurrentPath = '';
+        let sourceNavStack = [];
+        let sourceRootPath = '';
+
+        // Загрузка исходных файлов
+        async function loadSourceFiles() {
+            const container = document.getElementById('source-container');
+            container.innerHTML = '<div class="editor-empty-state">☕ Загрузка исходных файлов...</div>';
+            try {
+                const result = await eel.editor_get_source_files()();
+                
+                if (result && result.success) {
+                    sourceFiles = result.files;
+                    sourceCurrentPath = result.currentPath || '';
+                    sourceRootPath = result.rootPath || '';
+                    
+                    // Если currentPath пустой, но есть files с путями - пробуем определить
+                    if (!sourceCurrentPath && sourceFiles && sourceFiles.length > 0) {
+                        // Берем путь первого файла как базовый
+                        const firstPath = sourceFiles[0].path;
+                        if (firstPath) {
+                            const pathParts = firstPath.split(/[\\/]/);
+                            pathParts.pop(); // убираем имя файла
+                            sourceCurrentPath = pathParts.join('/');
+                        }
+                    }
+                    
+                    updateSourcePathDisplay();
+                    updateSourceBackButton();
+                    renderSourceFiles();
+                } else {
+                    container.innerHTML = `<div class="editor-empty-state">❌ ${result?.error || 'Ошибка'}</div>`;
+                }
+            } catch(e) {
+                console.error('Source - ошибка:', e);
+                container.innerHTML = `<div class="editor-empty-state">❌ Ошибка: ${e.message}</div>`;
+            }
+        }
+        // Получение относительного пути от sourceRootPath
+        function getRelativePath(fullPath) {
+            if (!fullPath || !sourceRootPath) return '';
+            // Убираем sourceRootPath из начала
+            let relPath = fullPath.replace(sourceRootPath, '');
+            // Убираем первый слеш
+            if (relPath.startsWith('/') || relPath.startsWith('\\')) {
+                relPath = relPath.substring(1);
+            }
+            return relPath;
+        }
+
+        // Рендеринг файлов
+        function renderSourceFiles() {
+            const container = document.getElementById('source-container');
+            
+            if (!sourceFiles || sourceFiles.length === 0) {
+                container.innerHTML = `<div class="editor-empty-state">📭<br>Нет файлов в папке</div>`;
+                return;
+            }
+            
+            container.innerHTML = `<div class="editor-cards-grid" id="source-grid"></div>`;
+            const grid = document.getElementById('source-grid');
+            
+            const sorted = [...sourceFiles].sort((a, b) => {
+                if (a.type === 'folder' && b.type !== 'folder') return -1;
+                if (a.type !== 'folder' && b.type === 'folder') return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            for (const item of sorted) {
+                const card = document.createElement('div');
+                card.className = 'editor-card';
+                card.style.aspectRatio = 'auto';
+                card.style.minHeight = '120px';
+                
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'editor-card-icon';
+                if (item.type === 'folder') {
+                    iconDiv.textContent = '📁';
+                } else if (item.name.endsWith('.java')) {
+                    iconDiv.textContent = '☕';
+                } else {
+                    iconDiv.textContent = '📄';
+                }
+                card.appendChild(iconDiv);
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'editor-card-name';
+                nameDiv.textContent = item.name;
+                card.appendChild(nameDiv);
+                
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'editor-card-type';
+                if (item.type === 'folder') {
+                    typeDiv.textContent = `📂 ${item.itemCount || 0} ${t('elements_count')}`;
+                } else {
+                    typeDiv.textContent = item.size ? `${(item.size / 1024).toFixed(1)} KB` : 'файл';
+                }
+                card.appendChild(typeDiv);
+                
+                if (item.type === 'folder') {
+                    const relPath = getRelativePath(item.path);
+                    card.onclick = () => openSourceFolder(relPath);
+                    card.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        showSourceFolderMenu({
+                            name: item.name,
+                            path: item.path,
+                            relPath: relPath
+                        });
+                        return false;
+                    };
+                } else {
+                    // Для файлов
+                    card.onclick = () => openSourceFileContent(item.path);
+                    
+                    // ПКМ для файлов - показываем меню с дополнительными действиями
+                    card.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        const isJava = item.name.endsWith('.java');
+                        showSourceFileMenu({
+                            name: item.name,
+                            path: item.path,
+                            isJava: isJava,
+                            size: item.size
+                        });
+                        return false;
+                    };
+                }
+                
+                grid.appendChild(card);
+            }
+            
+            updateSourcePathDisplay();
+        }
+
+        // Открытие папки - передаём ОТНОСИТЕЛЬНЫЙ путь
+        async function openSourceFolder(relPath) {
+            //console.log('Source - открытие папки (относительный путь):', relPath);
+            //console.log('Source - текущий путь:', sourceCurrentPath);
+            
+            // Сохраняем текущий путь в стек (полный путь)
+            sourceNavStack.push(sourceCurrentPath);
+            //console.log('Source - стек:', sourceNavStack);
+            
+            try {
+                // Передаём относительный путь
+                const result = await eel.editor_open_source_folder(relPath)();
+                //console.log('Source - результат:', result);
+                
+                if (result && result.success) {
+                    sourceFiles = result.files;
+                    sourceCurrentPath = result.currentPath || '';
+                    
+                    updateSourcePathDisplay();
+                    updateSourceBackButton();
+                    renderSourceFiles();
+                } else {
+                    sourceNavStack.pop();
+                    showToast('❌ Ошибка открытия папки', 'error');
+                }
+            } catch(e) {
+                sourceNavStack.pop();
+                console.error('Source - ошибка:', e);
+                showToast('❌ Ошибка открытия папки', 'error');
+            }
+        }
+
+        // Возврат назад
+        function goBackSource() {
+            //console.log('Source - возврат назад');
+            //console.log('Source - стек:', sourceNavStack);
+            //console.log('Source - текущий путь:', sourceCurrentPath);
+            
+            if (sourceNavStack.length === 0) {
+                showToast('📂 Вы уже в корневой папке', 'info');
+                return;
+            }
+            
+            // Берём предыдущий путь из стека (это полный путь)
+            const previousFullPath = sourceNavStack.pop();
+            //console.log('Source - возврат в (полный):', previousFullPath);
+            
+            // Преобразуем в относительный
+            const relPath = getRelativePath(previousFullPath);
+            //console.log('Source - возврат в (относительный):', relPath);
+            
+            eel.editor_open_source_folder(relPath)().then(result => {
+                //console.log('Source - результат возврата:', result);
+                
+                if (result && result.success) {
+                    sourceFiles = result.files;
+                    sourceCurrentPath = result.currentPath || '';
+                    
+                    // Проверяем, вернулись ли в корень
+                    if (sourceCurrentPath === '' || sourceCurrentPath === sourceRootPath) {
+                        sourceNavStack = [];
+                        //console.log('Source - вернулись в корень');
+                    }
+                    
+                    updateSourcePathDisplay();
+                    updateSourceBackButton();
+                    renderSourceFiles();
+                    
+                    const folderName = getLastFolderName(sourceCurrentPath) || 'src';
+                } else {
+                    sourceNavStack.push(previousFullPath);
+                    showToast('❌ Ошибка возврата', 'error');
+                }
+            }).catch(e => {
+                sourceNavStack.push(previousFullPath);
+                console.error('Source - ошибка:', e);
+                showToast('❌ Ошибка возврата', 'error');
+            });
+        }
+
+        // Получение имени последней папки
+        function getLastFolderName(path) {
+            if (!path) return 'src';
+            const parts = path.split(/[\\/]/);
+            const last = parts[parts.length - 1];
+            return last || 'src';
+        }
+
+        // Обновление отображения пути
+        function updateSourcePathDisplay() {
+            const pathEl = document.getElementById('source-path');
+            if (pathEl) {
+                let displayPath = sourceCurrentPath || 'src';
+                // Если путь содержит sourceRootPath - убираем его
+                if (sourceRootPath && displayPath.startsWith(sourceRootPath)) {
+                    displayPath = displayPath.replace(sourceRootPath, '');
+                    if (displayPath.startsWith('/') || displayPath.startsWith('\\')) {
+                        displayPath = displayPath.substring(1);
+                    }
+                }
+                if (!displayPath) displayPath = 'src';
+                pathEl.textContent = `📁 ${displayPath}`;
+            }
+        }
+
+        // Обновление кнопки "Назад"
+        function updateSourceBackButton() {
+            const backBtn = document.getElementById('source-back-btn');
+            if (backBtn) {
+                const shouldShow = sourceNavStack.length > 0;
+                backBtn.style.display = shouldShow ? 'inline-block' : 'none';
+                //console.log('Source - кнопка "Назад":', shouldShow ? 'показана' : 'скрыта');
+            }
+        }
+
+        // Открытие файла
+        async function openSourceFileContent(path) {
+            console.log('Source - открытие файла:', path);
+            try {
+                const result = await eel.editor_get_source_file_content(path)();
+                console.log('Source - результат:', result);
+                
+                if (result && result.success) {
+                    // Передаём путь к файлу для сохранения
+                    showSourceContentModal(result.content, result.filename, path);
+                } else {
+                    showToast('❌ Ошибка чтения файла', 'error');
+                }
+            } catch(e) {
+                console.error('Source - ошибка:', e);
+                showToast('❌ Ошибка чтения файла', 'error');
+            }
+        }
+
+        // Показ содержимого файла
+
+        function showSourceContentModal(content, filename, filePath) {
+            let modal = document.getElementById('source-content-modal');
+            if (!modal) {
+                modal = createSourceContentModal();
+            }
+            
+            currentSourceFilePath = filePath;
+            originalSourceContent = content;
+            
+            document.getElementById('source-content-title').textContent = `☕ ${filename}`;
+            
+            const textarea = document.getElementById('source-content-textarea');
+            textarea.value = content;
+            
+            // Устанавливаем курсор в конец
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }, 100);
+            
+            modal.classList.add('active');
+        }
+
+        // Создание модального окна для просмотра/редактирования файла
+        function createSourceContentModal() {
+            const modal = document.createElement('div');
+            modal.id = 'source-content-modal';
+            modal.className = 'editor-modal';
+            modal.innerHTML = `
+                <div class="editor-modal-content" style="min-width: 700px; max-width: 900px; width: 80vw; height: 80vh; display: flex; flex-direction: column;">
+                    <div class="editor-modal-header">
+                        <h3 id="source-content-title">☕ Файл</h3>
+                        <button class="editor-modal-close" onclick="closeModal('source-content-modal')">×</button>
+                    </div>
+                    <div class="editor-modal-body" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 20px 28px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn-secondary" onclick="copySourceContent()" style="padding: 6px 16px; font-size: 12px;" data-i18n="copy"></button>
+                            <button class="btn-primary" id="save-source-file-btn" onclick="saveSourceFile()" style="padding: 6px 16px; font-size: 12px; width: auto;" data-i18n="save"></button>
+                        </div>
+                        <div style="position: relative; flex: 1; overflow: hidden; border-radius: 12px; background: #0f172a; border: 1px solid #334155;">
+                            <textarea id="source-content-textarea" style="width: 100%; height: 100%; padding: 16px; background: #0f172a; border: none; color: #d4d4d4; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.5; tab-size: 4; resize: none; outline: none;"></textarea>
+                        </div>
+                    </div>
+                    <div class="editor-modal-footer">
+                        <button class="btn-secondary" onclick="closeModal('source-content-modal')">Закрыть</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+
+        // Копирование содержимого
+        async function copySourceContent() {
+            const textElement = document.getElementById('source-content-text');
+            if (textElement) {
+                try {
+                    await navigator.clipboard.writeText(textElement.textContent);
+                    showToast('📋 Содержимое скопировано', 'success');
+                } catch(e) {
+                    const range = document.createRange();
+                    range.selectNode(textElement);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                    document.execCommand('copy');
+                    window.getSelection().removeAllRanges();
+                    showToast('📋 Содержимое скопировано', 'success');
+                }
+            }
+        }
+
+        // Сброс состояния
+        function resetSourceState() {
+            sourceNavStack = [];
+            //console.log('Source - состояние сброшено');
+        }
+
+        // Переключение вкладок
+        const originalSwitchTabSource = window.switchTab;
+        window.switchTab = function(tabId) {
+            if (originalSwitchTabSource) {
+                originalSwitchTabSource(tabId);
+            }
+            
+            if (tabId === 'source') {
+                resetSourceState();
+                setTimeout(() => loadSourceFiles(), 100);
+            }
+        };
+        // ============= СОЗДАНИЕ ПАПКИ В SOURCE =============
+        async function createSourceFolder() {
+            showTextInputModal(
+                t('create_folder') || '📁 Создать папку',
+                t('enter_folder_name') || 'Введите имя папки:',
+                '',
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(t('no_folder_name'), 'error');
+                        return false;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_create_source_folder(value.trim())();
+                        if (result && result.success) {
+                            showToast(`✅ ${t('folder_created_success')}`, 'success');
+                            await loadSourceFiles();
+                            return true;
+                        } else {
+                            showToast(`❌ ${t('folder_created_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        console.error('Ошибка создания папки в source:', e);
+                        showToast(`❌ ${t('folder_created_error')}`, 'error');
+                        return false;
+                    }
+                }
+            );
+        }
+        // ============= КОНТЕКСТНОЕ МЕНЮ ДЛЯ ПАПОК В SOURCE =============
+        function showSourceFolderMenu(item) {
+            document.getElementById('context-title').innerHTML = `${t('Actionsfor')}: ${item.name}`;
+            
+            // Нормализуем путь
+            const itemPath = item.path.replace(/\\/g, '/').trim();
+            const relPath = item.relPath || '';
+            
+            let body = `
+                <button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="openSourceFolder('${relPath}')">📂 ${t('open_folder')}</button>
+                <button class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="renameSourceFolder('${itemPath}', '${item.name}')">✏️ ${t('rename_texture')}</button>
+                <button class="btn-danger" style="width:100%" onclick="deleteSourceFolder('${itemPath}', '${item.name}')">🗑️ ${t('delete_texture')}</button>
+                <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="copyToClipboard('${itemPath}')">📋 ${t('copy_path')}</button>
+            `;
+            
+            document.getElementById('context-body').innerHTML = body;
+            document.getElementById('context-menu').classList.add('active');
+        }
+
+        // ============= ПЕРЕИМЕНОВАНИЕ ПАПКИ В SOURCE =============
+        async function renameSourceFolder(path, currentName) {
+            closeModal('context-menu');
+            
+            showTextInputModal(
+                `✏️ ${t('rename_texture_title') || 'Переименование папки'}`,
+                `${t('rename_texture_title') || 'Введите новое имя папки'}:`,
+                currentName,
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(`${t('no_name_i')}`, 'error');
+                        return false;
+                    }
+                    
+                    if (value.trim() === currentName) {
+                        showToast('Имя не изменено', 'warning');
+                        return true;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_rename_source_folder(path, value.trim())();
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_renamed_success')}`, 'success');
+                            await loadSourceFiles();
+                            return true;
+                        } else {
+                            showToast(`❌ ${t('texture_renamed_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        console.error('Ошибка переименования папки в source:', e);
+                        showToast(`❌ ${t('texture_renamed_error')}`, 'error');
+                        return false;
+                    }
+                }
+            );
+        }
+
+        // ============= УДАЛЕНИЕ ПАПКИ В SOURCE =============
+        async function deleteSourceFolder(path, name) {
+            console.log('=== deleteSourceFolder вызван ===');
+            console.log('Путь для удаления:', path);
+            
+            closeModal('context-menu');
+            
+            customConfirm(
+                `${t('confirm_delete') || 'Удалить папку'} "${name}"?<br><span style="color:#f87171;font-size:13px">${t('delete_warning') || 'Это действие нельзя отменить! Все файлы в папке будут удалены!'}</span>`,
+                async () => {
+                    try {
+                        // Нормализуем путь
+                        const normalizedPath = path.replace(/\\/g, '/').trim();
+                        console.log('Отправка на удаление:', normalizedPath);
+                        
+                        const result = await eel.editor_delete_source_folder(normalizedPath)();
+                        console.log('Результат от Python:', result);
+                        
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_deleted_success')}`, 'success');
+                            await loadSourceFiles();
+                        } else {
+                            showToast(`❌ ${t('texture_deleted_error')}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                        }
+                    } catch(e) {
+                        console.error('Ошибка удаления папки в source:', e);
+                        showToast(`❌ ${t('texture_deleted_error')}`, 'error');
+                    }
+                }
+            );
+        }
+        // ============= РЕДАКТИРОВАНИЕ ФАЙЛОВ В SOURCE =============
+
+        // Сохранение файла
+        async function saveSourceFile() {
+            const textarea = document.getElementById('source-content-textarea');
+            const saveBtn = document.getElementById('save-source-file-btn');
+            const newContent = textarea.value;
+            
+            if (newContent === originalSourceContent) {
+                showToast(`${t('no_save_file_ch')}`, 'info');
+                return;
+            }
+            
+            if (!currentSourceFilePath) {
+                showToast('❌ Путь к файлу не указан', 'error');
+                return;
+            }
+            
+            // Блокируем кнопку
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '⏳ Сохранение...';
+            saveBtn.disabled = true;
+            
+            try {
+                const result = await eel.editor_save_source_file(currentSourceFilePath, newContent)();
+                
+                if (result && result.success) {
+                    showToast(`${t('file_saved')}`, 'success');
+                    originalSourceContent = newContent;
+                } else {
+                    showToast(`❌ Ошибка сохранения: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                }
+            } catch(e) {
+                console.error('Ошибка сохранения:', e);
+                showToast('❌ Ошибка сохранения', 'error');
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Копирование содержимого
+        async function copySourceContent() {
+            const textarea = document.getElementById('source-content-textarea');
+            if (textarea) {
+                try {
+                    await navigator.clipboard.writeText(textarea.value);
+                    showToast(`${t('copy')}`, 'success');
+                } catch(e) {
+                    textarea.select();
+                    document.execCommand('copy');
+                    showToast(`${t('copy')}`, 'success');
+                }
+            }
+        }
+
+        // Обновляем функцию открытия файла
+        async function openSourceFileContent(path) {
+            console.log('Source - открытие файла:', path);
+            try {
+                const result = await eel.editor_get_source_file_content(path)();
+                console.log('Source - результат:', result);
+                
+                if (result && result.success) {
+                    // Передаём путь к файлу для сохранения
+                    showSourceContentModal(result.content, result.filename, path);
+                } else {
+                    showToast('❌ Ошибка чтения файла', 'error');
+                }
+            } catch(e) {
+                console.error('Source - ошибка:', e);
+                showToast('❌ Ошибка чтения файла', 'error');
+            }
+        }
+
+        // Показ содержимого файла
+        let currentSourceFilePath = null;
+        let originalSourceContent = '';
+
+        function showSourceContentModal(content, filename, filePath) {
+            let modal = document.getElementById('source-content-modal');
+            if (!modal) {
+                modal = createSourceContentModal();
+            }
+            
+            currentSourceFilePath = filePath;
+            originalSourceContent = content;
+            
+            document.getElementById('source-content-title').textContent = `☕ ${filename}`;
+            
+            const textarea = document.getElementById('source-content-textarea');
+            textarea.value = content;
+            
+            // Устанавливаем курсор в конец
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }, 100);
+            
+            modal.classList.add('active');
+        }
+
+        // Создание модального окна для просмотра/редактирования файла
+        function createSourceContentModal() {
+            const modal = document.createElement('div');
+            modal.id = 'source-content-modal';
+            modal.className = 'editor-modal';
+            modal.innerHTML = `
+                <div class="editor-modal-content" style="min-width: 700px; max-width: 900px; width: 80vw; height: 80vh; display: flex; flex-direction: column;">
+                    <div class="editor-modal-header">
+                        <h3 id="source-content-title">☕ Файл</h3>
+                        <button class="editor-modal-close" onclick="closeModal('source-content-modal')">×</button>
+                    </div>
+                    <div class="editor-modal-body" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 20px 28px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                            <button class="btn-secondary" onclick="copySourceContent()" style="padding: 6px 16px; font-size: 12px;">${t('copy')}</button>
+                            <button class="btn-primary" id="save-source-file-btn" onclick="saveSourceFile()" style="padding: 6px 16px; font-size: 12px; width: auto;">${t('save')}</button>
+                        </div>
+                        <div style="position: relative; flex: 1; overflow: hidden; border-radius: 12px; background: #0f172a; border: 1px solid #334155;">
+                            <textarea id="source-content-textarea" style="width: 100%; height: 100%; padding: 16px; background: #0f172a; border: none; color: #d4d4d4; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.5; tab-size: 4; resize: none; outline: none;"></textarea>
+                        </div>
+                    </div>
+                    <div class="editor-modal-footer">
+                        <button class="btn-secondary" onclick="closeModal('source-content-modal')">${t('close')}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+        // ============= СОЗДАНИЕ JAVA ФАЙЛА В SOURCE =============
+        async function createJavaFile() {
+            showTextInputModal(
+                `${t('create_java_n1')}`,
+                `${t('create_java_n2')}`,
+                '',
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(`${t('error_java_n1')}`, 'error');
+                        return false;
+                    }
+                    
+                    // Проверяем имя на валидность (только буквы, цифры, подчеркивание)
+                    const className = value.trim();
+                    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(className)) {
+                        showToast(`${t('error_java_n2')}`, 'error');
+                        return false;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_create_java_file(className)();
+                        if (result && result.success) {
+                            showToast(`✅ Java ${t('file')} "${className}.java" ${t('created')}`, 'success');
+                            await loadSourceFiles();
+                            // Открываем созданный файл для редактирования
+                            if (result.filePath) {
+                                openSourceFileContent(result.filePath);
+                            }
+                            return true;
+                        } else {
+                            showToast(`❌ Ошибка создания: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        console.error('Ошибка создания Java файла:', e);
+                        showToast('❌ Ошибка создания Java файла', 'error');
+                        return false;
+                    }
+                }   
+            );
+        }
+        // ============= КОНТЕКСТНОЕ МЕНЮ ДЛЯ ФАЙЛОВ В SOURCE =============
+        function showSourceFileMenu(item) {
+            document.getElementById('context-title').innerHTML = `${t('Actionsfor')}: ${item.name}`;
+            
+            const itemPath = item.path.replace(/\\/g, '/').trim();
+            const isJava = item.isJava || item.name.endsWith('.java');
+            
+            let body = `
+                <button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="openSourceFileContent('${itemPath}')">✏️ ${t('open_file') || 'Открыть файл'}</button>
+                <button class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="renameSourceFile('${itemPath}', '${item.name}')">✏️ ${t('rename_texture') || 'Переименовать'}</button>
+                <button class="btn-danger" style="width:100%" onclick="deleteSourceFile('${itemPath}', '${item.name}')">🗑️ ${t('delete_texture') || 'Удалить'}</button>
+                <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="copyToClipboard('${itemPath}')">📋 ${t('copy_path') || 'Скопировать путь'}</button>
+            `;
+            
+            // Если это Java файл, добавляем дополнительные опции
+            if (isJava) {
+                const className = item.name.replace('.java', '');
+                body += `
+                    <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="copyClassName('${className}')">${t('copy_class')}</button>
+                `;
+            }
+            
+            document.getElementById('context-body').innerHTML = body;
+            document.getElementById('context-menu').classList.add('active');
+        }
+
+        // ============= ПЕРЕИМЕНОВАНИЕ ФАЙЛА В SOURCE =============
+        async function renameSourceFile(path, currentName) {
+            closeModal('context-menu');
+            
+            showTextInputModal(
+                `✏️ ${t('rename_texture_title') || 'Переименование файла'}`,
+                `${t('rename_texture_title') || 'Введите новое имя файла'}:`,
+                currentName,
+                async (value) => {
+                    if (!value || value.trim() === '') {
+                        showToast(`${t('no_name_i') || 'Имя не может быть пустым'}`, 'error');
+                        return false;
+                    }
+                    
+                    if (value.trim() === currentName) {
+                        showToast('Имя не изменено', 'warning');
+                        return true;
+                    }
+                    
+                    try {
+                        const result = await eel.editor_rename_source_file(path, value.trim())();
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_renamed_success') || 'Файл переименован'}`, 'success');
+                            await loadSourceFiles();
+                            return true;
+                        } else {
+                            showToast(`❌ ${t('texture_renamed_error') || 'Ошибка переименования'}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                            return false;
+                        }
+                    } catch(e) {
+                        console.error('Ошибка переименования файла в source:', e);
+                        showToast(`❌ ${t('texture_renamed_error') || 'Ошибка переименования'}`, 'error');
+                        return false;
+                    }
+                }
+            );
+        }
+
+        // ============= УДАЛЕНИЕ ФАЙЛА В SOURCE =============
+        async function deleteSourceFile(path, name) {
+            console.log('=== deleteSourceFile вызван ===');
+            console.log('Путь для удаления:', path);
+            
+            closeModal('context-menu');
+            
+            customConfirm(
+                `${t('confirm_delete') || 'Удалить файл'} "${name}"?<br><span style="color:#f87171;font-size:13px">${t('delete_warning') || 'Это действие нельзя отменить!'}</span>`,
+                async () => {
+                    try {
+                        const normalizedPath = path.replace(/\\/g, '/').trim();
+                        console.log('Отправка на удаление:', normalizedPath);
+                        
+                        const result = await eel.editor_delete_source_file(normalizedPath)();
+                        console.log('Результат от Python:', result);
+                        
+                        if (result && result.success) {
+                            showToast(`✅ ${t('texture_deleted_success') || 'Файл удалён'}`, 'success');
+                            await loadSourceFiles();
+                        } else {
+                            showToast(`❌ ${t('texture_deleted_error') || 'Ошибка удаления'}: ${result?.error || 'Неизвестная ошибка'}`, 'error');
+                        }
+                    } catch(e) {
+                        console.error('Ошибка удаления файла в source:', e);
+                        showToast(`❌ ${t('texture_deleted_error') || 'Ошибка удаления'}`, 'error');
+                    }
+                }
+            );
+        }
+
+        // ============= КОПИРОВАНИЕ ИМЕНИ КЛАССА =============
+        function copyClassName(className) {
+            try {
+                navigator.clipboard.writeText(className);
+                showToast(`📋 Имя класса "${className}" скопировано`, 'success');
+            } catch(e) {
+                const textarea = document.createElement('textarea');
+                textarea.value = className;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast(`📋 Имя класса "${className}" скопировано`, 'success');
+            }
+            closeModal('context-menu');
+        }
     </script>
 </body>
 </html>
