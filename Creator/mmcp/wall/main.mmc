@@ -1,0 +1,22 @@
+[meta]
+name = wall
+display_name = Стены
+version = 1.0
+description = Создание стен для Mindustry
+
+[ui]
+button_text = Стены
+button_icon = 🧱
+modal_title = Создание стены
+
+[python]
+module = main
+function = create_wall
+
+[paths]
+# Путь к папке с модами (относительно Creator/mmcp/wall)
+mods_folder = ../mods
+# Путь к папке с текстурами
+textures_folder = textures
+# Путь к папке с исходниками
+source_folder = source
