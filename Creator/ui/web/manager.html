@@ -1125,8 +1125,6 @@
                     <div id="translations-tab" class="editor-tab-content">
                         <div class="editor-filter-bar">
                             <span class="editor-filter-label" data-i18n="Translation_Editor"></span>
-                            <button class="editor-settings-btn" onclick="refreshTranslations()" data-i18n="Translations_Update"></button>
-                            <button class="editor-settings-btn" onclick="saveAllBundles()" data-i18n="Translation_Save"></button>
                             <span class="editor-filter-status" id="translation-status"></span>
                         </div>
                         
@@ -1483,7 +1481,7 @@
             "item_name_russian_error", "item_name_special_error", "item_name_digit_error",
             "create_button", "liquid_edit_title", "compile_mod_end", "copy", "close",
             "compile_mod", "compile_mod_end_text", "compile_mod_start_text", "elements",
-            "Found", "Translation_Editor", "Translations_Update", "Translation_Save",
+            "Found", "Translation_Editor", "element_found", "autosav", "mod_name",
             "Translation_t_format", "Translation_description", "Translation_name",
             "Translation_description_2", "Translation_name_2", "t1s", "t2s", "t3s",
             "action5", "action6", "Обновить", "iconload", "geticon", "no_element_translation",
@@ -1574,9 +1572,6 @@
         }
         
         // ============= ДАННЫЕ ДЛЯ ДЕЙСТВИЯ 7 =============
-        const ACTION7_BLOCKS = [
-            { type: 'wall', name: t('wall_name'), icon: '🧱' },
-        ];
 
         // ============= ОСНОВНАЯ ЛОГИКА МЕНЕДЖЕРА (ОРИГИНАЛ) =============
         let deleteModName = null;
@@ -1637,6 +1632,14 @@
                 const response = await eel.open_in_editor(modName)();
                 
                 if (response.success) {
+                    // ОБНОВЛЯЕМ РЕДАКТОР В МОДУЛЯХ
+                    try {
+                        await eel.editor_update_modules_editor()();
+                        console.log('✅ Редактор обновлён в модулях');
+                    } catch(e) {
+                        console.warn('Не удалось обновить редактор в модулях:', e);
+                    }
+                    
                     switchToEditor(modName);
                 } else {
                     showToast(`${t('error_open_editor')}: ${response.error}`, 'error');
@@ -2128,9 +2131,8 @@
             if (tabId === 'textures' && !texturesData) {
                 loadTextures();
             } else if (tabId === 'translations') {
-                loadTranslationsData();
+                loadTranslationsData(); // Автоматическая загрузка при переключении на вкладку
             } else if (tabId === 'source') {
-                // ДОБАВЬТЕ ЭТУ СТРОЧКУ:
                 updateSourceBackButton();
                 loadSourceFiles();
             }
@@ -2495,30 +2497,303 @@
         async function copyToClipboard(text) { try { await navigator.clipboard.writeText(text); showToast(t('path_copied')); } catch(e) { const textarea = document.createElement('textarea'); textarea.value = text; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); showToast(t('path_copied')); } closeModal('context-menu'); }
         
         // Переводы
-        async function loadTranslationsData() { try { const result = await eel.editor_get_translations_data()(); if (result && result.success) { translationsData = result.data; renderTranslationsUI(); updateTranslationStatus(); } } catch(e) { console.error(e); } }
+        // Переводы - АВТОМАТИЧЕСКАЯ ЗАГРУЗКА
+        async function loadTranslationsData() {
+            const statusSpan = document.getElementById('translation-status');
+            statusSpan.innerHTML = '🔄 Автоматический поиск...';
+            
+            try {
+                // Вызываем обновлённую функцию
+                const result = await eel.editor_get_translations_data()();
+                
+                if (result && result.success) {
+                    translationsData = result.data;
+                    translationsData.modName = result.modName || translationsData.modName || '';
+                    renderTranslationsUI();
+                    
+                    const found = result.foundCount || 0;
+                    const autoSaved = result.autoSaved ? `${t('autosav')}` : '';
+                    statusSpan.innerHTML = `${t('element_found')}: ${found} ${autoSaved}`;
+                    
+                    // Показываем детальную информацию
+                    const keysCount = Object.keys(translationsData.en.names).length;
+                    const descCount = Object.keys(translationsData.en.descriptions).length;
+                    
+                    if (found > 0) {
+                        showToast(`✅ Найдено ${found} элементов (${keysCount} имён, ${descCount} описаний)`, 'success');
+                    } else {
+                        showToast('ℹ️ Новых элементов для перевода не найдено', 'info');
+                    }
+                } else {
+                    statusSpan.innerHTML = '❌ Ошибка';
+                    showToast('❌ Ошибка загрузки переводов', 'error');
+                }
+            } catch(e) {
+                console.error('Ошибка:', e);
+                statusSpan.innerHTML = '❌ Ошибка';
+                showToast('❌ Ошибка загрузки переводов', 'error');
+            }
+        }
+
+        // Кнопка обновления - теперь просто вызывает loadTranslationsData
+        async function refreshTranslations() {
+            await loadTranslationsData();
+        }
         async function refreshTranslations() { const statusSpan = document.getElementById('translation-status'); statusSpan.innerHTML = '🔍 Поиск...'; try { const result = await eel.editor_auto_search_translations()(); if (result && result.success) { translationsData = result.data; renderTranslationsUI(); updateTranslationStatus(); showToast(`${t('Found')} ${result.foundCount} ${t('elements')}`, 'success'); } else { showToast(result?.error || 'Ошибка поиска', 'error'); } } catch(e) { showToast('Ошибка при поиске', 'error'); } finally { statusSpan.innerHTML = ''; } }
         async function saveAllBundles() { const enNames = {}, enDescs = {}, ruNames = {}, ruDescs = {}; for (const [key, input] of Object.entries(enEntries)) if (input?.value) enNames[key] = input.value; for (const [key, ta] of Object.entries(enDescEntries)) if (ta?.value) enDescs[key] = ta.value; for (const [key, input] of Object.entries(ruEntries)) if (input?.value) ruNames[key] = input.value; for (const [key, ta] of Object.entries(ruDescEntries)) if (ta?.value) ruDescs[key] = ta.value; const saveBtn = document.querySelector('#translations-tab .settings-btn:nth-child(3)'); const originalText = saveBtn.innerHTML; saveBtn.innerHTML = '⏳ Сохранение...'; saveBtn.disabled = true; try { const result = await eel.editor_save_bundle_files({ en_names: enNames, en_descriptions: enDescs, ru_names: ruNames, ru_descriptions: ruDescs })(); if (result && result.success) showToast(`${t('t1s')} ${result.total_en} ${t('t2s')} ${result.total_ru} ${t('t3s')}`, 'success'); else showToast(result?.error || 'Ошибка сохранения', 'error'); } catch(e) { showToast('Ошибка при сохранении', 'error'); } finally { saveBtn.innerHTML = originalText; saveBtn.disabled = false; } }
         
+        // Обновлённая функция renderTranslationsUI с улучшенным отображением
+        // Обновлённая функция renderTranslationsUI с автоматическим сохранением
         function renderTranslationsUI() {
-            const enContainer = document.getElementById('en-translations-container'); const ruContainer = document.getElementById('ru-translations-container');
+            const enContainer = document.getElementById('en-translations-container');
+            const ruContainer = document.getElementById('ru-translations-container');
             if (!enContainer || !ruContainer) return;
-            enContainer.innerHTML = ''; ruContainer.innerHTML = '';
-            enEntries = {}; ruEntries = {}; enDescEntries = {}; ruDescEntries = {};
-            const allKeys = new Set([...Object.keys(translationsData.en.names), ...Object.keys(translationsData.ru.names)]);
-            if (allKeys.size === 0) { const emptyMsg = `<div style="text-align: center; padding: 40px; color: #64748b;">${t('no_element_translation')}<br><span style="font-size: 12px;">${t('up_date_translation')}</span></div>`; enContainer.innerHTML = emptyMsg; ruContainer.innerHTML = emptyMsg; return; }
+            
+            enContainer.innerHTML = '';
+            ruContainer.innerHTML = '';
+            enEntries = {};
+            ruEntries = {};
+            enDescEntries = {};
+            ruDescEntries = {};
+            
+            const allKeys = new Set([
+                ...Object.keys(translationsData.en.names),
+                ...Object.keys(translationsData.ru.names)
+            ]);
+            
+            if (allKeys.size === 0) {
+                const emptyMsg = `
+                    <div style="text-align: center; padding: 40px; color: #64748b;">
+                        ${t('no_element_translation')}
+                        <br><span style="font-size: 12px;">${t('up_date_translation')}</span>
+                    </div>
+                `;
+                enContainer.innerHTML = emptyMsg;
+                ruContainer.innerHTML = emptyMsg;
+                return;
+            }
+            
             const sortedKeys = Array.from(allKeys).sort();
+            
+            // Информационная панель
+            const infoHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; 
+                            background: #0f172a; padding: 10px 16px; border-radius: 12px; margin-bottom: 12px;
+                            border: 1px solid #334155;">
+                    <span style="color: #4ade80;">${t('element_found')}: <strong>${sortedKeys.length}</strong></span>
+                    <span style="font-size: 12px; color: #94a3b8;">${t('Translation_t_format')}</span>
+                </div>
+            `;
+            
+            // Добавляем информационную панель в оба контейнера
+            const enInfo = document.createElement('div');
+            enInfo.innerHTML = infoHtml;
+            enContainer.appendChild(enInfo.firstElementChild);
+            
+            const ruInfo = document.createElement('div');
+            ruInfo.innerHTML = infoHtml;
+            ruContainer.appendChild(ruInfo.firstElementChild);
+            
             for (const key of sortedKeys) {
-                enContainer.appendChild(createTranslationItem(key, translationsData.en.names[key] || key.replace(/_/g, ' ').replace('.name', '').replace(/^\w/, c => c.toUpperCase()), translationsData.en.descriptions[`${key.replace('.name', '')}.description`] || '', 'en'));
-                ruContainer.appendChild(createTranslationItem(key, translationsData.ru.names[key] || key.replace(/_/g, ' ').replace('.name', '').replace(/^\w/, c => c.toUpperCase()), translationsData.ru.descriptions[`${key.replace('.name', '')}.description`] || '', 'ru'));
+                // ПРИОРИТЕТ: сначала пытаемся взять из translationsData (что уже сохранено)
+                // Но если есть изменения в полях ввода - они имеют приоритет
+                // Для этого мы будем использовать значение из поля ввода при сохранении
+                
+                const enName = translationsData.en.names[key] || key.replace(/_/g, ' ').replace('.name', '').replace(/^\w/, c => c.toUpperCase());
+                const enDesc = translationsData.en.descriptions[`${key.replace('.name', '')}.description`] || '';
+                const ruName = translationsData.ru.names[key] || enName;
+                const ruDesc = translationsData.ru.descriptions[`${key.replace('.name', '')}.description`] || '';
+                
+                enContainer.appendChild(createTranslationItem(key, enName, enDesc, 'en'));
+                ruContainer.appendChild(createTranslationItem(key, ruName, ruDesc, 'ru'));
             }
         }
         
         function createTranslationItem(key, nameValue, descValue, lang) {
-            const div = document.createElement('div'); div.className = 'editor-translation-item';
-            div.innerHTML = `<div class="editor-translation-key">${escapeHtml(key)}</div><div class="editor-translation-field"><label data-i18n="Translation_name">${t('Translation_name')}</label><input type="text" class="trans-name" value="${escapeHtml(nameValue)}"></div><div class="editor-translation-field"><label data-i18n="Translation_description">${t('Translation_description')}</label><textarea class="trans-desc" rows="2">${escapeHtml(descValue)}</textarea></div>`;
-            const nameInput = div.querySelector('.trans-name'); const descTextarea = div.querySelector('.trans-desc'); const descKey = key.replace('.name', '') + '.description';
-            if (lang === 'en') { enEntries[key] = nameInput; enDescEntries[descKey] = descTextarea; } else { ruEntries[key] = nameInput; ruDescEntries[descKey] = descTextarea; }
+            const div = document.createElement('div');
+            div.className = 'editor-translation-item';
+            
+            // Проверяем, является ли ключ именем мода
+            const isModName = key.includes('.') && key.split('.')[0].toLowerCase() === translationsData.modName?.toLowerCase();
+            
+            // Форматируем отображение ключа
+            let displayKey = key;
+            if (key.endsWith('.name')) {
+                displayKey = key.replace('.name', '');
+            } else if (key.endsWith('.description')) {
+                displayKey = key.replace('.description', '');
+            }
+            
+            div.innerHTML = `
+                <div class="editor-translation-key" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${escapeHtml(displayKey)}</span>
+                    ${isModName ? `<span style="font-size: 10px; color: #4ade80; background: #4ade8022; padding: 2px 10px; border-radius: 12px;">${t('mod_name')}</span>` : ''}
+                </div>
+                <div class="editor-translation-field">
+                    <label data-i18n="Translation_name">${t('Translation_name')}</label>
+                    <input type="text" class="trans-name" value="${escapeHtml(nameValue)}" 
+                        style="${isModName ? 'border-color: #4ade80;' : ''}"
+                        data-key="${key}"
+                        data-lang="${lang}"
+                        data-field="name">
+                </div>
+                <div class="editor-translation-field">
+                    <label data-i18n="Translation_description">${t('Translation_description')}</label>
+                    <textarea class="trans-desc" rows="2" 
+                        data-key="${key}"
+                        data-lang="${lang}"
+                        data-field="description">${escapeHtml(descValue)}</textarea>
+                </div>
+            `;
+            
+            const nameInput = div.querySelector('.trans-name');
+            const descTextarea = div.querySelector('.trans-desc');
+            const descKey = key.replace('.name', '') + '.description';
+            
+            // --- ПРИОРИТЕТ +1 ДЛЯ ПОЛЕЙ ВВОДА ---
+            // При изменении поля - сразу сохраняем с приоритетом +1
+            nameInput.addEventListener('input', function() {
+                // Добавляем визуальный индикатор, что поле имеет приоритет
+                this.style.borderColor = '#fbbf24'; // золотой цвет - приоритет
+                // Автоматическое сохранение при изменении
+                autoSaveTranslation(this.dataset.key, this.dataset.lang, 'name', this.value);
+            });
+            
+            nameInput.addEventListener('blur', function() {
+                // Возвращаем стандартный цвет, но сохраняем данные
+                this.style.borderColor = isModName ? '#4ade80' : '#334155';
+                // Дополнительное сохранение при потере фокуса
+                autoSaveTranslation(this.dataset.key, this.dataset.lang, 'name', this.value);
+            });
+            
+            descTextarea.addEventListener('input', function() {
+                this.style.borderColor = '#fbbf24'; // золотой цвет - приоритет
+                autoSaveTranslation(this.dataset.key, this.dataset.lang, 'description', this.value);
+            });
+            
+            descTextarea.addEventListener('blur', function() {
+                this.style.borderColor = '#334155';
+                autoSaveTranslation(this.dataset.key, this.dataset.lang, 'description', this.value);
+            });
+            
+            if (lang === 'en') {
+                enEntries[key] = nameInput;
+                enDescEntries[descKey] = descTextarea;
+            } else {
+                ruEntries[key] = nameInput;
+                ruDescEntries[descKey] = descTextarea;
+            }
+            
             return div;
+        }
+
+        // Функция автоматического сохранения с приоритетом +1 для полей ввода
+        let autoSaveTimeout = null;
+
+        function autoSaveTranslation(key, lang, field, value) {
+            // Очищаем предыдущий таймаут
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            // Задержка для предотвращения частых сохранений (300ms)
+            autoSaveTimeout = setTimeout(() => {
+                // Обновляем данные в translationsData с приоритетом +1
+                // То есть данные из полей ввода имеют приоритет над файловыми
+                if (lang === 'en') {
+                    if (field === 'name') {
+                        translationsData.en.names[key] = value;
+                    } else if (field === 'description') {
+                        translationsData.en.descriptions[key] = value;
+                    }
+                } else if (lang === 'ru') {
+                    if (field === 'name') {
+                        translationsData.ru.names[key] = value;
+                    } else if (field === 'description') {
+                        translationsData.ru.descriptions[key] = value;
+                    }
+                }
+                
+                // Показываем индикатор сохранения
+                showToast(`💾 ${t('autosav')}: ${key}`, 'info');
+                
+                // Сохраняем все данные с приоритетом
+                saveAllBundlesWithPriority();
+                
+                autoSaveTimeout = null;
+            }, 300);
+        }
+
+        // Функция сохранения всех переводов с приоритетом +1 для полей ввода
+        async function saveAllBundlesWithPriority() {
+            // Собираем данные из всех полей ввода (ПРИОРИТЕТ +1)
+            const enNames = {};
+            const enDescs = {};
+            const ruNames = {};
+            const ruDescs = {};
+            
+            // Приоритет: данные из полей ввода имеют приоритет над любыми другими данными
+            for (const [key, input] of Object.entries(enEntries)) {
+                if (input && input.value) {
+                    enNames[key] = input.value;
+                } else if (translationsData.en.names[key]) {
+                    // Если поле пустое - используем данные из translationsData
+                    enNames[key] = translationsData.en.names[key];
+                }
+            }
+            
+            for (const [key, ta] of Object.entries(enDescEntries)) {
+                if (ta && ta.value) {
+                    enDescs[key] = ta.value;
+                } else if (translationsData.en.descriptions[key]) {
+                    enDescs[key] = translationsData.en.descriptions[key];
+                }
+            }
+            
+            for (const [key, input] of Object.entries(ruEntries)) {
+                if (input && input.value) {
+                    ruNames[key] = input.value;
+                } else if (translationsData.ru.names[key]) {
+                    ruNames[key] = translationsData.ru.names[key];
+                }
+            }
+            
+            for (const [key, ta] of Object.entries(ruDescEntries)) {
+                if (ta && ta.value) {
+                    ruDescs[key] = ta.value;
+                } else if (translationsData.ru.descriptions[key]) {
+                    ruDescs[key] = translationsData.ru.descriptions[key];
+                }
+            }
+            
+            try {
+                const result = await eel.editor_save_bundle_files({
+                    en_names: enNames,
+                    en_descriptions: enDescs,
+                    ru_names: ruNames,
+                    ru_descriptions: ruDescs
+                });
+                
+                if (result && result.success) {
+                    // Обновляем translationsData после сохранения
+                    translationsData.en.names = { ...translationsData.en.names, ...enNames };
+                    translationsData.en.descriptions = { ...translationsData.en.descriptions, ...enDescs };
+                    translationsData.ru.names = { ...translationsData.ru.names, ...ruNames };
+                    translationsData.ru.descriptions = { ...translationsData.ru.descriptions, ...ruDescs };
+                    
+                    // Обновляем статус
+                    const statusSpan = document.getElementById('translation-status');
+                    if (statusSpan) {
+                        const totalKeys = Object.keys(translationsData.en.names).length;
+                        statusSpan.innerHTML = `✅ ${t('autosav')} (${totalKeys} ${t('elements')})`;
+                    }
+                } else {
+                    showToast(`❌ ${t('settings_error')}`, 'error');
+                }
+            } catch(e) {
+                console.error('Ошибка сохранения:', e);
+                showToast(`❌ Ошибка сохранения`, 'error');
+            }
         }
         
         function updateTranslationStatus() { const statusSpan = document.getElementById('translation-status'); if (statusSpan) statusSpan.innerHTML = `${t('Found_elements')} ${Object.keys(translationsData.en.names).length}`; }
@@ -2586,15 +2861,33 @@
         
         // Действия редактора
         async function onActionClick(action) {
-            if (action === 1) await openCreateItemModal();
-            else if (action === 2) await openCreateLiquidModal();
-            else if (action === 3) startCompilation();
-            else if (action === 4) { switchTab('translations'); await loadTranslationsData(); }
-            else if (action === 5) await eel.editor_open_mod_folder();
-            else if (action === 6) openUploadIconModal();
-            else if (action === 'refresh') { await loadBlocks(); if (document.querySelector('.editor-center-tab-btn[data-tab="textures"].active')) loadTextures(); if (document.querySelector('.editor-center-tab-btn[data-tab="translations"].active')) loadTranslationsData(); showToast(`${t('Обновить')}`); }
-            else if (action === 7) openAction7Modal();
-            else showToast(`Действие ${action} выполнено`);
+            if (action === 1) {
+                await openCreateItemModal();
+            } else if (action === 2) {
+                await openCreateLiquidModal();
+            } else if (action === 3) {
+                startCompilation();
+            } else if (action === 4) {
+                switchTab('translations');
+                await loadTranslationsData();
+            } else if (action === 5) {
+                await eel.editor_open_mod_folder();
+            } else if (action === 6) {
+                openUploadIconModal();
+            } else if (action === 'refresh') {
+                await loadBlocks();
+                if (document.querySelector('.editor-center-tab-btn[data-tab="textures"].active')) {
+                    loadTextures();
+                }
+                if (document.querySelector('.editor-center-tab-btn[data-tab="translations"].active')) {
+                    loadTranslationsData();
+                }
+                showToast(`${t('Обновить')}`);
+            } else if (action === 7) {
+                openAction7Modal();
+            } else {
+                showToast(`Действие ${action} выполнено`);
+            }
         }
         
         // ============= ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ (ПКМ) =============
@@ -2794,93 +3087,6 @@
             document.getElementById('createModModal').classList.add('show');
         }
 
-        // blocks creator
-        function openAction7Modal() {
-            const modal = document.getElementById('action7-modal');
-            const grid = document.getElementById('action7-grid');
-            
-            // Очищаем сетку
-            grid.innerHTML = '';
-            
-            // Создаем кнопки для каждого типа блока
-            ACTION7_BLOCKS.forEach(block => {
-                const btn = document.createElement('button');
-                btn.className = 'editor-action-btn';
-                btn.style.cssText = `
-                    background: linear-gradient(105deg, #1e293b, #0f172a);
-                    border: 1px solid rgba(74, 222, 128, 0.3);
-                    border-radius: 16px;
-                    padding: 16px;
-                    color: #e2e8f0;
-                    font-weight: 600;
-                    font-size: 14px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                    text-align: center;
-                    width: 100%;
-                    min-height: 100px;
-                `;
-                
-                // Используем t() здесь, когда переводы уже загружены
-                const displayName = t(block.name);
-                
-                btn.innerHTML = `
-                    <span style="font-size: 40px; display: block;">${block.icon}</span>
-                    <span style="font-size: 13px;">${displayName}</span>
-                `;
-                
-                btn.onmouseover = function() {
-                    this.style.transform = 'translateY(-4px)';
-                    this.style.borderColor = '#4ade80';
-                    this.style.background = '#2d3a4e';
-                };
-                
-                btn.onmouseout = function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.borderColor = 'rgba(74, 222, 128, 0.3)';
-                    this.style.background = 'linear-gradient(105deg, #1e293b, #0f172a)';
-                };
-                
-                btn.onclick = function() {
-                    closeAction7Modal();
-                    handleAction7Block(block);
-                };
-                
-                grid.appendChild(btn);
-            });
-            
-            modal.classList.add('active');
-        }
-
-        // Закрытие модального окна действия 7
-        function closeAction7Modal() {
-            document.getElementById('action7-modal').classList.remove('active');
-        }
-
-        // Обработчик выбора блока
-        function handleAction7Block(block) {
-            switch(block.type) {
-                case 'wall':
-                    // Для этих типов открываем модальное окно создания соответствующего блока
-                    showBlockCreationModal(block);
-                    break;
-                default:
-                    showToast(`Создание блока типа "${block.name}" будет доступно в следующей версии`, 'info');
-            }
-        }
-
-        // Модальное окно для создания блока
-        function showBlockCreationModal(block) {
-            // Здесь можно добавить специфическую логику для каждого типа блока
-            // Например, создать модальное окно с настройками для стены, конвейера и т.д.
-            showToast(`📝 Создание блока: ${block.name} (тип: ${block.type})`, 'info');
-            // Временно показываем сообщение, что функция в разработке
-            // В будущем здесь можно открыть отдельное модальное окно с настройками
-        }
         // ============= ЗАКРЫТИЕ МОДАЛЬНОГО ОКНА УСТАНОВКИ JAVA =============
         function closeJavaInstallModal() {
             const modal = document.getElementById('java-install-modal');
@@ -3892,6 +4098,197 @@
                 showToast(`📋 Имя класса "${className}" скопировано`, 'success');
             }
             closeModal('context-menu');
+        }
+        // ============= ACTION 7 - МОДУЛИ =============
+        async function openAction7Modal() {
+            const modal = document.getElementById('action7-modal');
+            const grid = document.getElementById('action7-grid');
+            
+            grid.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;">Загрузка модулей...</div>';
+            modal.classList.add('active');
+            
+            try {
+                const modules = await eel.editor_get_modules()();
+                
+                if (!modules || modules.length === 0) {
+                    grid.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:#94a3b8;grid-column:1/-1;">
+                            📭 Нет установленных модулей<br>
+                            <span style="font-size:12px;">Поместите модули в папку Creator/mmcp</span>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = '';
+                
+                for (const module of modules) {
+                    const btn = document.createElement('button');
+                    btn.className = 'editor-action-btn';
+                    btn.style.cssText = `
+                        background: linear-gradient(105deg, #1e293b, #0f172a);
+                        border: 1px solid rgba(74, 222, 128, 0.3);
+                        border-radius: 16px;
+                        padding: 16px;
+                        color: #e2e8f0;
+                        font-weight: 600;
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 8px;
+                        text-align: center;
+                        width: 100%;
+                        min-height: 120px;
+                    `;
+                    
+                    let iconHtml = module.button_icon || '📦';
+                    if (module.texture) {
+                        iconHtml = `<img src="data:image/png;base64,${module.texture}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;">`;
+                    }
+                    
+                    btn.innerHTML = `
+                        ${iconHtml}
+                        <span style="font-size: 13px; font-weight: 600;">${module.display_name || module.name}</span>
+                        <span style="font-size: 11px; color: #94a3b8;">${module.description || ''}</span>
+                    `;
+                    
+                    btn.onmouseover = function() {
+                        this.style.transform = 'translateY(-4px)';
+                        this.style.borderColor = '#4ade80';
+                        this.style.background = '#2d3a4e';
+                    };
+                    
+                    btn.onmouseout = function() {
+                        this.style.transform = 'translateY(0)';
+                        this.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                        this.style.background = 'linear-gradient(105deg, #1e293b, #0f172a)';
+                    };
+                    
+                    btn.onclick = function() {
+                        closeAction7Modal();
+                        openModuleModal(module);
+                    };
+                    
+                    grid.appendChild(btn);
+                }
+            } catch(e) {
+                console.error('Ошибка загрузки модулей:', e);
+                grid.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#f87171;grid-column:1/-1;">
+                        ❌ Ошибка загрузки модулей<br>
+                        <span style="font-size:12px;">${e.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Закрытие модального окна
+        function closeAction7Modal() {
+            document.getElementById('action7-modal').classList.remove('active');
+        }
+
+        // ============= ОТКРЫТИЕ МОДАЛЬНОГО ОКНА МОДУЛЯ =============
+        async function openModuleModal(module) {
+            // Создаём модальное окно для модуля
+            const modal = document.createElement('div');
+            modal.id = `module-${module.name}-modal`;
+            modal.className = 'editor-modal active';
+            modal.style.display = 'flex';
+            
+            modal.innerHTML = `
+                <div class="editor-modal-content" style="min-width: 500px; max-width: 700px;">
+                    <div class="editor-modal-header">
+                        <h3>${module.button_icon} ${module.modal_title || module.display_name}</h3>
+                        <button class="editor-modal-close" onclick="closeModuleModal('${module.name}')">×</button>
+                    </div>
+                    <div class="editor-modal-body" id="module-${module.name}-body">
+                        ${module.html || '<div style="text-align:center;padding:20px;color:#94a3b8;">Интерфейс модуля не загружен</div>'}
+                    </div>
+                    <div class="editor-modal-footer">
+                        <button class="btn-secondary" onclick="closeModuleModal('${module.name}')">Закрыть</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Если в HTML есть кнопка с id="execute-btn", добавляем обработчик
+            const executeBtn = modal.querySelector('#execute-btn');
+            if (executeBtn) {
+                executeBtn.onclick = function() {
+                    executeModuleAction(module.name);
+                };
+            }
+            
+            // Если в HTML есть форма, обрабатываем её отправку
+            const form = modal.querySelector('form');
+            if (form) {
+                form.onsubmit = function(e) {
+                    e.preventDefault();
+                    executeModuleAction(module.name);
+                };
+            }
+        }
+
+        function closeModuleModal(moduleName) {
+            const modal = document.getElementById(`module-${moduleName}-modal`);
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function executeModuleAction(moduleName) {
+            const modal = document.getElementById(`module-${moduleName}-modal`);
+            if (!modal) return;
+            
+            // Собираем данные из формы
+            const form = modal.querySelector('form');
+            const data = {};
+            
+            if (form) {
+                const inputs = form.querySelectorAll('input, textarea, select');
+                for (const input of inputs) {
+                    if (input.name) {
+                        if (input.type === 'checkbox') {
+                            data[input.name] = input.checked;
+                        } else {
+                            data[input.name] = input.value;
+                        }
+                    }
+                }
+            }
+            
+            // Показываем индикатор загрузки
+            const executeBtn = modal.querySelector('#execute-btn');
+            const originalText = executeBtn ? executeBtn.innerHTML : '';
+            if (executeBtn) {
+                executeBtn.innerHTML = '⏳ Выполнение...';
+                executeBtn.disabled = true;
+            }
+            
+            try {
+                const result = await eel.editor_execute_module(moduleName, data)();
+                
+                if (result && result.success) {
+                    showToast(`✅ ${result.message || 'Выполнено!'}`, 'success');
+                    // Если модуль вернул данные для обновления интерфейса
+                    if (result.refresh) {
+                        await loadBlocks();
+                    }
+                } else {
+                    showToast(`❌ ${result?.error || 'Ошибка выполнения'}`, 'error');
+                }
+            } catch(e) {
+                showToast(`❌ Ошибка: ${e.message}`, 'error');
+            } finally {
+                if (executeBtn) {
+                    executeBtn.innerHTML = originalText;
+                    executeBtn.disabled = false;
+                }
+            }
         }
     </script>
 </body>

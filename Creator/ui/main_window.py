@@ -45,27 +45,45 @@ def load_settings():
     settings_dir = Path(appdata) / "MindustryModCreator"
     settings_dir.mkdir(parents=True, exist_ok=True)
     settings_file = settings_dir / "settings.json"
+    
+    # ВСЕГДА возвращаем словарь
     if settings_file.exists():
         try:
             with open(settings_file, 'r', encoding='utf-8') as f:
-                settings = json.load(f)
+                loaded = json.load(f)
+                # Объединяем с default, чтобы все ключи были
                 for key, value in default_settings.items():
-                    if key not in settings:
-                        settings[key] = value
-        except:
+                    if key not in loaded:
+                        loaded[key] = value
+                settings = loaded
+                return settings
+        except Exception as e:
+            print(f"Ошибка загрузки настроек: {e}")
+            # Если ошибка - создаём новые настройки
             settings = default_settings.copy()
+            save_settings()
+            return settings
     else:
+        # Если файла нет - создаём
         settings = default_settings.copy()
         save_settings()
+        return settings
 
 def save_settings():
     global settings, settings_file
     try:
+        if settings_file is None:
+            appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+            settings_dir = Path(appdata) / "MindustryModCreator"
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = settings_dir / "settings.json"
+        
         settings_file.parent.mkdir(parents=True, exist_ok=True)
         with open(settings_file, 'w', encoding='utf-8') as f:
             json.dump(settings, f, ensure_ascii=False, indent=4)
         return True
-    except:
+    except Exception as e:
+        print(f"Ошибка сохранения настроек: {e}")
         return False
 # ===================== JAVA DOWNLOAD =====================
 @eel.expose
@@ -511,27 +529,132 @@ class CreatorEditor:
         self.mod_name = mod_name
         self.compile_callback = None
         self.current_compile_callback = None
+        
+        # Загружаем настройки (ВСЕГДА возвращает словарь)
         self.settings = load_settings()
+        
+        # Проверяем, что settings - это словарь
+        if not isinstance(self.settings, dict):
+            print("⚠️ Настройки не являются словарём, создаём новые")
+            self.settings = {"language": "ru", "save_folder": MODS_WORK_DIR}
+            save_settings()
+        
+        # Убеждаемся, что save_folder есть
+        if "save_folder" not in self.settings:
+            self.settings["save_folder"] = MODS_WORK_DIR
+            save_settings()
+        
+        print(f"📂 Загружены настройки: {self.settings}")
+        print(f"📂 Папка сохранения: {self.settings.get('save_folder')}")
         
         self.TP_source_folder = self.mod_folder / "build" / "libs"
         self.TP_filename = f"{mod_name}Desktop.jar"
         self.TP_new_name = f"{mod_name}.jar"
 
     def move_and_rename_file(self):
-        source_path = self.TP_source_folder / self.TP_filename
-        if not source_path.exists():
-            return False
-        save_folder = self.settings.get("save_folder", "mods")
-        target_folder = Path(save_folder)
-        target_folder.mkdir(parents=True, exist_ok=True)
-        target_path = target_folder / self.TP_new_name
+        """Перемещает и переименовывает скомпилированный JAR файл"""
         try:
+            print("=" * 50)
+            print("🔍 НАЧАЛО ПЕРЕМЕЩЕНИЯ JAR ФАЙЛА")
+            print("=" * 50)
+            
+            # 1. Проверяем папку build/libs
+            build_libs = self.mod_folder / "build" / "libs"
+            print(f"📁 Папка сборки: {build_libs}")
+            print(f"📁 Существует: {build_libs.exists()}")
+            
+            if not build_libs.exists():
+                print(f"❌ Папка build/libs не найдена: {build_libs}")
+                return False
+            
+            # 2. Ищем все JAR файлы
+            jar_files = list(build_libs.glob("*.jar"))
+            print(f"📦 Найдено JAR файлов: {len(jar_files)}")
+            for jf in jar_files:
+                print(f"   - {jf.name} ({jf.stat().st_size / 1024:.1f} KB)")
+            
+            if not jar_files:
+                print("❌ JAR файлы не найдены")
+                return False
+            
+            # 3. Фильтруем
+            filtered_jars = []
+            for jar in jar_files:
+                name_lower = jar.name.lower()
+                if "sources" not in name_lower and "javadoc" not in name_lower and "original" not in name_lower:
+                    filtered_jars.append(jar)
+                    print(f"✅ Подходит: {jar.name}")
+                else:
+                    print(f"⏭️ Пропущен: {jar.name}")
+            
+            if not filtered_jars:
+                print(f"❌ Нет подходящих JAR файлов")
+                return False
+            
+            # 4. Берём первый
+            source_file = filtered_jars[0]
+            print(f"🎯 Выбран файл: {source_file.name}")
+            
+            # 5. Определяем целевую папку
+            save_folder = self.settings.get("save_folder", MODS_WORK_DIR)
+            print(f"📂 Папка сохранения: {save_folder}")
+            
+            target_folder = Path(save_folder)
+            target_folder.mkdir(parents=True, exist_ok=True)
+            print(f"📂 Целевая папка: {target_folder}")
+            
+            # 6. Формируем путь
+            target_path = target_folder / self.TP_new_name
+            print(f"📄 Целевой файл: {target_path}")
+            
+            # 7. Если файл существует - удаляем
             if target_path.exists():
-                target_path.unlink()
-            shutil.move(str(source_path), str(target_path))
-            return True
-        except:
+                try:
+                    target_path.unlink()
+                    print(f"🗑️ Удалён старый файл: {target_path}")
+                except Exception as e:
+                    print(f"⚠️ Не удалось удалить старый файл: {e}")
+                    # Пробуем переименовать
+                    try:
+                        backup = target_path.with_suffix(".backup")
+                        target_path.rename(backup)
+                        print(f"📦 Старый файл переименован в: {backup}")
+                    except:
+                        print("⚠️ Не удалось переименовать старый файл")
+            
+            # 8. Копируем или перемещаем
+            print(f"📤 Копирование из: {source_file}")
+            print(f"📥 Копирование в: {target_path}")
+            
+            try:
+                # Сначала пробуем скопировать (более безопасно)
+                shutil.copy2(str(source_file), str(target_path))
+                print(f"✅ Файл скопирован: {source_file} -> {target_path}")
+                
+                # Проверяем, что файл создан
+                if target_path.exists():
+                    size = target_path.stat().st_size
+                    print(f"✅ Файл успешно создан, размер: {size / 1024:.1f} KB")
+                    return True
+                else:
+                    print("❌ Файл не был создан!")
+                    return False
+                    
+            except Exception as e:
+                print(f"❌ Ошибка копирования: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+                    
+        except Exception as e:
+            print(f"❌ Ошибка в move_and_rename_file: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+        finally:
+            print("=" * 50)
+            print("🏁 ЗАВЕРШЕНИЕ ПЕРЕМЕЩЕНИЯ")
+            print("=" * 50)
 
     def _format_to_camel_case(self, text):
         if not text or not isinstance(text, str):
@@ -1059,6 +1182,7 @@ public class ModLiquid {{
             return {"success": False, "error": str(e)}
 
     def _compile_mod(self, callback_id=None):
+        """Компилирует мод и перемещает JAR файл"""
         import queue
         log_queue = queue.Queue()
         
@@ -1109,17 +1233,35 @@ public class ModLiquid {{
                 
                 if return_code == 0:
                     send_log(LangT("compilation_end_yes"), "success")
-                    jar_files = list(self.mod_folder.glob("build/libs/*.jar"))
-                    if jar_files:
-                        send_log(f"📦 JAR: {jar_files[0].name}", "success")
-                        self.move_and_rename_file()
+                    
+                    # Показываем все найденные JAR файлы
+                    build_libs = self.mod_folder / "build" / "libs"
+                    if build_libs.exists():
+                        jar_files = list(build_libs.glob("*.jar"))
+                        send_log(f"📦 Найдено JAR файлов: {len(jar_files)}", "info")
+                        for jf in jar_files:
+                            send_log(f"   - {jf.name} ({jf.stat().st_size / 1024:.1f} KB)", "info")
+                    
+                    # Перемещаем файл
+                    move_result = self.move_and_rename_file()
+                    if move_result:
                         send_log(LangT("jar_teleporte"), "success")
+                        
+                        # Показываем путь к итоговому файлу
+                        save_folder = self.settings.get("save_folder", "mods")
+                        target_path = Path(save_folder) / self.TP_new_name
+                        if target_path.exists():
+                            send_log(f"📍 Итоговый файл: {target_path}", "success")
+                    else:
+                        send_log("⚠️ Не удалось переместить JAR файл. Проверьте папку build/libs/", "warning")
                 else:
                     send_log(LangT("Compilatiom_error").format(e1=return_code), "error")
                 
                 send_log(LangT("compile_mod_end_text"), "header")
             except Exception as e:
                 send_log(LangT("error: {e}").format(e=e), "error")
+                import traceback
+                send_log(traceback.format_exc(), "error")
             finally:
                 if callback_id:
                     time.sleep(1)
@@ -1130,6 +1272,38 @@ public class ModLiquid {{
         
         threading.Thread(target=compile_thread, daemon=True).start()
         return {"status": "started", "callback_id": callback_id}
+    
+    def find_jar_file(self):
+        """Находит JAR файл в папке build/libs"""
+        build_libs = self.mod_folder / "build" / "libs"
+        if not build_libs.exists():
+            return None
+        
+        # Ищем все JAR файлы
+        jar_files = list(build_libs.glob("*.jar"))
+        
+        # Приоритетный поиск
+        priority_names = [
+            f"{self.mod_name}Desktop.jar",
+            f"{self.mod_name}.jar",
+            f"{self.mod_name}-desktop.jar",
+            f"{self.mod_name}-all.jar"
+        ]
+        
+        # Сначала ищем по приоритетным именам
+        for priority_name in priority_names:
+            for jar in jar_files:
+                if jar.name == priority_name:
+                    return jar
+        
+        # Затем ищем любой JAR (исключая sources, javadoc, original)
+        for jar in jar_files:
+            name_lower = jar.name.lower()
+            if "sources" not in name_lower and "javadoc" not in name_lower and "original" not in name_lower:
+                return jar
+        
+        # Если ничего не нашли - возвращаем первый попавшийся
+        return jar_files[0] if jar_files else None
 
     def _get_textures_tree_data(self):
         textures_root = self.mod_folder / "assets" / "sprites"
@@ -1196,41 +1370,309 @@ public class ModLiquid {{
             return None
 
     def _get_translations_data(self):
+        """Автоматически собирает все переводы из всех Java файлов с улучшенной логикой"""
         bundles_dir = self.mod_folder / "assets" / "bundles"
         bundles_dir.mkdir(parents=True, exist_ok=True)
         
-        en_names, en_descs = {}, {}
-        ru_names, ru_descs = {}, {}
+        # 1. Сканируем все Java файлы и находим все имена из Core.bundle.get
+        found_items = self._scan_all_java_for_names()
         
-        en_path = bundles_dir / "bundle.properties"
-        if en_path.exists():
-            for line in en_path.read_text(encoding='utf-8').split('\n'):
-                if '=' in line and not line.startswith('#'):
-                    k, v = line.split('=', 1)
-                    k, v = k.strip(), v.strip()
-                    if k.endswith('.description'):
-                        en_descs[k] = v
-                    else:
-                        en_names[k] = v
+        # 2. Загружаем существующие переводы
+        existing = self._load_existing_bundles(bundles_dir)
         
-        ru_path = bundles_dir / "bundle_ru.properties"
-        if ru_path.exists():
-            for line in ru_path.read_text(encoding='utf-8').split('\n'):
-                if '=' in line and not line.startswith('#'):
-                    k, v = line.split('=', 1)
-                    k, v = k.strip(), v.strip()
-                    if k.endswith('.description'):
-                        ru_descs[k] = v
-                    else:
-                        ru_names[k] = v
+        # 3. Объединяем
+        merged = self._merge_with_existing(found_items, existing)
+        
+        # 4. Авто-сохранение
+        self._save_bundles_auto(bundles_dir, merged)
         
         return {
             "success": True,
-            "data": {
-                "en": {"names": en_names, "descriptions": en_descs},
-                "ru": {"names": ru_names, "descriptions": ru_descs}
-            }
+            "data": merged,
+            "foundCount": len(found_items),
+            "autoSaved": True,
+            "modName": self.mod_name  # Добавляем имя мода для отображения
         }
+
+    def _load_existing_bundles(self, bundles_dir):
+        """Загружает существующие bundle файлы"""
+        result = {
+            "en": {"names": {}, "descriptions": {}},
+            "ru": {"names": {}, "descriptions": {}}
+        }
+        
+        # Загружаем английский
+        en_path = bundles_dir / "bundle.properties"
+        if en_path.exists():
+            try:
+                for line in en_path.read_text(encoding='utf-8').split('\n'):
+                    if '=' in line and not line.startswith('#'):
+                        k, v = line.split('=', 1)
+                        k, v = k.strip(), v.strip()
+                        if k.endswith('.description'):
+                            result["en"]["descriptions"][k] = v
+                        else:
+                            result["en"]["names"][k] = v
+            except:
+                pass
+        
+        # Загружаем русский
+        ru_path = bundles_dir / "bundle_ru.properties"
+        if ru_path.exists():
+            try:
+                for line in ru_path.read_text(encoding='utf-8').split('\n'):
+                    if '=' in line and not line.startswith('#'):
+                        k, v = line.split('=', 1)
+                        k, v = k.strip(), v.strip()
+                        if k.endswith('.description'):
+                            result["ru"]["descriptions"][k] = v
+                        else:
+                            result["ru"]["names"][k] = v
+            except:
+                pass
+        
+        return result
+
+    def _merge_with_existing(self, found_items, existing):
+        """Объединяет найденные имена с существующими переводами"""
+        result = {
+            "en": {"names": {}, "descriptions": {}},
+            "ru": {"names": {}, "descriptions": {}}
+        }
+        
+        # Копируем существующие
+        result["en"]["names"] = existing["en"]["names"].copy()
+        result["en"]["descriptions"] = existing["en"]["descriptions"].copy()
+        result["ru"]["names"] = existing["ru"]["names"].copy()
+        result["ru"]["descriptions"] = existing["ru"]["descriptions"].copy()
+        
+        # Добавляем новые
+        for name in found_items:
+            name_key = f"{name}.name"
+            desc_key = f"{name}.description"
+            
+            # Генерируем красивое имя
+            display_name = self._format_display_name(name)
+            
+            # Добавляем если нет
+            if name_key not in result["en"]["names"]:
+                result["en"]["names"][name_key] = display_name
+            
+            if desc_key not in result["en"]["descriptions"]:
+                result["en"]["descriptions"][desc_key] = ""
+            
+            # Русский - копируем из английского если нет
+            if name_key not in result["ru"]["names"]:
+                result["ru"]["names"][name_key] = display_name
+            
+            if desc_key not in result["ru"]["descriptions"]:
+                result["ru"]["descriptions"][desc_key] = ""
+        
+        return result
+
+    def _format_display_name(self, name):
+        """Форматирует имя для отображения"""
+        # Если в CamelCase
+        if '_' in name:
+            return name.replace('_', ' ').title()
+        
+        # Если в CamelCase
+        import re
+        # Разбиваем по заглавным буквам 
+        parts = re.findall(r'[A-Z][a-z]*|[a-z]+', name)
+        if len(parts) > 1:
+            return ' '.join(parts).title()
+        
+        # Если всё в нижнем регистре
+        if name.islower():
+            return name.capitalize()
+        
+        return name
+    
+    def _save_bundles_auto(self, bundles_dir, translations):
+        """Автоматически сохраняет bundle файлы"""
+        # Сохраняем английский
+        en_lines = []
+        all_keys = set(translations["en"]["names"].keys()) | set(translations["en"]["descriptions"].keys())
+        
+        # Сначала имена, потом описания
+        for key in sorted(all_keys):
+            if key in translations["en"]["names"] and translations["en"]["names"][key]:
+                en_lines.append(f"{key}={translations['en']['names'][key]}")
+        
+        for key in sorted(all_keys):
+            desc_key = key.replace('.name', '.description')
+            if desc_key in translations["en"]["descriptions"] and translations["en"]["descriptions"][desc_key]:
+                en_lines.append(f"{desc_key}={translations['en']['descriptions'][desc_key]}")
+        
+        en_path = bundles_dir / "bundle.properties"
+        en_path.write_text('\n'.join(en_lines), encoding='utf-8')
+        
+        # Сохраняем русский
+        ru_lines = []
+        all_keys_ru = set(translations["ru"]["names"].keys()) | set(translations["ru"]["descriptions"].keys())
+        
+        for key in sorted(all_keys_ru):
+            if key in translations["ru"]["names"] and translations["ru"]["names"][key]:
+                ru_lines.append(f"{key}={translations['ru']['names'][key]}")
+        
+        for key in sorted(all_keys_ru):
+            desc_key = key.replace('.name', '.description')
+            if desc_key in translations["ru"]["descriptions"] and translations["ru"]["descriptions"][desc_key]:
+                ru_lines.append(f"{desc_key}={translations['ru']['descriptions'][desc_key]}")
+        
+        ru_path = bundles_dir / "bundle_ru.properties"
+        ru_path.write_text('\n'.join(ru_lines), encoding='utf-8')
+        
+    def _scan_all_java_for_names(self):
+        """Сканирует все Java файлы и находит имена из Core.bundle.get с улучшенной логикой"""
+        mod_name_lower = self.mod_name.lower()
+        src_root = self.mod_folder / "src" / mod_name_lower
+        found = set()
+        
+        if not src_root.exists():
+            return found
+        
+        # Паттерны для поиска localizedName и description
+        patterns = [
+            # localizedName = Core.bundle.get("name.name", "Default")
+            r'localizedName\s*=\s*Core\.bundle\.get\s*\(\s*"([^"]+)"',
+            r'localizedName\s*=\s*Core\.bundle\.get\s*\(\s*\'([^\']+)\'',
+            
+            # description = Core.bundle.get("name.description", "Default")
+            r'description\s*=\s*Core\.bundle\.get\s*\(\s*"([^"]+)"',
+            r'description\s*=\s*Core\.bundle\.get\s*\(\s*\'([^\']+)\'',
+            
+            # Просто Core.bundle.get в любом контексте
+            r'Core\.bundle\.get\s*\(\s*"([^"]+)"',
+            r'Core\.bundle\.get\s*\(\s*\'([^\']+)\'',
+        ]
+        
+        # Собираем все ключи из Java файлов
+        all_keys = set()
+        for java_file in src_root.rglob("*.java"):
+            try:
+                content = java_file.read_text(encoding='utf-8')
+                for pattern in patterns:
+                    matches = re.findall(pattern, content)
+                    for match in matches:
+                        key = match.strip()
+                        if key and len(key) > 1:
+                            all_keys.add(key)
+            except Exception as e:
+                print(f"Ошибка чтения {java_file}: {e}")
+        
+        # Дополнительно ищем в mod.hjson
+        mod_hjson = self.mod_folder / "mod.hjson"
+        if mod_hjson.exists():
+            try:
+                content = mod_hjson.read_text(encoding='utf-8')
+                matches = re.findall(r'name\s*:\s*"([^"]+)"', content)
+                for match in matches:
+                    if match and len(match) > 1:
+                        all_keys.add(match)
+            except:
+                pass
+        
+        # --- УЛУЧШЕННАЯ ЛОГИКА ИЗВЛЕЧЕНИЯ ИМЁН ---
+        
+        # 1. Обрабатываем ключи вида "name.something" или "name"
+        for key in all_keys:
+            # Если ключ содержит точку - извлекаем первую часть
+            if '.' in key:
+                parts = key.split('.')
+                # Проверяем, не является ли первая часть именем мода
+                if parts[0].lower() == mod_name_lower:
+                    # Если это имя мода, пробуем взять вторую часть
+                    if len(parts) > 1:
+                        candidate = parts[1]
+                        if candidate and len(candidate) > 1:
+                            found.add(candidate)
+                    # Или добавляем сам ключ как есть
+                    found.add(key)
+                else:
+                    candidate = parts[0]
+                    if candidate and len(candidate) > 1:
+                        found.add(candidate)
+            else:
+                # Ключ без точки - добавляем как есть
+                if key and len(key) > 1:
+                    found.add(key)
+        
+        # 2. Ищем имена в объявлениях Item и Liquid (дополнительный проход)
+        search_configs = [
+            {"class": "Item", "path": f"src/{mod_name_lower}/init/items/ModItems.java"},
+            {"class": "Liquid", "path": f"src/{mod_name_lower}/init/liquids/ModLiquid.java"}
+        ]
+        
+        for config in search_configs:
+            file_path = self.mod_folder / config["path"]
+            if file_path.exists():
+                try:
+                    content = file_path.read_text(encoding='utf-8')
+                    # Ищем объявления вида: public static Item name;
+                    pattern = rf'public\s+static\s+{config["class"]}\s+(\w+);'
+                    matches = re.findall(pattern, content)
+                    for match in matches:
+                        if isinstance(match, str):
+                            for item in [i.strip() for i in match.split(',')]:
+                                if item and item not in found:
+                                    found.add(item)
+                    
+                    # Ищем объявления вида: name = new Item("name")
+                    pattern2 = rf'(\w+)\s*=\s*new\s+{config["class"]}\("[^"]*"\)'
+                    matches2 = re.findall(pattern2, content)
+                    for match in matches2:
+                        if isinstance(match, str):
+                            for item in [i.strip() for i in match.split(',')]:
+                                if item and item not in found:
+                                    found.add(item)
+                except:
+                    pass
+        
+        # 3. Ищем имена в Content.java (если есть)
+        content_java = src_root / "init" / "Content.java"
+        if content_java.exists():
+            try:
+                content = content_java.read_text(encoding='utf-8')
+                # Ищем вызовы load() методов
+                patterns_load = [
+                    r'ModItems\.Load\(\)',
+                    r'ModLiquid\.Load\(\)',
+                    r'ModBlocks\.Load\(\)',
+                ]
+                for pattern in patterns_load:
+                    if re.search(pattern, content):
+                        # Если есть вызов, значит элементы точно есть
+                        pass
+            except:
+                pass
+        
+        # 4. Убираем стандартные ключи, которые не являются элементами
+        skip_patterns = [
+            r'^error$', r'^ok$', r'^cancel$', r'^save$', r'^load$', 
+            r'^close$', r'^open$', r'^yes$', r'^no$', r'^confirm$',
+            r'^delete$', r'^edit$', r'^apply$', r'^reset$', r'^back$',
+            r'^next$', r'^prev$', r'^search$', r'^filter$', r'^sort$',
+            r'^title$', r'^header$', r'^footer$', r'^menu$', r'^tab$',
+            r'^button$', r'^label$', r'^field$', r'^input$', r'^output$',
+            r'^start$', r'^stop$', r'^pause$', r'^resume$', r'^exit$',
+            r'^name$', r'^description$', r'^type$', r'^id$', r'^key$',
+        ]
+        
+        result = set()
+        for name in found:
+            # Проверяем на стандартные ключи
+            is_skip = False
+            for pattern in skip_patterns:
+                if re.match(pattern, name, re.IGNORECASE):
+                    is_skip = True
+                    break
+            if not is_skip:
+                result.add(name)
+        
+        print(f"✅ Найдено элементов для перевода: {len(result)}")
+        return result
 
     def _auto_search_translations(self):
         mod_name_lower = self.mod_name.lower()
@@ -1238,7 +1680,7 @@ public class ModLiquid {{
         
         search_configs = [
             {"type": "item", "class": "Item", "path": f"src/{mod_name_lower}/init/items/ModItems.java"},
-            {"type": "liquid", "class": "Liquid", "path": f"src/{mod_name_lower}/init/liquids/ModLiquid.java"},
+            {"type": "liquid", "class": "Liquid", "path": f"src/{mod_name_lower}/init/liquids/ModLiquid.java"}
         ]
         
         for config in search_configs:
@@ -1687,6 +2129,203 @@ public class ModLiquid {{
             traceback.print_exc()
             return {"success": False, "error": str(e)}
 
+# ===================== ЗАГРУЗКА МОДУЛЕЙ (MMCP) =====================
+class MMCPModule:
+    """Класс для загрузки и управления модулями из папки mmcp"""
+    
+    def __init__(self, module_path):
+        self.module_path = Path(module_path)
+        self.name = self.module_path.name
+        self.config = {}
+        self.python_module = None
+        self.html_content = ""
+        self.texture_data = None
+        self.function_name = "run"  # Значение по умолчанию
+        
+        self._load_config()
+        self._load_html()
+        self._load_texture()
+        self._load_python()
+    
+    def _load_config(self):
+        """Загружает конфигурацию из main.mmc"""
+        config_file = self.module_path / "main.mmc"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                current_section = None
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    
+                    if line.startswith('[') and line.endswith(']'):
+                        current_section = line[1:-1]
+                        self.config[current_section] = {}
+                    elif current_section and '=' in line:
+                        key, value = line.split('=', 1)
+                        self.config[current_section][key.strip()] = value.strip()
+            except Exception as e:
+                print(f"Ошибка загрузки конфига {self.name}: {e}")
+    
+    def _load_html(self):
+        """Загружает HTML интерфейс модуля"""
+        html_file = self.module_path / "html" / "index.html"
+        if html_file.exists():
+            try:
+                self.html_content = html_file.read_text(encoding='utf-8')
+            except Exception as e:
+                print(f"Ошибка загрузки HTML {self.name}: {e}")
+    
+    def _load_texture(self):
+        """Загружает иконку модуля"""
+        texture_file = self.module_path / "texture" / "icon.png"
+        if texture_file.exists():
+            try:
+                with Image.open(texture_file) as img:
+                    img.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                    buffer = BytesIO()
+                    img.save(buffer, format='PNG')
+                    self.texture_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            except Exception as e:
+                print(f"Ошибка загрузки текстуры {self.name}: {e}")
+    
+    def _load_python(self):
+        """Загружает Python модуль для бэкенда"""
+        try:
+            python_dir = self.module_path / "python"
+            if python_dir.exists():
+                # Добавляем в sys.path
+                sys.path.insert(0, str(python_dir))
+                
+                # Импортируем модуль
+                module_name = self.config.get('python', {}).get('module', 'main')
+                self.python_module = __import__(module_name)
+                
+                # Сохраняем функцию для вызова
+                self.function_name = self.config.get('python', {}).get('function', 'run')
+                
+                # Передаём модулю путь к модулю
+                if hasattr(self.python_module, 'set_module_path'):
+                    self.python_module.set_module_path(str(self.module_path))
+                
+                # ПЕРЕДАЁМ РЕДАКТОР (если он уже есть)
+                if hasattr(self.python_module, 'set_editor') and current_editor is not None:
+                    self.python_module.set_editor(current_editor)
+                
+                print(f"✅ Загружен Python модуль: {self.name}")
+        except Exception as e:
+            print(f"❌ Ошибка загрузки Python модуля {self.name}: {e}")
+    
+    def execute(self, data=None):
+        """Выполняет функцию модуля"""
+        if self.python_module:
+            func = getattr(self.python_module, self.function_name, None)
+            if func:
+                try:
+                    return func(data)
+                except Exception as e:
+                    print(f"Ошибка выполнения функции {self.name}: {e}")
+                    return {"success": False, "error": str(e)}
+        return {"success": False, "error": "Модуль не загружен"}
+
+class MMCPManager:
+    """Менеджер для загрузки всех модулей из папки mmcp"""
+    
+    def __init__(self):
+        self.modules = {}
+        # Путь в рабочей директории
+        self.modules_path = Path("Creator/mmcp")
+        # Путь в ресурсах (для .exe)
+        self.resource_modules_path = Path(resource_path("Creator/mmcp"))
+        self._load_modules()
+    
+    def _load_modules_from_path(self, path, source_name):
+        """Загружает модули из указанного пути"""
+        if not path.exists():
+            return
+        
+        print(f"📂 Загрузка модулей из {source_name}: {path}")
+        
+        for module_dir in path.iterdir():
+            if module_dir.is_dir():
+                config_file = module_dir / "main.mmc"
+                if config_file.exists():
+                    try:
+                        # Проверяем, не загружен ли уже модуль с таким именем
+                        if module_dir.name in self.modules:
+                            print(f"⚠️ Модуль {module_dir.name} уже загружен, пропускаем")
+                            continue
+                        
+                        module = MMCPModule(module_dir)
+                        self.modules[module.name] = module
+                        print(f"📦 Загружен модуль: {module.name} из {source_name}")
+                    except Exception as e:
+                        print(f"❌ Ошибка загрузки модуля {module_dir.name}: {e}")
+        
+    def _ensure_modules_exist(self):
+        """Копирует папку mmcp из ресурсов в рабочую директорию, если её нет"""
+        # Путь в ресурсах (внутри .exe или в папке разработки)
+        resource_modules = Path(resource_path("Creator/mmcp"))
+        
+        # Если в рабочей директории нет папки mmcp, но есть в ресурсах - копируем
+        if not self.modules_path.exists() and resource_modules.exists():
+            try:
+                shutil.copytree(resource_modules, self.modules_path)
+                print(f"✅ Папка mmcp скопирована из ресурсов в {self.modules_path}")
+            except Exception as e:
+                print(f"⚠️ Ошибка копирования mmcp: {e}")
+                # Если не удалось скопировать, используем путь из ресурсов
+                self.modules_path = resource_modules
+        
+        # Если папки нет нигде - создаём
+        if not self.modules_path.exists():
+            self.modules_path.mkdir(parents=True, exist_ok=True)
+            print(f"📁 Создана папка mmcp: {self.modules_path}")
+    
+    def _load_modules(self):
+        """Загружает модули ИЗ ОБОИХ путей"""
+        # 1. Загружаем из рабочей директории (если есть)
+        if self.modules_path.exists():
+            self._load_modules_from_path(self.modules_path, "рабочей директории")
+        
+        # 2. Загружаем из ресурсов (если есть и отличается от рабочей)
+        if self.resource_modules_path.exists() and self.resource_modules_path != self.modules_path:
+            self._load_modules_from_path(self.resource_modules_path, "ресурсов")
+        
+        # 3. Если нет нигде - создаём папку в рабочей директории
+        if not self.modules_path.exists():
+            self.modules_path.mkdir(parents=True, exist_ok=True)
+            print(f"📁 Создана папка mmcp: {self.modules_path}")
+    
+    def get_module(self, name):
+        """Возвращает модуль по имени"""
+        return self.modules.get(name)
+    
+    def get_all_modules(self):
+        """Возвращает список всех модулей"""
+        return list(self.modules.values())
+    
+    def get_modules_info(self):
+        """Возвращает информацию о всех модулях для интерфейса"""
+        result = []
+        for module in self.modules.values():
+            result.append({
+                "name": module.name,
+                "display_name": module.config.get('meta', {}).get('display_name', module.name),
+                "description": module.config.get('meta', {}).get('description', ''),
+                "button_text": module.config.get('ui', {}).get('button_text', module.name),
+                "button_icon": module.config.get('ui', {}).get('button_icon', '📦'),
+                "modal_title": module.config.get('ui', {}).get('modal_title', ''),
+                "html": module.html_content,
+                "texture": module.texture_data
+            })
+        return result
+
+# Глобальный менеджер модулей
+mmcp_manager = MMCPManager()
 # ===================== EEL ФУНКЦИИ =====================
 
 @eel.expose
@@ -1733,6 +2372,10 @@ def open_in_editor(mod_name):
     if not mod_path.exists():
         return {"success": False, "error": "Мод не найден"}
     current_editor = CreatorEditor(mod_path, mod_name)
+    
+    # ОБНОВЛЯЕМ РЕДАКТОР ВО ВСЕХ МОДУЛЯХ
+    update_editor_in_modules()
+    
     return {"success": True, "mod_name": mod_name, "mod_path": str(mod_path)}
 
 # Функции редактора
@@ -2071,6 +2714,35 @@ def editor_delete_source_file(file_path):
     if current_editor is None:
         return {"success": False, "error": "Редактор не инициализирован"}
     return current_editor._delete_source_file(file_path)
+
+@eel.expose
+def editor_get_modules():
+    """Возвращает список всех модулей для интерфейса"""
+    return mmcp_manager.get_modules_info()
+
+@eel.expose
+def editor_execute_module(module_name, data=None):
+    """Выполняет модуль с переданными данными"""
+    module = mmcp_manager.get_module(module_name)
+    if module:
+        return module.execute(data)
+    return {"success": False, "error": f"Модуль {module_name} не найден"}
+
+@eel.expose
+def editor_update_modules_editor():
+    """Обновляет ссылку на редактор во всех модулях"""
+    update_editor_in_modules()
+    return {"success": True}
+
+def update_editor_in_modules():
+    """Обновляет ссылку на редактор во всех загруженных модулях"""
+    for module in mmcp_manager.modules.values():
+        if module.python_module and hasattr(module.python_module, 'set_editor'):
+            try:
+                module.python_module.set_editor(current_editor)
+                print(f"✅ Обновлён редактор для модуля: {module.name}")
+            except Exception as e:
+                print(f"❌ Ошибка обновления редактора в {module.name}: {e}")
 
 # ===================== ЗАПУСК =====================
 def start_eel():
