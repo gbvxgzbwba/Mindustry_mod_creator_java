@@ -1,0 +1,5254 @@
+#p/Creator/ui/creator_editor.py
+import customtkinter as ctk
+import tkinter as tk
+import os, re, json
+import platform
+import subprocess
+import threading
+import ctypes
+from ctypes import wintypes
+import shutil
+from pathlib import Path
+from tkinter import messagebox
+from datetime import datetime
+import time
+import sys
+import os
+from Creator.utils.lang_system import LangT
+
+def resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+class CreatorEditor:
+    def __init__(self, root, mod_folder, main_app): 
+        self.root = root
+        self.mod_folder = mod_folder
+        self.main_app = main_app
+        self.mod_name = mod_folder.name
+        
+        # Используем Path для кроссплатформенности
+        self.TP_source_folder = Path(mod_folder) / "build" / "libs"
+        self.TP_filename = f"{self.mod_name}Desktop.jar"
+        self.TP_new_name = f"{self.mod_name}.jar"
+        
+        # Флаг для отслеживания состояния компиляции
+        self.compiling = False
+        
+        # Для хранения окна прогресса
+        self.progress_window = None
+
+        # Загружаем настройки
+        self.settings = main_app.settings
+    
+        # Инициализация создания блоков
+        try:
+            from .block_creator import create_block_creator
+            self.block_creator = create_block_creator(self)
+        except ImportError as e:
+            print(f"Ошибка импорта block_creator: {e}")
+            self.block_creator = None
+
+    def load_image(self, filename, size=(80, 80)):
+        """
+        Загружает изображение или создает цветной блок
+        """
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            import io
+            
+            # Пробуем разные пути
+            possible_paths = [
+                Path(resource_path("Creator/icons")) / filename,
+                Path("icons") / filename,
+                Path(".") / filename,
+                Path(__file__).parent.parent / "icons" / filename,
+            ]
+            
+            for path in possible_paths:
+                if path.exists():
+                    img = Image.open(path)
+                    img = img.resize(size, Image.Resampling.LANCZOS)
+                    return ctk.CTkImage(img)
+            
+            # Если файл не найден, создаем цветной блок с текстом
+            print(f"Создаю заглушку для: {filename}")
+            
+            # Создаем цветной квадрат
+            colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+            color = colors[hash(filename) % len(colors)]
+            
+            img = Image.new('RGB', size, color=color)
+            draw = ImageDraw.Draw(img)
+            
+            # Добавляем первые буквы имени файла
+            try:
+                # Берем первые 2 буквы без расширения
+                letters = Path(filename).stem[:2].upper()
+                font = ImageFont.load_default()
+                
+                # Вычисляем размер текста
+                bbox = draw.textbbox((0, 0), letters, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                
+                # Центрируем текст
+                x = (size[0] - text_width) / 2
+                y = (size[1] - text_height) / 2
+                
+                draw.text((x, y), letters, fill='white', font=font)
+            except:
+                pass
+            
+            return ctk.CTkImage(img)
+            
+        except Exception as e:
+            print(f"Ошибка создания изображения: {e}")
+            # Создаем простой серый квадрат
+            img = Image.new('RGB', size, color='#363636')
+            return ctk.CTkImage(img)
+
+    def load_settings(self):
+        """Загружает настройки из файла"""
+        default_settings = {
+            "language": "ru",
+            "save_folder": "mods"
+        }
+        
+        appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+        settings_dir = Path(appdata) / "MindustryModCreator"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        self.settings_file = settings_dir / "settings.json"
+
+        if self.settings_file.exists():
+            try:
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    # Добавляем недостающие ключи
+                    for key, value in default_settings.items():
+                        if key not in settings:
+                            settings[key] = value
+                    return settings
+            except Exception as e:
+                print(f"Ошибка загрузки настроек: {e}")
+                return default_settings
+        else:
+            self.save_settings(default_settings)
+            return default_settings
+    
+    #block folder
+    PATEH_FOLDER = [
+        "consume_generators", "walls", "solar_panels",
+        "batterys", "beam_nodes", "power_nodes", "shield_walls",
+        "generic_crafter", "bridges", "conveyors"
+    ]
+    
+    # Функции-обертки для блоков
+    def create_wall(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_wall()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания стен пока не доступен"))
+
+    def create_solar_panel(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_solar_panel()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания солнечной панели пока не доступен"))
+    
+    def create_battery(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_battery()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания батареи пока не доступен"))
+
+    def create_consume_generator(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_consume_generator()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания генератора пока не доступен"))
+    
+    def create_beam_node(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_beam_node()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания энергетической башни пока не доступен"))
+    
+    def create_power_node(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_power_node()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания энергетического узла пока не доступен"))
+    
+    def create_shield_wall(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_shield_wall()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания экранированной стены пока не доступен"))
+    
+    def create_generic_crafter(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_generic_crafter()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания завода пока не доступен"))
+    
+    def create_bridge(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_bridge()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания моста пока не доступен"))
+
+    def create_conveyor(self):
+        """Создание стены (обертка)"""
+        if self.block_creator:
+            self.block_creator.create_conveyor()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            messagebox.showinfo(LangT("Информация"), LangT("Модуль создания конвейера пока не доступен"))
+
+    # ===================
+    def move_and_rename_file(self):
+        """
+        Функция для перемещения и переименования файла
+        """
+        source_path = self.TP_source_folder / self.TP_filename
+        
+        print(f"Исходный файл: {source_path}")
+        
+        if not source_path.exists():
+            print(f"Файл не найден: {source_path}")
+            return False
+        
+        # Получаем путь сохранения из настроек
+        save_folder = self.settings.get("save_folder", "mods")
+        self.TP_target_folder = Path(save_folder)
+        
+        # Создаем папку назначения
+        self.TP_target_folder.mkdir(parents=True, exist_ok=True)
+        
+        # Целевой путь
+        target_path = self.TP_target_folder / self.TP_new_name
+        
+        try:
+            # Если файл уже существует, удаляем его
+            if target_path.exists():
+                target_path.unlink()
+            
+            # Перемещаем файл
+            shutil.move(str(source_path), str(target_path))
+            print(f"Файл перемещен: {source_path} -> {target_path}")
+            return True
+        except Exception as e:
+            print(f"Ошибка перемещения: {e}")
+            return False
+
+    def teleporte(self):
+        """
+        Метод для перемещения скомпилированного JAR файла
+        """
+        try:
+            success = self.move_and_rename_file()
+            
+            if success:
+                save_folder = self.settings.get("save_folder", "mods")
+                messagebox.showinfo(LangT("Успех"), LangT("Файл перемещен в {save_folder}/{TP_new_name}").format(save_folder=save_folder,TP_new_name=self.TP_new_name))
+            else:
+                messagebox.showwarning(LangT("Предупреждение"), LangT("Не удалось переместить файл. Возможно, он не найден."))
+        except Exception as e:
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при перемещении: {e}"))
+
+    def compile_mod(self):
+        """Запуск компиляции в отдельном потоке с окном логов"""
+        if self.compiling:
+            messagebox.showwarning(LangT("Внимание"), LangT("Компиляция уже выполняется"))
+            return
+        
+        self.compiling = True
+        
+        # Создаем окно для логов
+        log_window = ctk.CTkToplevel(self.root)
+        log_window.title(LangT("Компиляция {mod_name}").format(mod_name=self.mod_name))
+        log_window.geometry("800x600")
+        log_window.minsize(600, 400)
+        
+        # Делаем окно модальным
+        log_window.transient(self.root)
+        log_window.grab_set()
+        
+        # Фрейм для логов
+        log_frame = ctk.CTkFrame(log_window)
+        log_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Фрейм для кнопок
+        button_frame = ctk.CTkFrame(log_frame, fg_color="transparent", height=40)
+        button_frame.pack(fill="x", padx=5, pady=(0, 5))
+        
+        # Кнопка копирования
+        def copy_logs():
+            log_window.clipboard_clear()
+            log_window.clipboard_append(log_text.get("1.0", "end-1c"))
+            copy_btn.configure(text=LangT("✅ Скопировано!"), state="disabled")
+            log_window.after(1500, lambda: copy_btn.configure(text=LangT("📋 Копировать"), state="normal"))
+        
+        copy_btn = ctk.CTkButton(
+            button_frame,
+            text=LangT("📋 Копировать"),
+            command=copy_logs,
+            width=120,
+            height=30,
+            font=("Arial", 12)
+        )
+        copy_btn.pack(side="left", padx=5)
+        
+        # Прогресс-бар
+        progress = ctk.CTkProgressBar(log_frame, mode='indeterminate')
+        progress.pack(fill="x", padx=5, pady=(0, 5))
+        progress.start()
+        
+        # Текстовое поле для логов (только для чтения)
+        log_text = ctk.CTkTextbox(
+            log_frame,
+            wrap="word",
+            font=("Consolas", 11),
+            fg_color="#1e1e1e",
+            text_color="#d4d4d4",
+            state="disabled"
+        )
+        log_text.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Кнопка закрытия (изначально неактивна)
+        close_btn = ctk.CTkButton(
+            log_frame,
+            text=LangT("Закрыть"),
+            state="disabled",
+            command=log_window.destroy,
+            height=35,
+            font=("Arial", 12)
+        )
+        close_btn.pack(pady=5)
+        
+        def log_to_window(message, level="INFO"):
+            """Добавляет сообщение в окно логов с цветом"""
+            colors = {
+                "INFO": "#d4d4d4",
+                "SUCCESS": "#6a9955",
+                "WARNING": "#dcdcaa",
+                "ERROR": "#f48771",
+                "GRADLE": "#9cdcfe",
+                "HEADER": "#c586c0"
+            }
+            
+            def update():
+                log_text.configure(state="normal")
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                log_text.insert("end", f"[{timestamp}] ", "timestamp")
+                log_text.insert("end", f"{message}\n", level)
+                log_text.see("end")
+                log_text.configure(state="disabled")
+            
+            log_text.tag_config("timestamp", foreground="#808080")
+            for lvl, clr in colors.items():
+                log_text.tag_config(lvl, foreground=clr)
+            
+            log_window.after(0, update)
+        
+        def sort_registration_lines(file_content):
+            """
+            Сортирует строки после //Registration_add:
+            1. ModItems.Load(); и ModLiquid.Load(); - первые строки
+            2. Tree.Load(); - должен быть в самом низу
+            3. Все остальные строки - между ними
+            """
+            print(LangT("\n📝 Анализ файла..."))
+            lines = file_content.split('\n')
+            
+            # Находим маркер //Registration_add
+            registration_marker_line = -1
+            for i, line in enumerate(lines):
+                if "//Registration_add" in line:
+                    registration_marker_line = i
+                    break
+            
+            if registration_marker_line == -1:
+                print(LangT("⚠️ Маркер //Registration_add не найден"))
+                return file_content
+            
+            print(LangT("✅ Найден маркер //Registration_add на строке {registration_marker_line}").format(registration_marker_line=registration_marker_line+1))
+            
+            # Ищем строки после маркера до конца метода или пустой строки
+            start_line = registration_marker_line + 1
+            end_line = len(lines)
+            
+            # Определяем границы блока (до пустой строки или закрывающей скобки)
+            for i in range(start_line, len(lines)):
+                line = lines[i].strip()
+                if line == "" or "}" in line or ("//" in line and i != registration_marker_line):
+                    end_line = i
+                    break
+            
+            if start_line >= end_line:
+                print(LangT(f"⚠️ Блок после маркера пуст (строки {start_line}-{end_line})"))
+                return file_content
+            
+            print(LangT(f"📦 Найден блок строк {start_line + 1}-{end_line + 1}"))
+            
+            # Собираем все строки в блоке
+            moditems_line = None
+            modliquid_line = None
+            tree_line = None
+            other_lines = []
+            
+            for i in range(start_line, end_line):
+                line = lines[i]
+                stripped = line.strip()
+                
+                if stripped:  # Только непустые строки
+                    if "ModItems.Load();" in stripped:
+                        moditems_line = (i, line)
+                        print(LangT(f"  🔹 Найден ModItems.Load() на строке {i + 1}"))
+                    elif "ModLiquid.Load();" in stripped:
+                        modliquid_line = (i, line)
+                        print(LangT(f"  🔹 Найден ModLiquid.Load() на строке {i + 1}"))
+                    elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", "BatteryTree.Load();", "SolarTree.Load();", "ShieldTree.Load();", "PowerNodeTree.Load();", "BeamTree.Load();", "GeneratorTree.Load();", "CrafterTree.Load();"]):
+                        tree_line = (i, line)
+                        print(LangT(f"  🔻 Найден Tree.Load() на строке {i + 1}"))
+                    else:
+                        other_lines.append((i, line))
+                        print(LangT(f"  🔸 Обычная строка [{i + 1}]: {stripped}"))
+            
+            # Если не найдено ни одного из нужных методов
+            if moditems_line is None and modliquid_line is None and tree_line is None and not other_lines:
+                print(LangT("⚠️ В блоке нет строк для сортировки"))
+                return file_content
+            
+            # Определяем, нужно ли что-то менять
+            changes_needed = False
+            
+            # Проверяем текущие позиции для ModItems и ModLiquid
+            if moditems_line:
+                moditems_pos, _ = moditems_line
+                if moditems_pos != start_line and (modliquid_line is None or moditems_pos != start_line + 1):
+                    changes_needed = True
+                    print(LangT("❌ ModItems не на правильной позиции"))
+            
+            if modliquid_line:
+                modliquid_pos, _ = modliquid_line
+                if moditems_line:
+                    if modliquid_pos != start_line + 1:
+                        changes_needed = True
+                        print(LangT("❌ ModLiquid не на правильной позиции"))
+                else:
+                    if modliquid_pos != start_line:
+                        changes_needed = True
+                        print(LangT("❌ ModLiquid не на правильной позиции"))
+            
+            # Проверяем позицию Tree - должна быть последней
+            if tree_line:
+                tree_pos, _ = tree_line
+                max_other_pos = max([pos for pos, _ in other_lines]) if other_lines else start_line - 1
+                if tree_pos <= max_other_pos:
+                    changes_needed = True
+                    print(LangT(f"❌ Tree не внизу (позиция {tree_pos + 1}, последняя обычная строка {max_other_pos + 1})"))
+            
+            if not changes_needed:
+                print(LangT("✅ Порядок уже правильный"))
+                return file_content
+            
+            # СОРТИРУЕМ
+            print(LangT("\n🔄 Выполняется сортировка..."))
+            
+            sorted_lines = []
+            
+            # 1. ModItems (если есть)
+            if moditems_line:
+                _, line_str = moditems_line
+                sorted_lines.append(line_str)
+                print(LangT("  📌 ModItems на позицию 1"))
+            
+            # 2. ModLiquid (если есть)
+            if modliquid_line:
+                _, line_str = modliquid_line
+                sorted_lines.append(line_str)
+                print(LangT(f"  📌 ModLiquid на позицию {2 if moditems_line else 1}"))
+            
+            # 3. Все остальные (кроме Tree) - сортируем по алфавиту
+            other_texts = [line for _, line in other_lines]
+            other_texts.sort(key=lambda x: x.strip().lower())
+            sorted_lines.extend(other_texts)
+            if other_texts:
+                print(LangT(f"  📌 {len(other_texts)} обычных строк (отсортированы)"))
+            
+            # 4. Tree (в самом конце)
+            if tree_line:
+                _, tree_str = tree_line
+                sorted_lines.append(tree_str)
+                print(LangT("  📌 Tree в конец"))
+            
+            # Создаем новый список строк
+            new_lines = lines[:start_line] + sorted_lines + lines[end_line:]
+            
+            print(LangT("✅ Сортировка завершена"))
+            return '\n'.join(new_lines)
+        
+        def compile_thread():
+            try:
+                original_cwd = os.getcwd()
+                
+                log_to_window("="*60, "HEADER")
+                log_to_window(LangT("🚀 НАЧАЛО КОМПИЛЯЦИИ"), "HEADER")
+                log_to_window("="*60, "HEADER")
+                log_to_window(LangT("📁 Мод: {mod_name}").format(mod_name=self.mod_name), "INFO")
+                log_to_window(LangT("📂 Папка: {mod_folder}").format(mod_folder=self.mod_folder), "INFO")
+                
+                # ПЕРЕД ВСЕМ - сортируем строки в главном файле
+                mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+                main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
+                
+                log_to_window(LangT("\n📄 Проверка файла: {main_mod_path}").format(main_mod_path=main_mod_path), "HEADER")
+                
+                if main_mod_path.exists():
+                    try:
+                        with open(main_mod_path, 'r', encoding='utf-8') as file:
+                            content = file.read()
+                        
+                        log_to_window(LangT("📊 Размер файла: {lencontentSIZE} символов").format(lencontentSIZE=len(content)), "INFO")
+                        
+                        # Сортируем строки после //Registration_add
+                        sorted_content = sort_registration_lines(content)
+                        
+                        if sorted_content != content:
+                            with open(main_mod_path, 'w', encoding='utf-8') as file:
+                                file.write(sorted_content)
+                            log_to_window(LangT("✅ Файл обновлен: строки отсортированы"), "SUCCESS")
+                        else:
+                            log_to_window(LangT("✅ Файл уже в правильном порядке"), "SUCCESS")
+                            
+                    except Exception as e:
+                        log_to_window(LangT(f"❌ Ошибка при обработке файла: {e}"), "ERROR")
+                else:
+                    log_to_window(LangT(f"⚠️ Файл не найден: {main_mod_path}"), "WARNING")
+                
+                # ТЕПЕРЬ переходим в папку мода и компилируем
+                log_to_window("\n" + "="*60, "HEADER")
+                log_to_window(LangT("⚙️ ЗАПУСК GRADLE"), "HEADER")
+                log_to_window("="*60, "HEADER")
+                
+                os.chdir(str(self.mod_folder))
+                
+                gradle_script = "gradlew.bat" if platform.system() == "Windows" else "./gradlew"
+                
+                if not Path(gradle_script).exists():
+                    log_to_window(LangT(f"❌ {gradle_script} не найден в папке мода!"), "ERROR")
+                    self.root.after(0, lambda: messagebox.showerror(
+                        LangT("Ошибка"), 
+                        LangT(f"{gradle_script} не найден в папке мода!")
+                    ))
+                    self.compiling = False
+                    os.chdir(original_cwd)
+                    close_btn.configure(state="normal")
+                    progress.stop()
+                    return
+                
+                log_to_window(LangT("✅ Gradle найден: {gradle_script}").format(gradle_script=gradle_script), "SUCCESS")
+                
+                # Компилируем с выводом в реальном времени
+                cmd = [gradle_script, "jar"]
+                #"📋 Команда: {' '.join(cmd)}"
+                log_to_window(LangT("📋 Команда: {joincmd}").format(joincmd=' '.join(cmd)), "INFO")
+                log_to_window(LangT("\n⏳ Компиляция выполняется...\n"), "HEADER")
+                
+                # Запускаем процесс с pipe для чтения вывода в реальном времени
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True,
+                    shell=True if platform.system() == "Windows" else False
+                )
+                
+                # Читаем stdout в реальном времени
+                for line in process.stdout:
+                    if line.strip():
+                        log_to_window(line.strip(), "GRADLE")
+                
+                # Ждем завершения и читаем stderr
+                return_code = process.wait()
+                stderr = process.stderr.read()
+                
+                if stderr:
+                    for line in stderr.split('\n'):
+                        if line.strip():
+                            log_to_window(line.strip(), "ERROR" if return_code != 0 else "GRADLE")
+                
+                os.chdir(original_cwd)
+                
+                log_to_window("\n" + "="*60, "HEADER")
+                
+                # Обрабатываем результат
+                if return_code == 0:
+                    log_to_window(LangT("✅ КОМПИЛЯЦИЯ УСПЕШНА!"), "SUCCESS")
+                    
+                    jar_files = list(Path(self.mod_folder).glob("build/libs/*.jar"))
+                    if jar_files:
+                        jar_name = jar_files[0].name
+                        jar_size = jar_files[0].stat().st_size / 1024
+                        log_to_window(LangT(f"📦 JAR: {jar_name}"), "SUCCESS")
+                        log_to_window(LangT("📊 Размер: {jar_size} KB").format(jar_size=jar_size), "SUCCESS")
+                        
+                        self.root.after(0, lambda: messagebox.showinfo(
+                            LangT("Успех"), 
+                            LangT("✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size} KB").format(jar_name=jar_name,jar_size=jar_size)
+                        ))
+                        
+                        # Запускаем перемещение файла - ТАК ЖЕ КАК В СТАРОМ КОДЕ
+                        log_to_window(LangT("📦 Запуск перемещения JAR..."), "INFO")
+                        self.teleporte()  # Прямой вызов, как в старом коде
+                    else:
+                        log_to_window(LangT("⚠️ JAR файл не найден в build/libs/"), "WARNING")
+                        self.root.after(0, lambda: messagebox.showinfo(
+                            LangT("Успех"), 
+                            LangT("Компиляция завершена, но JAR файл не найден")
+                        ))
+                else:
+                    error_msg = stderr[:500] if stderr else LangT("Неизвестная ошибка")
+                    log_to_window(LangT(f"❌ ОШИБКА КОМПИЛЯЦИИ! Код: {return_code}"), "ERROR")
+                    log_to_window(LangT(f"📄 Ошибка: {error_msg}"), "ERROR")
+                    
+                    self.root.after(0, lambda: messagebox.showerror(
+                        LangT("Ошибка"), 
+                        LangT(f"Ошибка компиляции:\n{error_msg}")
+                    ))
+                
+                log_to_window("="*60, "HEADER")
+                
+            except subprocess.TimeoutExpired:
+                log_to_window(LangT("⏰ ТАЙМАУТ! Компиляция превысила время ожидания (5 минут)"), "ERROR")
+                self.root.after(0, lambda: messagebox.showerror(
+                    LangT("Таймаут"), 
+                    LangT("Компиляция превысила время ожидания (5 минут)")
+                ))
+            
+            except Exception as e:
+                log_to_window(LangT(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {e}"), "ERROR")
+                import traceback
+                log_to_window(traceback.format_exc(), "ERROR")
+                self.root.after(0, lambda: messagebox.showerror(
+                    LangT("Ошибка"), 
+                    LangT(f"Ошибка: {str(e)}")
+                ))
+            
+            finally:
+                try:
+                    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+                except:
+                    pass
+                
+                self.compiling = False
+                close_btn.configure(state="normal")
+                progress.stop()
+                log_to_window(LangT("\n🏁 Компиляция завершена"), "HEADER")
+        
+        # Запускаем компиляцию в отдельном потоке
+        thread = threading.Thread(target=compile_thread, daemon=True)
+        thread.start()
+
+    def create_progress_window(self):
+        """Создание окна прогресса в главном потоке"""
+        # Сначала безопасно закрываем старое окно, если оно есть
+        self.safe_close_progress_window()
+        
+        # Создаем новое окно
+        self.progress_window = ctk.CTkToplevel(self.root)
+        self.progress_window.title(LangT("Компиляция"))
+        self.progress_window.geometry("400x150")
+        self.progress_window.resizable(False, False)
+        
+        # Делаем модальным
+        self.progress_window.transient(self.root)
+        self.progress_window.grab_set()
+        
+        # Центрируем окно
+        self.progress_window.update_idletasks()
+        width = self.progress_window.winfo_width()
+        height = self.progress_window.winfo_height()
+        x = (self.progress_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.progress_window.winfo_screenheight() // 2) - (height // 2)
+        self.progress_window.geometry(f'{width}x{height}+{x}+{y}')
+        
+        ctk.CTkLabel(
+            self.progress_window, 
+            text=LangT("Компиляция мода..."), 
+            font=("Arial", 14, "bold")
+        ).pack(pady=20)
+        
+        self.progress_bar = ctk.CTkProgressBar(self.progress_window, width=300)
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.set(0)
+        self.progress_bar.start()
+        
+        # Обработчик закрытия окна
+        self.progress_window.protocol("WM_DELETE_WINDOW", self.on_progress_window_close)
+
+    def safe_close_progress_window(self):
+        """Безопасное закрытие окна прогресса"""
+        try:
+            if hasattr(self, 'progress_window') and self.progress_window:
+                try:
+                    # Останавливаем прогресс-бар
+                    if hasattr(self, 'progress_bar'):
+                        self.progress_bar.stop()
+                except:
+                    pass
+                
+                # Снимаем захват
+                try:
+                    self.progress_window.grab_release()
+                except:
+                    pass
+                
+                # Уничтожаем окно
+                self.progress_window.destroy()
+                
+        except Exception as e:
+            print(f"Ошибка при закрытии окна прогресса: {e}")
+        finally:
+            self.progress_window = None
+
+    def on_progress_window_close(self):
+        """Обработчик закрытия окна прогресса пользователем"""
+        if self.compiling:
+            if messagebox.askyesno(LangT("Подтверждение"), LangT("Прервать компиляцию?")):
+                self.compiling = False
+                self.safe_close_progress_window()
+        else:
+            self.safe_close_progress_window()
+
+    def open_creator(self):
+        """Открытие интерфейса редактора"""
+        self.clear_window()
+        
+        left_frame = ctk.CTkFrame(self.root, width=220)
+        right_frame = ctk.CTkFrame(self.root)
+        left_frame.pack(side="left", fill="y", padx=5, pady=5)
+        right_frame.pack(side="right", fill="both", expand=True, padx=5, pady=5)
+        
+        self.setup_actions_panel(left_frame)
+        self.setup_content_panel(right_frame)
+
+    def create_item(self):
+        """Создает или добавляет новый предмет в ModItems.java"""
+
+        PATEH_FOLDER = self.PATEH_FOLDER
+        
+        # Очищаем всё окно
+        self.clear_window()
+        
+        # Основной фрейм с прокруткой
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")  # Темный фон
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Фрейм для прокрутки
+        scroll_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            width=500,
+            height=600,
+            fg_color="#2b2b2b"  # Темный фон
+        )
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text=LangT("Создание предмета"),
+            font=("Arial", 24, "bold"),
+            text_color="#4CAF50"
+        )
+        title_label.pack(pady=10)
+        
+        # Карточка для основной информации
+        info_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        info_card.pack(fill="x", pady=(0, 20))
+        
+        # Заголовок карточки
+        card_title = ctk.CTkLabel(
+            info_card,
+            text=LangT("Основная информация"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        )
+        card_title.pack(pady=(15, 10), padx=20, anchor="w")
+        
+        # Поле ввода названия
+        name_frame = ctk.CTkFrame(info_card, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        name_label = ctk.CTkLabel(
+            name_frame,
+            text=LangT("Название предмета (английское, можно пробел, первая буква маленькая):"),
+            font=("Arial", 16),
+            text_color="#BDBDBD"
+        )
+        name_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_name = ctk.CTkEntry(
+            name_frame,
+            width=400,
+            height=40,
+            placeholder_text=LangT("item name"),
+            font=("Arial", 15),
+            border_width=2,
+            corner_radius=8,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_name.pack(fill="x", pady=(0, 5))
+        
+        # Функция форматирования названий
+        def format_to_lower_camel(text):
+            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)"""
+            words = text.strip().split()
+            if not words:
+                return ""
+            
+            result = words[0].lower()
+            
+            for word in words[1:]:
+                result += word.capitalize()
+            
+            return result
+        
+        # Функция валидации
+        def validate_float_input(value):
+            """Проверяет, является ли значение допустимым float с максимум 2 знаками после точки"""
+            if value == "" or value == ".":
+                return True
+            
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            
+            try:
+                num = float(value)
+                if num > 5000.00:
+                    return False
+            except ValueError:
+                return False
+            
+            return True
+
+        # Функция форматирования
+        def format_float(value):
+            """Форматирует значение до 2 знаков после точки"""
+            if not value:
+                return ""
+            
+            try:
+                num = float(value)
+                num = min(num, 5000.00)
+                formatted = f"{num:.2f}"
+                if formatted.endswith(".00"):
+                    formatted = formatted[:-3]
+                elif formatted.endswith(".0"):
+                    formatted = formatted[:-2]
+                return formatted
+            except ValueError:
+                return value
+
+        # Регистрируем функцию валидации
+        vcmd = (self.root.register(validate_float_input), '%P')
+
+        # Карточка для свойств
+        properties_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        properties_card.pack(fill="x", pady=(0, 20))
+
+        # Заголовок карточки свойств
+        properties_title = ctk.CTkLabel(
+            properties_card,
+            text=LangT("Свойства предмета"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        )
+        properties_title.pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Грид для свойств
+        properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
+        properties_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Метка и поле для заряда
+        charge_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        charge_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        charge_label = ctk.CTkLabel(
+            charge_frame,
+            text=LangT("⚡ Заряд (charge):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        charge_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_charge = ctk.CTkEntry(
+            charge_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_charge.pack(fill="x")
+
+        # Метка и поле для воспламеняемости
+        flammability_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        flammability_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        flammability_label = ctk.CTkLabel(
+            flammability_frame,
+            text=LangT("🔥 Воспламеняемость (flammability):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        flammability_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_flammability = ctk.CTkEntry(
+            flammability_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_flammability.pack(fill="x")
+
+        # Метка и поле для взрывоопасности
+        explosiveness_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        explosiveness_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        explosiveness_label = ctk.CTkLabel(
+            explosiveness_frame,
+            text=LangT("💥 Взрывоопасность (explosiveness):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        explosiveness_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_explosiveness = ctk.CTkEntry(
+            explosiveness_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_explosiveness.pack(fill="x")
+
+        # Метка и поле для радиоактивности
+        radioactivity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        radioactivity_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        radioactivity_label = ctk.CTkLabel(
+            radioactivity_frame,
+            text=LangT("☢️ Радиоактивность (radioactivity):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        radioactivity_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_radioactivity = ctk.CTkEntry(
+            radioactivity_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_radioactivity.pack(fill="x")
+
+        # Привязываем форматирование при потере фокуса
+        def on_focus_out_charge(event):
+            value = entry_charge.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_charge.delete(0, "end")
+                entry_charge.insert(0, formatted)
+
+        entry_charge.bind("<FocusOut>", on_focus_out_charge)
+
+        def on_focus_out_flammability(event):
+            value = entry_flammability.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_flammability.delete(0, "end")
+                entry_flammability.insert(0, formatted)
+
+        entry_flammability.bind("<FocusOut>", on_focus_out_flammability)
+
+        def on_focus_out_explosiveness(event):
+            value = entry_explosiveness.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_explosiveness.delete(0, "end")
+                entry_explosiveness.insert(0, formatted)
+
+        entry_explosiveness.bind("<FocusOut>", on_focus_out_explosiveness)
+
+        def on_focus_out_radioactivity(event):
+            value = entry_radioactivity.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_radioactivity.delete(0, "end")
+                entry_radioactivity.insert(0, formatted)
+
+        entry_radioactivity.bind("<FocusOut>", on_focus_out_radioactivity)
+
+        # Карточка для дополнительных опций
+        options_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        options_card.pack(fill="x", pady=(0, 20))
+
+        # Заголовок карточки опций
+        options_title = ctk.CTkLabel(
+            options_card,
+            text=LangT("Дополнительные опции"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        )
+        options_title.pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Чекбокс для alwaysUnlocked
+        always_unlocked_var = ctk.BooleanVar(value=False)
+        
+        always_unlocked_frame = ctk.CTkFrame(options_card, fg_color="transparent")
+        always_unlocked_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        always_unlocked_checkbox = ctk.CTkCheckBox(
+            always_unlocked_frame,
+            text=LangT("🔓 Always Unlocked"),
+            variable=always_unlocked_var,
+            font=("Arial", 15),
+            text_color="#BDBDBD",
+            border_width=2,
+            corner_radius=6,
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            border_color="#555555"
+        )
+        always_unlocked_checkbox.pack(anchor="w", pady=5)
+
+        # Метка для статуса
+        status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        status_frame.pack(fill="x", pady=(0, 20))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            font=("Arial", 14),
+            wraplength=450,
+            justify="left",
+            text_color="#E0E0E0"
+        )
+        status_label.pack()
+        
+        # Фрейм для кнопок
+        button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=20)
+        
+        def copy_icon(item_name):
+            """
+            Копирует иконку из creator/icons/ 
+            в assets/sprites/items/ с именем предмета
+            """
+            try:
+                formatted_name = format_to_lower_camel(item_name)
+                
+                icons_dir = Path(resource_path("Creator/icons/items"))
+                
+                if not icons_dir.exists():
+                    print(LangT("Папка с иконками не найдена: {icons_dir}").format(icons_dir=icons_dir))
+                    return False
+                
+                image_extensions = ['.png', '.jpg', '.jpeg']
+                image_files = []
+                
+                for ext in image_extensions:
+                    image_files.extend(list(icons_dir.glob(f"*{ext}")))
+                
+                if not image_files:
+                    print(LangT("Нет изображений в папке: {icons_dir}").format(icons_dir=icons_dir))
+                    return False
+                
+                icon = resource_path("Creator/icons/items/copper.png")
+                
+                target_name = formatted_name + ".png"
+                target_dir = Path(self.mod_folder) / "assets" / "sprites" / "items"
+                target_dir.mkdir(parents=True, exist_ok=True)
+                
+                target_path = target_dir / target_name
+                
+                shutil.copy2(icon, target_path)
+                
+                print(LangT("Иконка скопирована: {icon} -> {target_path}").format(icon=icon, target_path=target_path))
+                return True
+                
+            except Exception as e:
+                print(LangT("Ошибка при копировании иконки: {e}").format(e=e))
+                return False
+
+        def check_if_name_exists(name):
+            """Проверяет, существует ли имя по текстурам в sprites"""
+            formatted_name = format_to_lower_camel(name)
+            name_lower = formatted_name
+            
+            check_paths = [
+                Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}" / f"{name_lower}.png",
+            ]
+            
+            for path in check_paths:
+                if path.exists():
+                    return True
+            
+            return False
+
+        def process_item():
+            """Обрабатывает создание предмета"""
+            original_name = entry_name.get().strip()
+            
+            if not original_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Введите имя предмета!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            constructor_name = format_to_lower_camel(original_name)
+            
+            if not constructor_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
+                    text_color="#F44336"
+                )
+                return
+
+            if check_if_name_exists(original_name):
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!").format(constructor_name=constructor_name), 
+                    text_color="#F44336"
+                )
+                return
+            
+            icon_copied = copy_icon(original_name)
+            icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
+            
+            charge_value = entry_charge.get().strip() or "0"
+            flammability_value = entry_flammability.get().strip() or "0"
+            explosiveness_value = entry_explosiveness.get().strip() or "0"
+            radioactivity_value = entry_radioactivity.get().strip() or "0"
+            
+            charge_value = format_float(charge_value)
+            flammability_value = format_float(flammability_value)
+            explosiveness_value = format_float(explosiveness_value)
+            radioactivity_value = format_float(radioactivity_value)
+            
+            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+
+            if constructor_name and len(constructor_name) > 0:
+                var_name = constructor_name[0].lower() + constructor_name[1:] if constructor_name else ""
+            else:
+                var_name = ""
+            
+            properties = f"""    charge = {charge_value}f;
+                flammability = {flammability_value}f;
+                explosiveness = {explosiveness_value}f;
+                radioactivity = {radioactivity_value}f;
+                alwaysUnlocked = {always_unlocked_value};
+                
+                localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                description = Core.bundle.get("{var_name}.description", "OH NO");"""
+            
+            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+            item_registration_path = f"{self.mod_folder}/src/{mod_name_lower}/init/items/ModItems.java"
+            
+            main_mod_path = f"{self.mod_folder}/src/{mod_name_lower}/{self.mod_name}JavaMod.java"
+            
+            os.makedirs(os.path.dirname(item_registration_path), exist_ok=True)
+            
+            try:
+                with open(item_registration_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                content = f"""package {mod_name_lower}.init.items;
+
+    import arc.graphics.Color;
+    import mindustry.type.Item;
+    import arc.Core;
+
+    public class ModItems {{
+        public static Item;
+                                        
+        public static void Load() {{
+            // Регистрация предметов
+        }}
+    }}"""
+            
+            item_exists = var_name in content
+            
+            if not item_exists:
+                if "public static Item;" in content:
+                    content = content.replace(
+                        "public static Item;",
+                        f"public static Item {var_name};"
+                    )
+                elif "public static Item " in content:
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if "public static Item " in line and var_name not in line:
+                            lines[i] = line.rstrip(';') + f", {var_name};"
+                            content = '\n'.join(lines)
+                            break
+                
+                load_start = content.find("public static void Load() {")
+                if load_start != -1:
+                    open_brace = content.find('{', load_start)
+                    if open_brace != -1:
+                        insert_pos = open_brace + 1
+                        indent = "        "
+                        
+                        item_code = f'\n{indent}{var_name} = new Item("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        
+                        content = content[:insert_pos] + item_code + content[insert_pos:]
+                
+                with open(item_registration_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                try:
+                    with open(main_mod_path, 'r', encoding='utf-8') as file:
+                        main_content = file.read()
+                    
+                    original_main_content = main_content
+                    modified = False
+                    import_added = False
+                    registration_added = False
+                    
+                    import_statement = f"import {mod_name_lower}.init.items.ModItems;"
+                    
+                    if import_statement not in main_content:
+                        import_add_pos = main_content.find("//import_add")
+                        
+                        if import_add_pos != -1:
+                            insert_pos = import_add_pos + len("//import_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            import_added = True
+                            modified = True
+                        else:
+                            class_declaration = f"public class {self.mod_name}JavaMod extends Mod{{"
+                            class_pos = main_content.find(class_declaration)
+                            
+                            if class_pos != -1:
+                                last_import_pos = main_content.rfind("import", 0, class_pos)
+                                
+                                if last_import_pos != -1:
+                                    line_end = main_content.find("\n", last_import_pos)
+                                    if line_end == -1:
+                                        line_end = len(main_content)
+                                    
+                                    main_content = main_content[:line_end] + f"\n{import_statement}" + main_content[line_end:]
+                                    import_added = True
+                                    modified = True
+                    
+                    load_statement = "ModItems.Load();"
+                    
+                    if load_statement not in main_content:
+                        registration_add_pos = main_content.find("//Registration_add")
+                        
+                        if registration_add_pos != -1:
+                            insert_pos = registration_add_pos + len("//Registration_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            registration_added = True
+                            modified = True
+                        else:
+                            load_content_pos = main_content.find("public void loadContent()")
+                            
+                            if load_content_pos != -1:
+                                open_brace = main_content.find('{', load_content_pos)
+                                
+                                if open_brace != -1:
+                                    close_brace = main_content.find('}', open_brace)
+                                    
+                                    if close_brace != -1:
+                                        insert_pos = close_brace
+                                        indent = "        "
+                                        main_content = main_content[:insert_pos] + f"\n{indent}{load_statement}" + main_content[insert_pos:]
+                                        registration_added = True
+                                        modified = True
+                    
+                    if modified:
+                        with open(main_mod_path, 'w', encoding='utf-8') as file:
+                            file.write(main_content)
+                    
+                    status_messages = [
+                        LangT("✅ Предмет '{var_name}' успешно создан!").format(var_name=var_name),
+                        LangT('📋 Имя в игре: "{constructor_name}"').format(constructor_name=constructor_name),
+                        LangT("🖼️ {icon_status} (имя текстуры: {texture_name}.png)").format(icon_status=icon_status, texture_name=constructor_name.lower()),
+                        LangT("🔧 Always Unlocked: {always_unlocked_value}").format(always_unlocked_value=always_unlocked_value),
+                        LangT("📊 Свойства предмета:"),
+                        LangT("  • ⚡ Заряд: {charge_value}").format(charge_value=charge_value),
+                        LangT("  • 🔥 Воспламеняемость: {flammability_value}").format(flammability_value=flammability_value),
+                        LangT("  • 💥 Взрывоопасность: {explosiveness_value}").format(explosiveness_value=explosiveness_value),
+                        LangT("  • ☢️ Радиоактивность: {radioactivity_value}").format(radioactivity_value=radioactivity_value)
+                    ]
+                    
+                    if import_added:
+                        status_messages.append(LangT("📥 Импорт добавлен в главный файл (через //import_add)"))
+                    else:
+                        status_messages.append(LangT("ℹ️ Импорт уже присутствует в главном файле"))
+                    
+                    if registration_added:
+                        status_messages.append(LangT("📝 Регистрация добавлена в главный файл (через //Registration_add)"))
+                    else:
+                        status_messages.append(LangT("ℹ️ Регистрация уже присутствует в главном файле"))
+                    
+                    status_text = "\n".join(status_messages)
+                    status_label.configure(text=status_text, text_color="#4CAF50")
+                    
+                except FileNotFoundError:
+                    print(LangT("Главный файл мода не найден: {main_mod_path}").format(main_mod_path=main_mod_path))
+                    status_text = LangT("""✅ Предмет '{var_name}' создан!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Главный файл мода не найден: {main_mod_path}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства предмета:
+        • ⚡ Заряд: {charge_value}
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • ☢️ Радиоактивность: {radioactivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            main_mod_path=main_mod_path, always_unlocked_value=always_unlocked_value, 
+            charge_value=charge_value, explosiveness_value=explosiveness_value,
+            radioactivity_value=radioactivity_value, flammability_value=flammability_value
+        )
+                    status_label.configure(text=status_text, text_color="#FF9800")
+                except Exception as e:
+                    print(LangT("Ошибка при работе с главным файлом: {e}").format(e=e))
+                    status_text = LangT("""✅ Предмет '{var_name}' создан!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Ошибка при обновлении главного файла: {e}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства предмета:
+        • ⚡ Заряд: {charge_value}
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • ☢️ Радиоактивность: {radioactivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            e=e, always_unlocked_value=always_unlocked_value, charge_value=charge_value,
+            explosiveness_value=explosiveness_value, radioactivity_value=radioactivity_value, 
+            flammability_value=flammability_value
+        )
+                    status_label.configure(text=status_text, text_color="#FF9800")
+            else:
+                status_label.configure(
+                    text=LangT("⚠️ Предмет уже существует"), 
+                    text_color="#FF9800"
+                )
+            
+            self.root.after(5000, lambda: status_label.configure(text=""))
+
+        def back_to_main():
+            """Возврат к основному интерфейсу редактора"""
+            self.open_creator()
+        
+        # Кнопки действий
+        buttons_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        # Кнопка создания
+        create_btn = ctk.CTkButton(
+            buttons_frame,
+            text=LangT("🚀 Создать предмет"),
+            command=process_item,
+            height=45,
+            width=200,
+            font=("Arial", 16, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=10,
+            border_width=2,
+            border_color="#1B5E20",
+            text_color="#FFFFFF"
+        )
+        create_btn.pack(side="left", padx=15)
+        
+        # Кнопка назад
+        back_btn = ctk.CTkButton(
+            buttons_frame,
+            text=LangT("← Назад"),
+            command=back_to_main,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10,
+            text_color="#FFFFFF"
+        )
+        back_btn.pack(side="left", padx=15)
+        
+        # Подсказки внизу
+        tips_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        tips_frame.pack(fill="x", pady=(10, 5))
+        
+        tips_label = ctk.CTkLabel(
+            tips_frame,
+            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'item', 'bigItem', 'energyCore'"),
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=450
+        )
+        tips_label.pack()
+
+    def create_liquid(self):
+        """Создает или добавляет новую жидкость в ModLiquid.java"""
+
+        PATEH_FOLDER = self.PATEH_FOLDER
+        
+        # Очищаем всё окно
+        self.clear_window()
+        
+        # Основной фрейм с прокруткой
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")  # Темный фон
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Фрейм для прокрутки
+        scroll_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            width=500,
+            height=600,
+            fg_color="#2b2b2b"  # Темный фон
+        )
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text=LangT("Создание жидкости"),
+            font=("Arial", 24, "bold"),
+            text_color="#2196F3"  # Синий цвет для жидкости
+        )
+        title_label.pack(pady=10)
+        
+        # Карточка для основной информации
+        info_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",  # Темная граница
+            fg_color="#363636"  # Серый фон карточки
+        )
+        info_card.pack(fill="x", pady=(0, 20))
+        
+        # Заголовок карточки
+        card_title = ctk.CTkLabel(
+            info_card,
+            text=LangT("Основная информация"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"  # Светло-серый текст
+        )
+        card_title.pack(pady=(15, 10), padx=20, anchor="w")
+        
+        # Поле ввода названия
+        name_frame = ctk.CTkFrame(info_card, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        name_label = ctk.CTkLabel(
+            name_frame,
+            text=LangT("Название жидкости (английское, можно пробел, первая буква маленькая):"),
+            font=("Arial", 16),
+            text_color="#BDBDBD"  # Серый текст
+        )
+        name_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_name = ctk.CTkEntry(
+            name_frame,
+            width=400,
+            height=40,
+            placeholder_text=LangT("liquid name"),
+            font=("Arial", 15),
+            border_width=2,
+            corner_radius=8,
+            fg_color="#424242",  # Темный фон поля ввода
+            border_color="#555555",  # Цвет границы
+            text_color="#FFFFFF",  # Белый текст
+            placeholder_text_color="#888888"  # Серый placeholder
+        )
+        entry_name.pack(fill="x", pady=(0, 5))
+        
+        # Функция форматирования названий
+        def format_to_lower_camel(text):
+            """Преобразует текст в формат: первое слово с маленькой буквы, остальные с большой (без пробелов)"""
+            words = text.strip().split()
+            if not words:
+                return ""
+            
+            # Первое слово в нижнем регистре
+            result = words[0].lower()
+            
+            # Остальные слова с заглавной буквы
+            for word in words[1:]:
+                result += word.capitalize()
+            
+            return result
+
+        # Функция валидации для обычных значений (0-5000)
+        def validate_float_input(value):
+            """Проверяет, является ли значение допустимым float с максимум 2 знаками после точки (0-5000)"""
+            if value == "" or value == ".":
+                return True
+            
+            # Проверяем формат числа
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            
+            # Проверяем максимальное значение
+            try:
+                num = float(value)
+                if num > 5000.00:
+                    return False
+            except ValueError:
+                return False
+            
+            return True
+
+        # Функция валидации для вязкости (0-1)
+        def validate_viscosity_input(value):
+            """Проверяет, является ли значение допустимым float для вязкости (0-1)"""
+            if value == "" or value == ".":
+                return True
+            
+            # Проверяем формат числа
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            
+            # Проверяем диапазон значения (0-1)
+            try:
+                num = float(value)
+                if num < 0 or num > 1.0:
+                    return False
+            except ValueError:
+                return False
+            
+            return True
+
+        # Функция форматирования для обычных значений
+        def format_float(value):
+            """Форматирует значение до 2 знаков после точки"""
+            if not value:
+                return ""
+            
+            try:
+                num = float(value)
+                # Ограничиваем максимальное значение
+                num = min(num, 5000.00)
+                # Форматируем до 2 знаков
+                formatted = f"{num:.2f}"
+                # Убираем лишние нули
+                if formatted.endswith(".00"):
+                    formatted = formatted[:-3]
+                elif formatted.endswith(".0"):
+                    formatted = formatted[:-2]
+                return formatted
+            except ValueError:
+                return value
+
+        # Функция форматирования для вязкости
+        def format_viscosity(value):
+            """Форматирует значение вязкости до 2 знаков после точки (0-1)"""
+            if not value:
+                return "0"  # Вязкость по умолчанию 0
+            
+            try:
+                num = float(value)
+                # Ограничиваем диапазон 0-1
+                num = max(0.0, min(num, 1.0))
+                # Форматируем до 2 знаков
+                formatted = f"{num:.2f}"
+                # Убираем лишние нули
+                if formatted.endswith(".00"):
+                    formatted = formatted[:-3]
+                elif formatted.endswith("0"):
+                    formatted = formatted[:-1]
+                return formatted
+            except ValueError:
+                return "0"
+
+        # Регистрируем функции валидации
+        vcmd_float = (self.root.register(validate_float_input), '%P')
+        vcmd_viscosity = (self.root.register(validate_viscosity_input), '%P')
+
+        # Карточка для свойств жидкости
+        properties_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",  # Темная граница
+            fg_color="#363636"  # Серый фон карточки
+        )
+        properties_card.pack(fill="x", pady=(0, 20))
+
+        # Заголовок карточки свойств
+        properties_title = ctk.CTkLabel(
+            properties_card,
+            text=LangT("Свойства жидкости"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"  # Светло-серый текст
+        )
+        properties_title.pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Грид для свойств
+        properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
+        properties_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Метка и поле для воспламеняемости
+        flammability_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        flammability_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        flammability_label = ctk.CTkLabel(
+            flammability_frame,
+            text=LangT("🔥 Воспламеняемость (flammability):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"  # Серый текст
+        )
+        flammability_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_flammability = ctk.CTkEntry(
+            flammability_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",  # Темный фон поля ввода
+            border_color="#555555",  # Цвет границы
+            text_color="#FFFFFF",  # Белый текст
+            placeholder_text_color="#888888"  # Серый placeholder
+        )
+        entry_flammability.pack(fill="x")
+
+        # Метка и поле для взрывоопасности
+        explosiveness_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        explosiveness_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        explosiveness_label = ctk.CTkLabel(
+            explosiveness_frame,
+            text=LangT("💥 Взрывоопасность (explosiveness):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"  # Серый текст
+        )
+        explosiveness_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_explosiveness = ctk.CTkEntry(
+            explosiveness_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",  # Темный фон поля ввода
+            border_color="#555555",  # Цвет границы
+            text_color="#FFFFFF",  # Белый текст
+            placeholder_text_color="#888888"  # Серый placeholder
+        )
+        entry_explosiveness.pack(fill="x")
+
+        # Метка и поле для температуры
+        temperature_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        temperature_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        temperature_label = ctk.CTkLabel(
+            temperature_frame,
+            text=LangT("🌡️ Температура (temperature):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"  # Серый текст
+        )
+        temperature_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_temperature = ctk.CTkEntry(
+            temperature_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",  # Темный фон поля ввода
+            border_color="#555555",  # Цвет границы
+            text_color="#FFFFFF",  # Белый текст
+            placeholder_text_color="#888888"  # Серый placeholder
+        )
+        entry_temperature.pack(fill="x")
+        
+        # Метка и поле для вязкости (0-1)
+        viscosity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        viscosity_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        viscosity_label = ctk.CTkLabel(
+            viscosity_frame,
+            text=LangT("💧 Вязкость (viscosity):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"  # Серый текст
+        )
+        viscosity_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_viscosity = ctk.CTkEntry(
+            viscosity_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_viscosity,
+            fg_color="#424242",  # Темный фон поля ввода
+            border_color="#555555",  # Цвет границы
+            text_color="#FFFFFF",  # Белый текст
+            placeholder_text_color="#888888"  # Серый placeholder
+        )
+        entry_viscosity.pack(fill="x")
+
+        # Привязываем форматирование при потере фокуса
+        def on_focus_out_flammability(event):
+            value = entry_flammability.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_flammability.delete(0, "end")
+                entry_flammability.insert(0, formatted)
+
+        entry_flammability.bind("<FocusOut>", on_focus_out_flammability)
+
+        def on_focus_out_explosiveness(event):
+            value = entry_explosiveness.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_explosiveness.delete(0, "end")
+                entry_explosiveness.insert(0, formatted)
+
+        entry_explosiveness.bind("<FocusOut>", on_focus_out_explosiveness)
+
+        def on_focus_out_temperature(event):
+            value = entry_temperature.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_temperature.delete(0, "end")
+                entry_temperature.insert(0, formatted)
+
+        entry_temperature.bind("<FocusOut>", on_focus_out_temperature)
+        
+        def on_focus_out_viscosity(event):
+            value = entry_viscosity.get()
+            formatted = format_viscosity(value)
+            if formatted != value:
+                entry_viscosity.delete(0, "end")
+                entry_viscosity.insert(0, formatted)
+
+        entry_viscosity.bind("<FocusOut>", on_focus_out_viscosity)
+
+        # Карточка для дополнительных опций
+        options_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",  # Темная граница
+            fg_color="#363636"  # Серый фон карточки
+        )
+        options_card.pack(fill="x", pady=(0, 20))
+
+        # Заголовок карточки опций
+        options_title = ctk.CTkLabel(
+            options_card,
+            text=LangT("Дополнительные опции"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"  # Светло-серый текст
+        )
+        options_title.pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Чекбокс для alwaysUnlocked
+        always_unlocked_var = ctk.BooleanVar(value=False)
+        
+        always_unlocked_frame = ctk.CTkFrame(options_card, fg_color="transparent")
+        always_unlocked_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        always_unlocked_checkbox = ctk.CTkCheckBox(
+            always_unlocked_frame,
+            text=LangT("🔓 Always Unlocked"),
+            variable=always_unlocked_var,
+            font=("Arial", 15),
+            text_color="#BDBDBD",  # Серый текст
+            border_width=2,
+            corner_radius=6,
+            fg_color="#2196F3",  # Синий цвет для жидкости
+            hover_color="#1976D2",
+            border_color="#555555"  # Цвет границы
+        )
+        always_unlocked_checkbox.pack(anchor="w", pady=5)
+            
+        # Метка для статуса
+        status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        status_frame.pack(fill="x", pady=(0, 20))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            font=("Arial", 14),
+            wraplength=450,
+            justify="left",
+            text_color="#E0E0E0"  # Светло-серый текст
+        )
+        status_label.pack()
+        
+        # Фрейм для кнопок
+        button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=20)
+        
+        def check_if_name_exists(name):
+            """Проверяет, существует ли имя по текстурам в sprites"""
+            # Форматируем имя для проверки
+            formatted_name = format_to_lower_camel(name)
+            
+            # Проверяем существование текстуры в разных местах
+            name_lower = formatted_name
+            
+            # Пути для проверки
+            check_paths = [
+                Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}" / f"{name_lower}.png",
+            ]
+            
+            for path in check_paths:
+                if path.exists():
+                    return True
+            
+            return False
+        
+        def copy_liquid_icon(liquid_name):
+            """
+            Копирует иконку из creator/icons/liquids/ 
+            в assets/sprites/liquids/ с именем жидкости
+            """
+            try:
+                # Форматируем имя для текстуры
+                formatted_name = format_to_lower_camel(liquid_name)
+                
+                # Путь к папке с иконками
+                icons_dir = Path(resource_path("Creator/icons/liquids"))
+                
+                # Проверяем существование папки
+                if not icons_dir.exists():
+                    print(LangT("Папка с иконками не найдена: {icons_dir}").format(icons_dir=icons_dir))
+                    # Создаем папку, если ее нет
+                    icons_dir.mkdir(parents=True, exist_ok=True)
+                    return False
+                
+                # Получаем список всех файлов изображений
+                image_extensions = ['.png', '.jpg', '.jpeg']
+                image_files = []
+                
+                for ext in image_extensions:
+                    image_files.extend(list(icons_dir.glob(f"*{ext}")))
+                
+                if not image_files:
+                    print(LangT("Нет изображений в папке: {icons_dir}").format(icons_dir=icons_dir))
+                    return False
+                
+                # Выбираем иконку (water.png или первый доступный)
+                icon_path = icons_dir / "water.png"
+                if not icon_path.exists():
+                    icon_path = image_files[0]  # Берем первую доступную
+                
+                # Путь назначения в папке мода
+                # Используем отформатированное имя в нижнем регистре
+                target_name = formatted_name + ".png"
+                target_dir = Path(self.mod_folder) / "assets" / "sprites" / "liquids"
+                target_dir.mkdir(parents=True, exist_ok=True)
+                
+                target_path = target_dir / target_name
+                
+                # Проверяем, не существует ли уже такая текстура
+                if target_path.exists():
+                    return False  # Не копируем, если уже существует
+                
+                # Копируем файл
+                shutil.copy2(icon_path, target_path)
+                
+                print(LangT("Иконка скопирована: {icon_path} -> {target_path}").format(icon_path=icon_path, target_path=target_path))
+                return True
+                
+            except Exception as e:
+                print(LangT("Ошибка при копировании иконки: {e}").format(e=e))
+                return False
+
+        def process_liquid():
+            """Обрабатывает создание жидкости"""
+            original_name = entry_name.get().strip()
+            
+            if not original_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Введите имя жидкости!"), 
+                    text_color="#F44336"  # Красный цвет для ошибки
+                )
+                return
+            
+            # Форматируем имя для использования в коде
+            constructor_name = format_to_lower_camel(original_name)
+            
+            if not constructor_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Проверка имени по текстурам
+            if check_if_name_exists(original_name):
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!").format(constructor_name=constructor_name), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Копируем иконку
+            icon_copied = copy_liquid_icon(original_name)
+            icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
+            
+            # Получаем значения свойств
+            flammability_value = entry_flammability.get().strip() or "0"
+            explosiveness_value = entry_explosiveness.get().strip() or "0"
+            temperature_value = entry_temperature.get().strip() or "0"
+            viscosity_value = entry_viscosity.get().strip() or "0"  # По умолчанию 0
+            
+            # Форматируем значения
+            flammability_value = format_float(flammability_value)
+            explosiveness_value = format_float(explosiveness_value)
+            temperature_value = format_float(temperature_value)
+            viscosity_value = format_viscosity(viscosity_value)
+            
+            # Получаем значение alwaysUnlocked
+            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+
+            # Имя переменной (с заглавной буквы - UpperCamelCase)
+            if constructor_name and len(constructor_name) > 0:
+                var_name = constructor_name[0].lower() + constructor_name[1:] if constructor_name else ""
+            else:
+                var_name = ""
+            
+            # Создаем properties строку с правильными значениями
+            properties = f"""    flammability = {flammability_value}f;
+                    explosiveness = {explosiveness_value}f;
+                    temperature = {temperature_value}f;
+                    viscosity = {viscosity_value}f;
+                    alwaysUnlocked = {always_unlocked_value};
+                    
+                    localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                    description = Core.bundle.get("{var_name}.description", "OH NO");"""
+            
+            # Путь к файлу ModLiquid.java
+            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+            liquid_registration_path = f"{self.mod_folder}/src/{mod_name_lower}/init/liquids/ModLiquid.java"
+            
+            # Путь к главному файлу мода
+            main_mod_path = f"{self.mod_folder}/src/{mod_name_lower}/{self.mod_name}JavaMod.java"
+            
+            # Создаем директории, если их нет
+            os.makedirs(os.path.dirname(liquid_registration_path), exist_ok=True)
+            
+            # Читаем или создаем файл ModLiquid.java
+            try:
+                with open(liquid_registration_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                # Базовый шаблон файла
+                content = f"""package {mod_name_lower}.init.liquids;
+
+    import arc.graphics.Color;
+    import mindustry.type.Liquid;
+    import arc.Core;
+
+    public class ModLiquid {{
+        public static Liquid;
+                                            
+        public static void Load() {{
+            // Регистрация жидкостей
+        }}
+    }}"""
+            
+            # Проверяем, есть ли уже эта жидкость
+            liquid_exists = False
+            if f'new Liquid("{constructor_name}")' in content or f'Liquid {var_name}' in content:
+                liquid_exists = True
+            
+            if not liquid_exists:
+                # 1. Добавляем в объявления (public static Liquid)
+                if "public static Liquid;" in content:
+                    # Заменяем на первое объявление
+                    content = content.replace(
+                        "public static Liquid;",
+                        f"public static Liquid {var_name};"
+                    )
+                elif "public static Liquid " in content:
+                    # Находим строку с объявлениями
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if "public static Liquid " in line and var_name not in line:
+                            # Добавляем через запятую
+                            lines[i] = line.rstrip(';') + f", {var_name};"
+                            content = '\n'.join(lines)
+                            break
+                
+                # 2. Добавляем инициализацию в метод Load()
+                # Находим метод Load()
+                load_start = content.find("public static void Load() {")
+                if load_start != -1:
+                    # Находим открывающую скобку метода
+                    open_brace = content.find('{', load_start)
+                    if open_brace != -1:
+                        # Вставляем после открывающей скобки с правильными отступами
+                        insert_pos = open_brace + 1
+                        indent = "        "  # 8 пробелов
+                        
+                        # Создаем код жидкости с properties
+                        # В кавычках используем отформатированное имя constructor_name
+                        liquid_code = f'\n{indent}{var_name} = new Liquid("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        
+                        content = content[:insert_pos] + liquid_code + content[insert_pos:]
+                
+                # Записываем файл ModLiquid.java
+                with open(liquid_registration_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # Теперь работаем с главным файлом мода
+                try:
+                    with open(main_mod_path, 'r', encoding='utf-8') as file:
+                        main_content = file.read()
+                    
+                    original_main_content = main_content  # Сохраняем оригинал для сравнения
+                    modified = False
+                    import_added = False
+                    registration_added = False
+                    
+                    # Проверяем наличие импорта ModLiquid
+                    import_statement = f"import {mod_name_lower}.init.liquids.ModLiquid;"
+                    
+                    if import_statement not in main_content:
+                        # Ищем маркер //import_add
+                        import_add_pos = main_content.find("//import_add")
+                        
+                        if import_add_pos != -1:
+                            # Находим позицию после маркера (учитываем новую строку)
+                            insert_pos = import_add_pos + len("//import_add")
+                            # Проверяем, есть ли перевод строки после маркера
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                # Уже есть перевод строки, просто добавляем импорт
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            else:
+                                # Добавляем перевод строки и импорт
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            import_added = True
+                            modified = True
+                        else:
+                            # Ищем последний импорт перед public class
+                            class_declaration = f"public class {self.mod_name}JavaMod extends Mod{{"
+                            class_pos = main_content.find(class_declaration)
+                            
+                            if class_pos != -1:
+                                # Ищем последний import перед классом
+                                last_import_pos = main_content.rfind("import", 0, class_pos)
+                                
+                                if last_import_pos != -1:
+                                    # Находим конец строки этого импорта
+                                    line_end = main_content.find("\n", last_import_pos)
+                                    if line_end == -1:
+                                        line_end = len(main_content)
+                                    
+                                    # Вставляем новый импорт после последнего импорта
+                                    main_content = main_content[:line_end] + f"\n{import_statement}" + main_content[line_end:]
+                                    import_added = True
+                                    modified = True
+                    
+                    # Проверяем наличие регистрации ModLiquid.Load()
+                    load_statement = "ModLiquid.Load();"
+                    
+                    if load_statement not in main_content:
+                        # Ищем маркер //Registration_add
+                        registration_add_pos = main_content.find("//Registration_add")
+                        
+                        if registration_add_pos != -1:
+                            # Находим позицию после маркера
+                            insert_pos = registration_add_pos + len("//Registration_add")
+                            # Проверяем, есть ли перевод строки после маркера
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                # Уже есть перевод строки, просто добавляем регистрацию
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            else:
+                                # Добавляем перевод строки и регистрацию
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            registration_added = True
+                            modified = True
+                        else:
+                            # Ищем метод loadContent()
+                            load_content_pos = main_content.find("public void loadContent()")
+                            
+                            if load_content_pos != -1:
+                                # Находим открывающую скобку метода
+                                open_brace = main_content.find('{', load_content_pos)
+                                
+                                if open_brace != -1:
+                                    # Находим закрывающую скобку метода
+                                    close_brace = main_content.find('}', open_brace)
+                                    
+                                    if close_brace != -1:
+                                        # Ищем позицию перед закрывающей скобкой
+                                        # Пропускаем пустые строки и комментарии
+                                        insert_pos = close_brace
+                                        
+                                        # Добавляем перед закрывающей скобкой
+                                        indent = "        "  # 8 пробелов
+                                        main_content = main_content[:insert_pos] + f"\n{indent}{load_statement}" + main_content[insert_pos:]
+                                        registration_added = True
+                                        modified = True
+                    
+                    # Если были изменения, сохраняем главный файл
+                    if modified:
+                        with open(main_mod_path, 'w', encoding='utf-8') as file:
+                            file.write(main_content)
+                    
+                    # Формируем статус с информацией о добавленных элементах
+                    status_messages = [
+                        LangT("✅ Жидкость '{var_name}' успешно создана!").format(var_name=var_name),
+                        LangT('📋 Имя в игре: "{constructor_name}"').format(constructor_name=constructor_name),
+                        LangT("🖼️ {icon_status} (имя текстуры: {texture_name}.png)").format(icon_status=icon_status, texture_name=constructor_name.lower()),
+                        LangT("🔧 Always Unlocked: {always_unlocked_value}").format(always_unlocked_value=always_unlocked_value),
+                        LangT("📊 Свойства жидкости:"),
+                        LangT("  • 🔥 Воспламеняемость: {flammability_value}").format(flammability_value=flammability_value),
+                        LangT("  • 💥 Взрывоопасность: {explosiveness_value}").format(explosiveness_value=explosiveness_value),
+                        LangT("  • 🌡️ Температура: {temperature_value}").format(temperature_value=temperature_value),
+                        LangT("  • 💧 Вязкость: {viscosity_value}").format(viscosity_value=viscosity_value)
+                    ]
+                    
+                    if import_added:
+                        status_messages.append(LangT("📥 Импорт добавлен в главный файл (через //import_add)"))
+                    else:
+                        status_messages.append(LangT("ℹ️ Импорт уже присутствует в главном файле"))
+                    
+                    if registration_added:
+                        status_messages.append(LangT("📝 Регистрация добавлена в главный файл (через //Registration_add)"))
+                    else:
+                        status_messages.append(LangT("ℹ️ Регистрация уже присутствует в главном файле"))
+                    
+                    status_text = "\n".join(status_messages)
+                    status_label.configure(text=status_text, text_color="#2196F3")
+                    
+                except FileNotFoundError:
+                    print(LangT("Главный файл мода не найден: {main_mod_path}").format(main_mod_path=main_mod_path))
+                    status_text = LangT("""✅ Жидкость '{var_name}' создана!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Главный файл мода не найден: {main_mod_path}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства жидкости:
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • 🌡️ Температура: {temperature_value}
+        • 💧 Вязкость: {viscosity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
+            main_mod_path=main_mod_path, always_unlocked_value=always_unlocked_value,
+            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
+            temperature_value=temperature_value, viscosity_value=viscosity_value
+        )
+                    status_label.configure(text=status_text, text_color="#FF9800")
+                except Exception as e:
+                    print(LangT("Ошибка при работе с главным файлом: {e}").format(e=e))
+                    status_text = LangT("""✅ Жидкость '{var_name}' создана!
+        📋 Имя в игре: '{constructor_name}'
+        🖼️ {icon_status}
+        ⚠️ Ошибка при обновлении главного файла: {e}
+        🔧 Always Unlocked: {always_unlocked_value}
+        📊 Свойства жидкости:
+        • 🔥 Воспламеняемость: {flammability_value}
+        • 💥 Взрывоопасность: {explosiveness_value}
+        • 🌡️ Температура: {temperature_value}
+        • 💧 Вязкость: {viscosity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
+            e=e, always_unlocked_value=always_unlocked_value,
+            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
+            temperature_value=temperature_value, viscosity_value=viscosity_value
+        )
+                    status_label.configure(text=status_text, text_color="#FF9800")
+            else:
+                status_label.configure(
+                    text=LangT("⚠️ Жидкость уже существует"), 
+                    text_color="#FF9800"
+                )
+            
+            # Очищаем статус через 5 секунд
+            self.root.after(5000, lambda: status_label.configure(text=""))
+
+        def back_to_main():
+            """Возврат к основному интерфейсу редактора"""
+            self.open_creator()
+        
+        # Кнопки действий
+        buttons_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        # Кнопка создания
+        create_btn = ctk.CTkButton(
+            buttons_frame,
+            text=LangT("🚀 Создать жидкость"),
+            command=process_liquid,
+            height=45,
+            width=200,
+            font=("Arial", 16, "bold"),
+            fg_color="#1565C0",
+            hover_color="#0D47A1",
+            corner_radius=10,
+            border_width=2,
+            border_color="#0D47A1",
+            text_color="#FFFFFF"
+        )
+        create_btn.pack(side="left", padx=15)
+        
+        # Кнопка назад
+        back_btn = ctk.CTkButton(
+            buttons_frame,
+            text=LangT("← Назад"),
+            command=back_to_main,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10,
+            text_color="#FFFFFF"
+        )
+        back_btn.pack(side="left", padx=15)
+        
+        # Подсказки внизу
+        tips_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        tips_frame.pack(fill="x", pady=(10, 5))
+        
+        tips_label = ctk.CTkLabel(
+            tips_frame,
+            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'liquid', 'coolLiquid', 'energyFluid'"),
+            font=("Arial", 12),
+            text_color="#9E9E9E",  # Серый текст
+            wraplength=450
+        )
+        tips_label.pack()
+
+    def choose_mod_icon_tkinter(self):
+        """
+        Альтернативная версия через tkinter (кросс-платформенная)
+        Выбирает файл, копирует в папку мода как mod.png
+        """
+        try:
+            # Создаем временное окно tkinter
+            import tkinter as tk
+            from tkinter import filedialog
+            
+            temp_root = tk.Tk()
+            temp_root.withdraw()  # Скрываем главное окно
+            temp_root.attributes('-topmost', True)  # Поверх других окон
+            
+            # Открываем диалог выбора файла
+            selected_file = filedialog.askopenfilename(
+                title=LangT("Выберите иконку для мода"),
+                filetypes=[
+                    (LangT("PNG изображения"), "*.png"),
+                    (LangT("JPEG изображения"), "*.jpg *.jpeg"),
+                    (LangT("Все файлы"), "*.*")
+                ]
+            )
+            
+            temp_root.destroy()  # Закрываем временное окно
+            
+            if selected_file:
+                # Проверяем существование файла
+                if not os.path.exists(selected_file):
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Файл не найден:\n{selected_file}"))
+                    return None
+                
+                # Целевой путь: папка мода + mod.png
+                target_path = Path(self.mod_folder) / "assets" / "sprites" / "icon.png"
+                
+                # Если файл уже существует, спрашиваем подтверждение
+                if target_path.exists():
+                    response = messagebox.askyesno(LangT("Подтверждение"),
+                        LangT(f"Файл {target_path.name} уже существует.\nЗаменить?"))
+                    if not response:
+                        return None
+                
+                try:
+                    # Копируем файл
+                    shutil.copy2(selected_file, target_path)
+                    
+                    messagebox.showinfo(LangT("Успех"),
+                        LangT(f"✅ Иконка успешно загружена!\n\n"
+                              f"Исходный файл: {os.path.basename(selected_file)}\n"
+                              f"Сохранен как: {target_path.name}\n"
+                              f"Путь: {target_path}"))
+                    
+                    return str(target_path)
+                    
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось скопировать файл:\n{e}"))
+                    return None
+            
+            return None  # Пользователь отменил выбор
+            
+        except Exception as e:
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при выборе файла:\n{e}"))
+            return None
+
+    def show_blocks_selection(self):
+        """Окно выбора типа блока для создания"""
+        
+        # Очищаем всё окно
+        self.clear_window()
+        
+        # Основной фрейм
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text=LangT("🏗️ Создание блока"),
+            font=("Arial", 26, "bold"),
+            text_color="#FF9800"  # Оранжевый цвет для блоков
+        )
+        title_label.pack(pady=10)
+        
+        subtitle_label = ctk.CTkLabel(
+            title_frame,
+            text=LangT("Выберите тип блока для создания:"),
+            font=("Arial", 16),
+            text_color="#BDBDBD"
+        )
+        subtitle_label.pack(pady=5)
+        
+        def back_to_main():
+            """Возврат к основному интерфейсу редактора"""
+            self.open_creator()
+        
+        # Кнопка назад
+        back_btn = ctk.CTkButton(
+            title_frame,
+            text=LangT("← Назад в редактор"),
+            command=back_to_main,  # Возврат к основному редактору
+            height=35,
+            width=140,
+            font=("Arial", 12),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=8,
+            text_color="#FFFFFF"
+        )
+        back_btn.pack(pady=10)
+        
+        # Canvas для прокрутки
+        canvas_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        canvas_frame.pack(fill="both", expand=True)
+        
+        # Используем CTkScrollableFrame вместо Canvas
+        scroll_frame = ctk.CTkScrollableFrame(canvas_frame, fg_color="#2b2b2b")
+        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Определяем блоки с прямыми вызовами функций
+        blocks = [
+            (LangT("🧱 Стена"), "blocks/copper-wall.png", self.create_wall),
+            (LangT("Солнечная панель"), "blocks/solar-panel.png", self.create_solar_panel),
+            (LangT("Батарея"), "blocks/battery.png", self.create_battery),
+            (LangT("Генератор"), "blocks/steam-generator.png", self.create_consume_generator),
+            (LangT("Энергетическая башня"), "blocks/beam-node.png", self.create_beam_node),
+            (LangT("Энергетический узел"), "blocks/power-node.png", self.create_power_node),
+            (LangT("Экранированная стена"), "blocks/shielded-wall.png", self.create_shield_wall),
+            (LangT("Завод"), "blocks/kiln.png", self.create_generic_crafter),
+            (LangT("Мост"), "blocks/bridge-conveyor.png", self.create_bridge),
+            (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor)
+        ]
+
+        blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        blocks_container.pack(fill="both", expand=True, pady=10, padx=10)
+
+        def create_block_button(parent, text, icon_name, command):
+            """Создает кнопку блока с изображением"""
+            btn_frame = ctk.CTkFrame(parent, fg_color="transparent")
+            btn_frame.pack_propagate(False)
+            btn_frame.configure(width=140, height=160)
+            
+            # Загружаем изображение
+            img = self.load_image(icon_name, size=(80, 80))
+            
+            # Основная кнопка
+            btn = ctk.CTkButton(
+                btn_frame,
+                text="",  # Без текста
+                image=img,
+                width=120,
+                height=120,
+                font=("Arial", 11),
+                fg_color="#363636",
+                border_color="#404040",
+                border_width=2,
+                hover_color="#424242",
+                corner_radius=12,
+                command=command
+            )
+            btn.pack(pady=(0, 5))
+            
+            # Сохраняем ссылку на изображение, чтобы не удалилось сборщиком мусора
+            if not hasattr(self, 'button_images'):
+                self.button_images = []
+            self.button_images.append(img)
+
+            # Название блока
+            name_label = ctk.CTkLabel(
+                btn_frame,
+                text=text,
+                font=("Arial", 12),
+                text_color="#E0E0E0",
+                wraplength=130,
+                justify="center"
+            )
+            name_label.pack()
+            
+            return btn_frame
+
+        # Создаем сетку блоков (4 колонки)
+        for i in range(0, len(blocks), 4):
+            row_frame = ctk.CTkFrame(blocks_container, fg_color="transparent")
+            row_frame.pack(fill="x", pady=10)
+            
+            row_blocks = blocks[i:i+4]
+            for block in row_blocks:
+                btn = create_block_button(
+                    row_frame,
+                    text=block[0],
+                    icon_name=block[1],
+                    command=block[2]
+                )
+                btn.pack(side="left", padx=15, expand=True, fill="x")
+        
+        # Информационная панель внизу
+        info_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        info_frame.pack(fill="x", pady=(10, 5))
+        
+        info_label = ctk.CTkLabel(
+            info_frame,
+            text=LangT("💡 Выберите тип блока для создания. Всего доступно {lenblocks} типов блоков.").format(lenblocks=len(blocks)),
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=500
+        )
+        info_label.pack()
+
+    def create_bundle_editor(self):
+        """Создание редактора bundle файлов"""
+        self.clear_window()
+        
+        # Основной фрейм
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            title_frame,
+            text=LangT("🌐 Создание Bundle файлов"),
+            font=("Arial", 24, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=10)
+        
+        ctk.CTkLabel(
+            title_frame,
+            text=LangT("Автоматический поиск предметов и создание локализации"),
+            font=("Arial", 14),
+            text_color="#BDBDBD"
+        ).pack()
+        
+        # === ВКЛАДКИ ===
+        tabview = ctk.CTkTabview(main_frame, fg_color="#363636", border_width=2, border_color="#404040")
+        tabview.pack(fill="both", expand=True, pady=(0, 20))
+        
+        # Вкладки
+        tabview.add(LangT("EN Английский (EN)"))
+        tabview.add(LangT("RU Русский (RU)"))
+        
+        # === ЛОКАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЭТОЙ ФУНКЦИИ ===
+        found_items = {}
+        en_translations = {}
+        ru_translations = {}
+        en_descriptions = {}
+        ru_descriptions = {}
+        en_entries = {}
+        ru_entries = {}
+        en_desc_entries = {}
+        ru_desc_entries = {}
+        en_frame = None
+        ru_frame = None
+        
+        # === КОНФИГУРАЦИЯ ПОИСКА - ПРОСТО ТИП, КЛАСС И ПУТЬ ===
+        SEARCH_CONFIGS = [
+            # Предметы
+            {
+                "type": "item",
+                "class": "Item",
+                "path": "src/{mod_name}/init/items/ModItems.java"
+            },
+            # Жидкости
+            {
+                "type": "liquid",
+                "class": "Liquid",
+                "path": "src/{mod_name}/init/liquids/ModLiquid.java"
+            },
+            # Стены
+            {
+                "type": "wall",
+                "class": "Wall",
+                "path": "src/{mod_name}/init/blocks/walls/Walls.java"
+            },
+            # Солнечные панели
+            {
+                "type": "solar_panel",
+                "class": "SolarGenerator",
+                "path": "src/{mod_name}/init/blocks/solar_panels/SolarPanels.java"
+            },
+            # Батареи
+            {
+                "type": "battery",
+                "class": "Battery",
+                "path": "src/{mod_name}/init/blocks/batterys/Batterys.java"
+            },
+            #генератор
+            {
+                "type": "consume_generator",
+                "class": "ConsumeGenerator",
+                "path": "src/{mod_name}/init/blocks/consume_generators/ConsumeGenerators.java"
+            },
+            #Энерго башня
+            {
+                "type": "beam_node",
+                "class": "BeamNode",
+                "path": "src/{mod_name}/init/blocks/beam_nodes/BeamNodes.java"
+            },
+            #Энерго узел
+            {
+                "type": "power_node",
+                "class": "PowerNode",
+                "path": "src/{mod_name}/init/blocks/power_nodes/PowerNodes.java"
+            },
+            #Стена с шитом
+            {
+                "type": "shield_wall",
+                "class": "ShieldWall",
+                "path": "src/{mod_name}/init/blocks/shield_walls/ShieldWalls.java"
+            },
+            #Завод
+            {
+                "type": "generic_crafter",
+                "class": "GenericCrafter",
+                "path": "src/{mod_name}/init/blocks/generic_crafters/GenericCrafters.java"
+            },
+            #мост
+            {
+                "type": "circular_bridge",
+                "class": "CircularBridge",
+                "path": "src/{mod_name}/init/blocks/bridges/Bridges.java"
+            },
+            {
+                "type": "conveyor",
+                "class": "Conveyor",
+                "path": "src/{mod_name}/init/blocks/conveyors/Conveyors.java"
+            }
+        ]
+        
+        # ==== ФУНКЦИЯ АВТОМАТИЧЕСКОГО ПОИСКА ====
+        def auto_search():
+            """Автоматический поиск всех предметов при открытии"""
+            try:
+                mod_name_lower = self.mod_name.lower() if self.mod_name else ""
+                found_items.clear()
+                
+                # Проходим по всем конфигам
+                for config in SEARCH_CONFIGS:
+                    try:
+                        # Формируем путь
+                        file_path = Path(self.mod_folder) / config["path"].format(mod_name=mod_name_lower)
+                        
+                        if file_path.exists():
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            
+                            # Паттерны для поиска переменных
+                            patterns = [
+                                rf'public\s+static\s+{config["class"]}\s+(\w+);',
+                                rf'public\s+static\s+final\s+{config["class"]}\s+(\w+);',
+                                rf'(\w+)\s*=\s*new\s+{config["class"]}\("[^"]*"\)',
+                                rf'{config["class"]}\s+(\w+)\s*=',
+                                rf'public\s+static\s+\w+<{config["class"]}>\s+(\w+);'
+                            ]
+                            
+                            # Ищем совпадения
+                            for pattern in patterns:
+                                matches = re.findall(pattern, content)
+                                for match in matches:
+                                    if isinstance(match, str):
+                                        # Разбираем множественные объявления через запятую
+                                        items = [i.strip() for i in match.split(',')]
+                                        for item in items:
+                                            if item and item not in found_items:
+                                                found_items[item] = {
+                                                    "type": config["type"],
+                                                    "key": f"{item}.name",
+                                                    "class": config["class"]
+                                                }
+                                                
+                    except Exception as e:
+                        print(f"⚠️ Ошибка при поиске {config['type']}: {e}")
+                        continue
+                
+                # === ЗАГРУЗКА СУЩЕСТВУЮЩИХ ПЕРЕВОДОВ ===
+                load_existing_translations()
+                
+                # === ДОБАВЛЯЕМ НАЙДЕННЫЕ ЭЛЕМЕНТЫ В ПЕРЕВОДЫ ===
+                for item_name, item_info in found_items.items():
+                    key = item_info['key']
+                    
+                    # Добавляем название (только если еще нет)
+                    default_name = item_name.replace("_", " ").title()
+                    
+                    if key not in en_translations:
+                        en_translations[key] = default_name
+                    if key not in ru_translations:
+                        ru_translations[key] = default_name
+                    
+                    # Добавляем описание
+                    desc_key = f"{item_name}.description"
+                    if desc_key not in en_descriptions:
+                        en_descriptions[desc_key] = ""
+                    if desc_key not in ru_descriptions:
+                        ru_descriptions[desc_key] = ""
+                
+                # Обновляем вкладки
+                update_translation_tabs()
+                
+                # Показываем статистику по типам
+                type_stats = {}
+                for item_info in found_items.values():
+                    item_type = item_info['type']
+                    type_stats[item_type] = type_stats.get(item_type, 0) + 1
+                
+                stats_text = LangT(f"✅ Найдено {len(found_items)} элементов:\n")
+                for t, count in sorted(type_stats.items()):
+                    stats_text += LangT(f"  • {t}: {count}\n")
+                print(stats_text)
+                
+            except Exception as e:
+                print(f"❌ Ошибка автоматического поиска: {e}")
+        
+        # ==== ФУНКЦИЯ ЗАГРУЗКИ СУЩЕСТВУЮЩИХ ПЕРЕВОДОВ ====
+        def load_existing_translations():
+            """Загружает существующие переводы из bundle файлов"""
+            # Создаем папку bundles если ее нет
+            bundles_dir = Path(self.mod_folder) / "assets" / "bundles"
+            bundles_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Загружаем английские переводы
+            en_bundle_path = bundles_dir / "bundle.properties"
+            if en_bundle_path.exists():
+                with open(en_bundle_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            if key.endswith('.description'):
+                                en_descriptions[key] = value
+                            else:
+                                en_translations[key] = value
+            
+            # Загружаем русские переводы
+            ru_bundle_path = bundles_dir / "bundle_ru.properties"
+            if ru_bundle_path.exists():
+                with open(ru_bundle_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            if key.endswith('.description'):
+                                ru_descriptions[key] = value
+                            else:
+                                ru_translations[key] = value
+            
+            # Также проверяем старые пути (для обратной совместимости)
+            old_en_path = Path(self.mod_folder) / "assets" / "bundle.properties"
+            old_ru_path = Path(self.mod_folder) / "assets" / "bundle_ru.properties"
+            
+            if old_en_path.exists() and not en_bundle_path.exists():
+                with open(old_en_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            if key.endswith('.description'):
+                                en_descriptions[key] = value
+                            else:
+                                en_translations[key] = value
+            
+            if old_ru_path.exists() and not ru_bundle_path.exists():
+                with open(old_ru_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            if key.endswith('.description'):
+                                ru_descriptions[key] = value
+                            else:
+                                ru_translations[key] = value
+        
+        # ==== ФУНКЦИИ ДЛЯ ВКЛАДОК ====
+        def update_translation_tabs():
+            """Обновляет обе вкладки переводов"""
+            update_translation_tab("en", en_translations, en_descriptions, en_entries, en_desc_entries, en_frame)
+            update_translation_tab("ru", ru_translations, ru_descriptions, ru_entries, ru_desc_entries, ru_frame)
+        
+        def update_translation_tab(lang_code, translations, descriptions, name_entries, desc_entries, frame):
+            """Обновляет конкретную вкладку перевода"""
+            if not frame:
+                return
+            
+            # Очищаем фрейм
+            for widget in frame.winfo_children():
+                widget.destroy()
+            
+            # Заголовок
+            ctk.CTkLabel(
+                frame,
+                text=LangT("Переводы ({lentranslations} элементов)").format(lentranslations=len(translations)),
+                font=("Arial", 16, "bold"),
+                text_color="#4CAF50"
+            ).pack(anchor="w", pady=(0, 10))
+            
+            ctk.CTkLabel(
+                frame,
+                text=LangT("Формат: itemname.name = Название\n       itemname.description = Описание"),
+                font=("Arial", 11),
+                text_color="#888888"
+            ).pack(anchor="w", pady=(0, 20))
+            
+            # Создаем поля для каждого перевода
+            name_entries.clear()
+            desc_entries.clear()
+            
+            for key, name_value in translations.items():
+                # Пропускаем ключи .description - они обрабатываются отдельно
+                if key.endswith('.description'):
+                    continue
+                
+                # Основной фрейм для элемента
+                item_frame = ctk.CTkFrame(frame, fg_color="#3a3a3a", corner_radius=8)
+                item_frame.pack(fill="x", pady=5, padx=5)
+                
+                # Заголовок с ключом
+                ctk.CTkLabel(
+                    item_frame,
+                    text=key,
+                    font=("Arial", 10, "bold"),
+                    text_color="#4CAF50"
+                ).pack(anchor="w", padx=10, pady=(10, 5))
+                
+                # Название
+                name_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+                name_frame.pack(fill="x", padx=10, pady=5)
+                
+                ctk.CTkLabel(
+                    name_frame,
+                    text=LangT("Название:"),
+                    font=("Arial", 10),
+                    width=80
+                ).pack(side="left")
+                
+                name_var = tk.StringVar(value=name_value)
+                name_entry = ctk.CTkEntry(
+                    name_frame,
+                    textvariable=name_var,
+                    font=("Arial", 11),
+                    placeholder_text=LangT("Введите название...")
+                )
+                name_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+                name_entries[key] = name_var
+                
+                # Описание
+                item_base_name = key.replace('.name', '')
+                desc_key = f"{item_base_name}.description"
+                desc_value = descriptions.get(desc_key, "")
+                
+                desc_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+                desc_frame.pack(fill="x", padx=10, pady=(0, 10))
+                
+                ctk.CTkLabel(
+                    desc_frame,
+                    text=LangT("Описание:"),
+                    font=("Arial", 10),
+                    width=80
+                ).pack(side="left")
+                
+                desc_var = tk.StringVar(value=desc_value)
+                desc_entry = ctk.CTkEntry(
+                    desc_frame,
+                    textvariable=desc_var,
+                    font=("Arial", 11),
+                    placeholder_text=LangT("Введите описание...")
+                )
+                desc_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+                desc_entries[desc_key] = desc_var
+            
+            # Если нет переводов
+            if not translations:
+                ctk.CTkLabel(
+                    frame,
+                    text=LangT("Переводы не найдены. Автоматический поиск уже выполнен."),
+                    font=("Arial", 12),
+                    text_color="#888888"
+                ).pack(pady=50)
+        
+        # ==== ФУНКЦИЯ СОХРАНЕНИЯ ====
+        def collect_translations_from_ui():
+            """Собирает переводы из полей ввода UI"""
+            # Английский
+            for key, name_var in en_entries.items():
+                name = name_var.get().strip()
+                if name:
+                    en_translations[key] = name
+            
+            for key, desc_var in en_desc_entries.items():
+                desc = desc_var.get().strip()
+                if desc:
+                    en_descriptions[key] = desc
+            
+            # Русский
+            for key, name_var in ru_entries.items():
+                name = name_var.get().strip()
+                if name:
+                    ru_translations[key] = name
+            
+            for key, desc_var in ru_desc_entries.items():
+                desc = desc_var.get().strip()
+                if desc:
+                    ru_descriptions[key] = desc
+        
+        def save_all_bundles():
+            """Сохраняет все bundle файлы"""
+            try:
+                # Получаем текущие переводы из полей ввода
+                collect_translations_from_ui()
+                
+                # Создаем папку bundles если нужно
+                bundles_dir = Path(self.mod_folder) / "assets" / "bundles"
+                bundles_dir.mkdir(parents=True, exist_ok=True)
+                
+                # === BUNDLE.PROPERTIES (АНГЛИЙСКИЙ) ===
+                bundle_path = bundles_dir / "bundle.properties"
+                with open(bundle_path, 'w', encoding='utf-8') as f:
+                    f.write("# English translations\n")
+                    f.write(f"# Generated by Mindustry Mod Creator\n")
+                    f.write(f"# {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                    
+                    # Сначала названия
+                    for key, value in sorted(en_translations.items()):
+                        if value:  # Пишем только если есть значение
+                            f.write(f"{key}={value}\n")
+                    
+                    f.write("\n")
+                    
+                    # Затем описания
+                    for key, value in sorted(en_descriptions.items()):
+                        if value:  # Пишем только если есть значение
+                            f.write(f"{key}={value}\n")
+                
+                # === BUNDLE_RU.PROPERTIES (РУССКИЙ) ===
+                bundle_ru_path = bundles_dir / "bundle_ru.properties"
+                with open(bundle_ru_path, 'w', encoding='utf-8') as f:
+                    f.write("# Russian translations\n")
+                    f.write(f"# Generated by Mindustry Mod Creator\n")
+                    f.write(f"# {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                    
+                    # Сначала названия
+                    for key, value in sorted(ru_translations.items()):
+                        if value:  # Пишем только если есть значение
+                            f.write(f"{key}={value}\n")
+                    
+                    f.write("\n")
+                    
+                    # Затем описания
+                    for key, value in sorted(ru_descriptions.items()):
+                        if value:  # Пишем только если есть значение
+                            f.write(f"{key}={value}\n")
+                
+                # Показываем сообщение об успехе
+                total_en = len([v for v in en_translations.values() if v]) + len([v for v in en_descriptions.values() if v])
+                total_ru = len([v for v in ru_translations.values() if v]) + len([v for v in ru_descriptions.values() if v])
+                
+                messagebox.showinfo(
+                    LangT("Успех"), 
+                    LangT(f"Bundle файлы успешно созданы в папке /assets/bundles/\n\n"
+                          f"• bundle.properties: {total_en} записей\n"
+                          f"• bundle_ru.properties: {total_ru} записей\n\n"
+                          f"Пример использования в игре:\n"
+                          f"ModItems.redStone = \"redStone.name\"")
+                )
+                
+            except Exception as e:
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось сохранить bundle файлы:\n{str(e)}"))
+        
+        # ===== ВКЛАДКА 2: АНГЛИЙСКИЙ =====
+        en_tab = tabview.tab(LangT("EN Английский (EN)"))
+        
+        # Основной фрейм с прокруткой для английского
+        en_main_scroll = ctk.CTkScrollableFrame(en_tab, fg_color="transparent")
+        en_main_scroll.pack(fill="both", expand=True)
+        
+        en_translations_container = ctk.CTkFrame(en_main_scroll, fg_color="transparent")
+        en_translations_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        en_frame = ctk.CTkFrame(en_translations_container, fg_color="transparent")
+        en_frame.pack(fill="both", expand=True)
+        
+        # ===== ВКЛАДКА 3: РУССКИЙ =====
+        ru_tab = tabview.tab(LangT("RU Русский (RU)"))
+        
+        # Основной фрейм с прокруткой для русского
+        ru_main_scroll = ctk.CTkScrollableFrame(ru_tab, fg_color="transparent")
+        ru_main_scroll.pack(fill="both", expand=True)
+        
+        ru_translations_container = ctk.CTkFrame(ru_main_scroll, fg_color="transparent")
+        ru_translations_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        ru_frame = ctk.CTkFrame(ru_translations_container, fg_color="transparent")
+        ru_frame.pack(fill="both", expand=True)
+        
+        # === КНОПКИ ДЕЙСТВИЙ ===
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=10)
+        
+        # Кнопка обновить поиск
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("🔄 Обновить поиск"),
+            command=auto_search,
+            height=45,
+            width=140,
+            font=("Arial", 14),
+            fg_color="#2196F3",
+            hover_color="#1976D2",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        # Кнопка сохранить
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("💾 Сохранить Bundle файлы"),
+            command=save_all_bundles,
+            height=45,
+            width=180,
+            font=("Arial", 14, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("← Назад"),
+            command=self.open_creator,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        # === ЗАПУСКАЕМ АВТОМАТИЧЕСКИЙ ПОИСК ПРИ ОТКРЫТИИ ===
+        self.root.after(100, auto_search)
+
+    def setup_actions_panel(self, parent):
+        """Настройка панели действий"""
+        ctk.CTkLabel(parent, text=LangT("Действия"), font=("Arial", 14, "bold")).pack(pady=8)
+        
+        buttons_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        buttons_frame.pack(pady=5)
+
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Создать предмет"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.create_item
+        ).pack(pady=4)
+
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Создать жидкость"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.create_liquid
+        ).pack(pady=4)
+
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Создать блок"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.show_blocks_selection
+        ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("📁 Открыть папку"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.open_mod_folder
+        ).pack(pady=4)
+
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Переводы"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.create_bundle_editor
+        ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("🔧 Компилировать"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.compile_mod
+        ).pack(pady=4)
+
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Загрузить иконку мода"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.choose_mod_icon_tkinter
+        ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("← Назад"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.go_back
+        ).pack(pady=16)
+
+    def check_if_name_exists(self, name):
+        """Проверяет, существует ли уже такой предмет"""
+        name_lower = name.lower()
+        mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+        
+        # Проверяем в ModItems.java
+        items_file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
+        if items_file_path.exists():
+            try:
+                with open(items_file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    # Проверяем объявление предмета
+                    if f'public static Item {name}' in content or f'Item {name}' in content:
+                        return True
+                    # Проверяем создание предмета
+                    if f'new Item("{name_lower}")' in content:
+                        return True
+            except:
+                pass
+        
+        # Проверяем в текстурах предметов
+        items_texture_path = Path(self.mod_folder) / "assets" / "sprites" / "items"
+        if items_texture_path.exists():
+            for ext in ['.png', '.jpg', '.jpeg']:
+                if (items_texture_path / f"{name_lower}{ext}").exists():
+                    return True
+        
+        return False  # Имя свободно
+
+    def show_context_menu(self, element_name, element_type, x, y, folder_path=None):
+        """Показывает контекстное меню для элемента с функциями print и delete"""
+        
+        # Создаем всплывающее окно
+        menu_window = ctk.CTkToplevel(self.root)
+        menu_window.title(LangT(f"Действия для {element_name}"))
+        menu_window.geometry("450x450")
+        menu_window.resizable(False, False)
+        
+        # Позиционируем окно рядом с курсором
+        menu_window.geometry(f"+{x+10}+{y+10}")
+        
+        # Делаем окно поверх всех
+        menu_window.attributes('-topmost', True)
+        menu_window.grab_set()
+        
+        # Основной фрейм
+        main_frame = ctk.CTkFrame(menu_window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Заголовок
+        ctk.CTkLabel(
+            main_frame,
+            text=LangT(f"Выберите действие для: {element_name}"),
+            font=("Arial", 14, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=(0, 15))
+        
+        # Информация о типе элемента
+        type_text = LangT("📦 Предмет") if element_type == "item" else \
+                    LangT("💧 Жидкость") if element_type == "liquid" else \
+                    LangT("🧱 Блок")
+        
+        ctk.CTkLabel(
+            main_frame,
+            text=type_text,
+            font=("Arial", 12),
+            text_color="#888888"
+        ).pack(pady=(0, 15))
+        
+        # Разделитель
+        ctk.CTkFrame(main_frame, height=2, fg_color="#404040").pack(fill="x", pady=10)
+        
+        # Фрейм для кнопок действий
+        actions_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        actions_frame.pack(fill="both", expand=True)
+        
+        def format_to_lower_camel(text):
+            """Преобразует текст в lowerCamelCase"""
+            if not text or not isinstance(text, str):
+                return ""
+            text = text.replace('-', ' ').replace('_', ' ')
+            words = text.strip().split()
+            if not words:
+                return ""
+            result = words[0].lower()
+            for word in words[1:]:
+                if word:
+                    result += word.capitalize()
+            return result
+        
+        # Функция для удаления (вся логика внутри)
+        def action_delete():
+            """Полное удаление элемента"""
+            mod_name = self.mod_name
+            mod_folder = self.mod_folder
+            open_creator = self.open_creator
+            
+            # Подтверждение удаления
+            result = messagebox.askyesno(
+                LangT("Подтверждение удаления"),
+                LangT("Вы уверены, что хотите удалить элемент '{element_name}'?\n\n").format(element_name=element_name)+
+                    LangT("Будут удалены:\n")+
+                    LangT("• Все текстуры элемента\n")+
+                    LangT("• Код в Java файлах\n\n")+
+                    LangT("⚠️ Это действие необратимо!"),
+                icon='warning'
+            )
+            
+            if not result:
+                return
+            
+            menu_window.destroy()
+            
+            try:
+                import re
+                from pathlib import Path
+                
+                mod_name_lower = mod_name.lower() if mod_name else mod_name
+                formatted_name = format_to_lower_camel(element_name)
+                deleted_items = []
+                errors = []
+                warnings = []
+                
+                # ========== ПРОВЕРКА НАЛИЧИЯ В ДЕРЕВЕ ТЕХНОЛОГИЙ ==========
+                if element_type not in ["item", "liquid"]:
+                    tree_files = {
+                        "wall": "WallsTree",
+                        "battery": "BatteryTree",
+                        "solar_panel": "SolarTree",
+                        "generator": "ConsumeGeneratorTree",
+                        "beam_node": "BeamNodeTree",
+                        "power_node": "PowerNodeTree",
+                        "shield_wall": "ShieldWallTree",
+                        "generic_crafter": "GenericCrafterTree",
+                        "conveyor": "ConveyorTree",
+                        "circular_bridge": "BridgesTree"
+                    }
+                    
+                    if element_type in tree_files:
+                        tree_class = tree_files[element_type]
+                        tree_file_path = Path(mod_folder) / "src" / mod_name_lower / "content" / f"{tree_class}.java"
+                        
+                        if tree_file_path.exists():
+                            with open(tree_file_path, 'r', encoding='utf-8') as f:
+                                tree_content = f.read()
+                            
+                            if formatted_name in tree_content:
+                                warnings.append(LangT(f"⚠️ Блок найден в дереве технологий ({tree_class}.java)"))
+                                warnings.append(LangT(f"   Рекомендуется сначала удалить его из дерева вручную"))
+                                
+                                result2 = messagebox.askyesno(
+                                    LangT("Предупреждение"),
+                                    LangT(f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
+                                        f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
+                                        f"Продолжить удаление (только текстуры и Java код)?"),
+                                    icon='warning'
+                                )
+                                
+                                if not result2:
+                                    return
+                
+                # ========== 1. УДАЛЕНИЕ ТЕКСТУР ==========
+                texture_count = 0
+                search_paths = []
+                
+                if element_type == "item":
+                    search_paths = [
+                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.jpg",
+                        Path(mod_folder) / "sprites" / "items" / f"{formatted_name}.png",
+                    ]
+                elif element_type == "liquid":
+                    search_paths = [
+                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.png",
+                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.jpg",
+                        Path(mod_folder) / "sprites" / "liquids" / f"{formatted_name}.png",
+                    ]
+                else:
+                    block_folders = {
+                        "wall": "walls",
+                        "battery": "batterys",
+                        "solar_panel": "solar_panels",
+                        "generator": "consume_generators",
+                        "beam_node": "beam_nodes",
+                        "power_node": "power_nodes",
+                        "shield_wall": "shield_walls",
+                        "generic_crafter": "generic_crafter",
+                        "bridge": "bridges",
+                        "conveyor": "conveyors",
+                        "circular_bridge": "bridges"
+                    }
+                    target_folder = folder_path or block_folders.get(element_type, "")
+                    
+                    if target_folder:
+                        base_dir = Path(mod_folder) / "assets" / "sprites" / "blocks" / target_folder
+                        if base_dir.exists():
+                            if element_type in ["circular_bridge", "circular_bridge_liquid"]:
+                                for file in base_dir.glob(f"{formatted_name}*.*"):
+                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                        search_paths.append(file)
+                                sub_dir = base_dir / formatted_name
+                                if sub_dir.exists():
+                                    for file in sub_dir.glob(f"*.*"):
+                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                            search_paths.append(file)
+                            else:
+                                for file in base_dir.glob(f"{formatted_name}.png"):
+                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                        search_paths.append(file)
+                                sub_dir = base_dir / formatted_name
+                                if sub_dir.exists():
+                                    for file in sub_dir.glob(f"*.*"):
+                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
+                                            search_paths.append(file)
+                
+                for path in search_paths:
+                    if path and path.exists():
+                        path.unlink()
+                        texture_count += 1
+                
+                for path in search_paths:
+                    if path and path.parent.exists() and not any(path.parent.iterdir()):
+                        path.parent.rmdir()
+                
+                if texture_count > 0:
+                    deleted_items.append(LangT("🖼️ Удалено текстур: {texture_count}").format(texture_count=texture_count))
+                else:
+                    errors.append(LangT(f"⚠️ Текстуры не найдены"))
+                
+                # ========== 2. УДАЛЕНИЕ ИЗ JAVA ФАЙЛА ==========
+                java_deleted = False
+                
+                if element_type == "item":
+                    items_file_path = Path(mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
+                    if items_file_path.exists():
+                        with open(items_file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        original = content
+                        
+                        # Удаляем инициализацию (более точный паттерн)
+                        lines = content.split('\n')
+                        new_lines = []
+                        skip_until = -1
+                        i = 0
+                        
+                        while i < len(lines):
+                            line = lines[i]
+                            
+                            # Ищем строку с инициализацией удаляемого элемента
+                            if skip_until <= i and re.search(rf'{formatted_name}\s*=\s*new\s+Item\s*\(', line):
+                                # Нашли начало, пропускаем до конца блока
+                                brace_count = 0
+                                found_start = False
+                                j = i
+                                
+                                while j < len(lines):
+                                    current_line = lines[j]
+                                    
+                                    # Считаем фигурные скобки
+                                    if '{' in current_line:
+                                        brace_count += current_line.count('{')
+                                        found_start = True
+                                    if '}' in current_line:
+                                        brace_count -= current_line.count('}')
+                                    
+                                    # Проверяем конец блока
+                                    if found_start and brace_count == 0 and ';' in current_line:
+                                        i = j + 1
+                                        break
+                                    j += 1
+                                else:
+                                    i += 1
+                                continue
+                            
+                            # Добавляем строку если не пропускаем
+                            if skip_until <= i:
+                                new_lines.append(line)
+                            i += 1
+                        
+                        content = '\n'.join(new_lines)
+                        
+                        # Удаляем из объявления
+                        lines = content.split('\n')
+                        new_lines = []
+                        for line in lines:
+                            if 'public static Item' in line and formatted_name in line:
+                                match = re.search(r'public static Item\s+(.+?);', line)
+                                if match:
+                                    vars_str = match.group(1)
+                                    var_list = [v.strip() for v in vars_str.split(',')]
+                                    remaining_vars = [v for v in var_list if v != formatted_name]
+                                    if remaining_vars:
+                                        indent = ' ' * (len(line) - len(line.lstrip()))
+                                        new_line = f"{indent}public static Item {', '.join(remaining_vars)};"
+                                        new_lines.append(new_line)
+                            else:
+                                new_lines.append(line)
+                        content = '\n'.join(new_lines)
+                        
+                        # Удаляем пустые строки
+                        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+                        
+                        if content != original:
+                            with open(items_file_path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            java_deleted = True
+                            deleted_items.append(LangT("📦 Удален из ModItems.java"))
+                        else:
+                            errors.append(LangT(f"⚠️ Не удалось удалить из ModItems.java"))
+                
+                # ========== 3. РЕЗУЛЬТАТ ==========
+                if warnings:
+                    messagebox.showwarning(LangT("Внимание"), "\n".join(warnings))
+                
+                if errors:
+                    status_text = LangT(f"⚠️ Удаление элемента '{element_name}' выполнено с ошибками:\n\n")
+                    status_text += LangT("✅ Успешно:\n") + "\n".join(deleted_items) + LangT("\n\n❌ Ошибки:\n") + "\n".join(errors)
+                    messagebox.showwarning(LangT("Предупреждение"), status_text)
+                else:
+                    status_text = LangT("✅ Элемент '{element_name}' успешно удален!\n\n").format(element_name=element_name)
+                    status_text += "\n".join(deleted_items)
+                    messagebox.showinfo(LangT("Успех"), status_text)
+                
+                # Обновляем отображение
+                open_creator()
+                
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить элемент: {str(e)}"))
+
+        # Кнопка Delete
+        delete_btn = ctk.CTkButton(
+            actions_frame,
+            text=LangT("🗑️ Удалить элемент"),
+            command=action_delete,
+            height=45,
+            font=("Arial", 14),
+            fg_color="#F44336",
+            hover_color="#D32F2F",
+            corner_radius=10
+        )
+        delete_btn.pack(fill="x", pady=8)
+        
+        # Разделитель
+        ctk.CTkFrame(main_frame, height=1, fg_color="#404040").pack(fill="x", pady=10)
+        
+        # Закрыть
+        close_btn = ctk.CTkButton(
+            main_frame,
+            text=LangT("Закрыть"),
+            command=menu_window.destroy,
+            height=35,
+            font=("Arial", 12),
+            fg_color="#424242",
+            hover_color="#616161"
+        )
+        close_btn.pack(side="bottom", fill="x", pady=(10, 0))
+        
+        # Привязываем нажатие Escape для закрытия
+        def on_escape(event):
+            menu_window.destroy()
+        
+        menu_window.bind("<Escape>", on_escape)
+
+    def on_element_right_click(self, event, element_name, element_type, widget, folder_path=None):
+        """Обработчик правого клика по элементу"""
+        x = event.x_root
+        y = event.y_root
+        self.show_context_menu(element_name, element_type, x, y, folder_path)
+        return "break"
+
+    def _setup_blocks_tab(self, parent_tab):
+        """Настройка вкладки с блоками"""
+        scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+        scroll_frame.pack(fill="both", expand=True)
+        
+        mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+        blocks_config = {
+            "item": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/items/ModItems.java"], 
+                "class": "Item", 
+                "icon": "📦", 
+                "display": LangT("Предмет"), 
+                "sprite_folder": "items"},
+            "liquid": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/liquids/ModLiquid.java"], 
+                "class": "Liquid", 
+                "icon": "💧", 
+                "display": LangT("Жидкость"), 
+                "sprite_folder": "liquids"},
+            "wall": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/walls/Walls.java"], 
+                "class": "Wall", 
+                "icon": "🧱", 
+                "display": LangT("Стена"), 
+                "sprite_folder": "walls"},
+            "solar_panel": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java"], 
+                "class": "SolarGenerator", 
+                "icon": "☀️", 
+                "display": LangT("Солнечная панель"), 
+                "sprite_folder": "solar_panels"},
+            "batterys": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/batterys/Batterys.java"], 
+                "class": "Battery", 
+                "icon": "🔋", 
+                "display": LangT("Батарея"), 
+                "sprite_folder": "batterys"},
+            "consume_generators": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java"], 
+                "class": "ConsumeGenerator", 
+                "icon": "⚡", 
+                "display": LangT("Генератор"), 
+                "sprite_folder": "consume_generators"},
+            "beam_nodes": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java"], 
+                "class": "BeamNode", 
+                "icon": "📡", 
+                "display": LangT("Энергетическая башня"), 
+                "sprite_folder": "beam_nodes"},
+            "power_nodes": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java"], 
+                "class": "PowerNode", 
+                "icon": "🔌", 
+                "display": LangT("Энергетический узел"), 
+                "sprite_folder": "power_nodes"},
+            "shield_walls": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java"], 
+                "class": "ShieldWall",
+                "icon": "🛡️", 
+                "display": LangT("Экранированная стена"), 
+                "sprite_folder": "shield_walls"},
+            "generic_crafter": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java"], 
+                "class": "GenericCrafter", 
+                "icon": "🏭", 
+                "display": LangT("Завод"), 
+                "sprite_folder": "generic_crafter"},
+            "circular_bridge": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/bridges/Bridges.java"], 
+                "class": "CircularBridge", 
+                "icon": "🌉", 
+                "display": LangT("Мост"), 
+                "sprite_folder": "bridges"},
+            "conveyor": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/conveyors/Conveyors.java"],
+                "class": "Conveyor",
+                "icon": "➡️", 
+                "display": LangT("Конвейер"), 
+                "sprite_folder": "conveyors"}
+        }
+        
+        def search_blocks(block_type, config):
+            found_blocks = []
+            class_name, sprite_folder = config["class"], config.get("sprite_folder", "blocks")
+            patterns = [
+                rf'public\s+static\s+{class_name}\s+([^;]+);', 
+                rf'{class_name}\s+(\w+)\s*=', 
+                rf'(\w+)\s*=\s*new\s+{class_name}\("[^"]+"\)', 
+                rf'public\s+static\s+final\s+{class_name}\s+(\w+)']
+            
+            for path_template in config["paths"]:
+                actual_path = path_template.format(mod=self.mod_folder, mod_low=mod_name_lower, name=self.mod_name, name_low=mod_name_lower)
+                if not Path(actual_path).exists(): 
+                    continue
+                
+                try:
+                    with open(actual_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                        for pattern in patterns:
+                            for match in re.findall(pattern, content):
+                                for block_name in [b.strip() for b in (match.split(',') if isinstance(match, str) else [match])]:
+                                    if block_name and block_name not in [b[1] for b in found_blocks]:
+                                        if block_type == "conveyor":
+                                            sprite_paths = [
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
+                                            ]
+                                        else:
+                                            sprite_paths = [
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
+                                            ]
+                                        
+                                        sprite_found = any(p.exists() for p in sprite_paths)
+                                        found_blocks.append((block_type, block_name, sprite_found))
+                except Exception as e:
+                    print(f"Ошибка при чтении файла {actual_path}: {e}")
+                    continue
+            
+            return found_blocks
+        
+        all_content = [item for block_type, config in blocks_config.items() for item in search_blocks(block_type, config)]
+        
+        if all_content:
+            self.selected_types = set(b[0] for b in all_content)
+            
+            top_panel = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            top_panel.pack(fill="x", pady=(0, 15))
+            
+            filter_frame = ctk.CTkFrame(top_panel, fg_color="#363636", corner_radius=8)
+            filter_frame.pack(side="left", fill="x", expand=True)
+            
+            ctk.CTkLabel(filter_frame, text=LangT("Фильтр:"), font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
+            
+            def show_settings_window():
+                parent_window = self.root.winfo_toplevel()
+                
+                settings_window = ctk.CTkToplevel(parent_window)
+                settings_window.title(LangT("Настройки отображения"))
+                settings_window.geometry("500x450")
+                settings_window.transient(parent_window)
+                settings_window.grab_set()
+                
+                settings_window.update_idletasks()
+                x = (settings_window.winfo_screenwidth() // 2) - (500 // 2)
+                y = (settings_window.winfo_screenheight() // 2) - (450 // 2)
+                settings_window.geometry(f'+{x}+{y}')
+                
+                ctk.CTkLabel(settings_window, text=LangT("Выберите типы контента для отображения"), 
+                            font=("Arial", 16, "bold")).pack(pady=15)
+                
+                checkboxes_frame = ctk.CTkScrollableFrame(settings_window, fg_color="#2b2b2b", 
+                                                        corner_radius=10)
+                checkboxes_frame.pack(fill="both", expand=True, padx=20, pady=10)
+                
+                type_vars = {}
+                all_types = sorted(set(b[0] for b in all_content))
+                
+                def apply_settings():
+                    selected = [t for t, var in type_vars.items() if var.get()]
+                    self.selected_types = set(selected) if selected else set(all_types)
+                    update_filter_from_settings()
+                    settings_window.destroy()
+                
+                def cancel_settings():
+                    settings_window.destroy()
+                
+                def select_all():
+                    for var in type_vars.values():
+                        var.set(True)
+                
+                def deselect_all():
+                    for var in type_vars.values():
+                        var.set(False)
+                
+                cards_per_row = 3
+                current_row_frame = None
+                
+                for i, block_type in enumerate(all_types):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(checkboxes_frame, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=5)
+                    
+                    card = ctk.CTkFrame(current_row_frame, width=140, height=100, 
+                                    fg_color="#363636", corner_radius=10,
+                                    border_width=1, border_color="#404040")
+                    card.pack_propagate(False)
+                    card.pack(side="left", padx=5)
+                    
+                    config = blocks_config.get(block_type, {})
+                    display_name = config.get("display", block_type)
+                    icon = config.get("icon", "📦")
+                    
+                    ctk.CTkLabel(card, text=icon, font=("Arial", 24)).pack(pady=8)
+                    ctk.CTkLabel(card, text=display_name, font=("Arial", 11, "bold"), 
+                                wraplength=120).pack()
+                    
+                    count = sum(1 for item in all_content if item[0] == block_type)
+                    ctk.CTkLabel(card, text=LangT("{count} шт.").format(count=count), font=("Arial", 9), 
+                                text_color="#AAAAAA").pack()
+                    
+                    var = tk.BooleanVar(value=block_type in self.selected_types)
+                    type_vars[block_type] = var
+                    
+                    cb = ctk.CTkCheckBox(card, text="", variable=var, width=20,
+                                        fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
+                    cb.place(relx=0.9, rely=0.1, anchor="center")
+                
+                btn_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
+                btn_frame.pack(fill="x", padx=20, pady=15)
+                
+                left_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
+                left_btn_frame.pack(side="left")
+                
+                ctk.CTkButton(left_btn_frame, text=LangT("✓ Выбрать все"), command=select_all,
+                            fg_color="#424242", width=100, height=32).pack(side="left", padx=2)
+                ctk.CTkButton(left_btn_frame, text=LangT("✗ Сбросить все"), command=deselect_all,
+                            fg_color="#424242", width=100, height=32).pack(side="left", padx=2)
+                
+                right_btn_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
+                right_btn_frame.pack(side="right")
+                
+                ctk.CTkButton(right_btn_frame, text=LangT("Применить"), command=apply_settings,
+                            fg_color="#397E3C", width=100, height=32).pack(side="left", padx=2)
+                ctk.CTkButton(right_btn_frame, text=LangT("Отмена"), command=cancel_settings,
+                            fg_color="#AD4038", width=100, height=32).pack(side="left", padx=2)
+            
+            settings_btn = ctk.CTkButton(filter_frame, text=LangT("⚙️ Настройки"), width=120, height=32, 
+                                        font=("Arial", 12), fg_color="#397E3C",
+                                        command=show_settings_window)
+            settings_btn.pack(side="left", padx=5)
+            
+            def update_filter_label():
+                if len(self.selected_types) == len(set(b[0] for b in all_content)):
+                    filter_label.configure(text=LangT("Все категории"))
+                else:
+                    names = [blocks_config.get(t, {}).get("display", t) for t in sorted(self.selected_types)[:3]]
+                    text = ", ".join(names)
+                    if len(self.selected_types) > 3:
+                        text += LangT(f" и ещё {len(self.selected_types) - 3}")
+                    filter_label.configure(text=text)
+            
+            filter_label = ctk.CTkLabel(filter_frame, text=LangT("Все категории"), 
+                                    font=("Arial", 11), text_color="#AAAAAA")
+            filter_label.pack(side="left", padx=10)
+            
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10: return 1, 140, 140
+                CARD_WIDTH, CARD_HEIGHT, HORIZONTAL_PADDING = 140, 140, 10
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row, CARD_WIDTH, CARD_HEIGHT
+            
+            def update_filter_from_settings():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                filtered_content = [item for item in all_content if item[0] in self.selected_types]
+                
+                update_filter_label()
+                
+                if not filtered_content:
+                    ctk.CTkLabel(cards_container, text=LangT("🚫 Нет элементов для отображения"), 
+                                font=("Arial", 14), text_color="#888888").pack(pady=50)
+                    return
+                
+                cards_per_row, CARD_WIDTH, CARD_HEIGHT = calculate_grid()
+                current_row_frame = None
+                
+                for i, (block_type, block_name, has_sprite) in enumerate(filtered_content):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=5)
+                    
+                    card = ctk.CTkFrame(current_row_frame, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                                    fg_color="#363636", corner_radius=10, 
+                                    border_width=1, border_color="#404040", cursor="hand2")
+                    card.pack_propagate(False)
+                    card.pack(side="left", padx=5)
+                    
+                    config = blocks_config.get(block_type, {})
+                    default_icon = config.get("icon", "📦")
+                    sprite_folder = config.get("sprite_folder", "blocks")
+                    
+                    if has_sprite:
+                        try:
+                            from PIL import Image
+                            if block_type == "conveyor":
+                                sprite_paths = [
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
+                                ]
+                            else:
+                                sprite_paths = [
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
+                                    Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
+                                ]
+                            
+                            found_img = False
+                            for sprite_path in sprite_paths:
+                                if sprite_path.exists():
+                                    try:
+                                        img = Image.open(sprite_path).resize((50, 50), Image.Resampling.LANCZOS)
+                                        ctk_img = ctk.CTkImage(img)
+                                        img_label = ctk.CTkLabel(card, image=ctk_img, text="")
+                                        img_label.pack(pady=8)
+                                        found_img = True
+                                        break
+                                    except Exception as img_error:
+                                        print(f"Ошибка загрузки изображения {sprite_path}: {img_error}")
+                                        continue
+                            
+                            if not found_img:
+                                ctk.CTkLabel(card, text=default_icon, font=("Arial", 24)).pack(pady=8)
+                                has_sprite = False
+                        
+                        except Exception as e:
+                            print(f"Ошибка загрузки текстуры для {block_name}: {e}")
+                            ctk.CTkLabel(card, text=default_icon, font=("Arial", 24)).pack(pady=8)
+                            has_sprite = False
+                    else:
+                        ctk.CTkLabel(card, text=default_icon, font=("Arial", 24)).pack(pady=8)
+                    
+                    name_label = ctk.CTkLabel(card, text=block_name, font=("Arial", 11, "bold"), 
+                                wraplength=CARD_WIDTH-20)
+                    name_label.pack()
+                    
+                    ctk.CTkLabel(card, text=config.get("display", block_type), 
+                                font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
+                    
+                    sprite_status = ctk.CTkLabel(card, text="🖼️" if has_sprite else "❌", 
+                                font=("Arial", 10), 
+                                text_color="#4CAF50" if has_sprite else "#F44336")
+                    sprite_status.pack()
+                    
+                    def make_right_click_handler(name=block_name, type_name=block_type):
+                        return lambda event: self.on_element_right_click(event, name, type_name, card)
+                    
+                    card.bind("<Button-1>", make_right_click_handler())
+                    name_label.bind("<Button-1>", make_right_click_handler())
+                    sprite_status.bind("<Button-1>", make_right_click_handler())
+            
+            def on_resize(event):
+                if cards_container.winfo_children():
+                    update_filter_from_settings()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_filter_from_settings()
+        else:
+            ctk.CTkLabel(scroll_frame, text=LangT("📭 Нет созданного контента"), font=("Arial", 16), text_color="#888888").pack(pady=50)
+            ctk.CTkLabel(scroll_frame, text=LangT("Используйте создатель блоков для добавления контента"), font=("Arial", 12), text_color="#666666").pack()
+
+    def setup_content_panel(self, right_frame):
+        """Настройка панели контента - отображение существующего контента с ПКМ меню и вкладкой текстур"""
+        
+        # Создаем вкладки
+        self.content_notebook = ctk.CTkTabview(right_frame, fg_color="#2b2b2b")
+        self.content_notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Вкладка блоков
+        blocks_tab = self.content_notebook.add(LangT("Блоки"))
+        # Вкладка текстур
+        textures_tab = self.content_notebook.add(LangT("Текстуры"))
+        # Вкладка исходников
+        source_tab = self.content_notebook.add(LangT("Исходники"))
+        
+        # Настраиваем вкладку блоков
+        self._setup_blocks_tab(blocks_tab)
+        
+        # Настраиваем вкладку текстур
+        self._setup_textures_tab_content(textures_tab)
+        
+        # Настраиваем вкладку исходников
+        self._setup_source_tab_content(source_tab)
+
+    def _setup_source_tab_content(self, parent_tab):
+        """Настройка содержимого вкладки исходников - редактор файлов из папки src"""
+        
+        # Создаем ScrollableFrame
+        scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+        scroll_frame.pack(fill="both", expand=True)
+        
+        # Путь к исходникам
+        mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+        self.source_root = Path(self.mod_folder) / "src" / mod_name_lower
+        
+        # Если папки нет - создаем
+        if not self.source_root.exists():
+            try:
+                self.source_root.mkdir(parents=True, exist_ok=True)
+            except:
+                pass
+        
+        # Текущий путь для навигации
+        self.source_nav_stack = []
+        self.current_source_path = self.source_root
+        
+        # Верхняя панель
+        top_panel = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        top_panel.pack(fill="x", pady=(0, 15))
+        
+        filter_frame = ctk.CTkFrame(top_panel, fg_color="#363636", corner_radius=8)
+        filter_frame.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkLabel(filter_frame, text=LangT("Исходники:"), font=("Arial", 12, "bold"), width=80).pack(side="left", padx=10)
+        
+        # Кнопка создания файла
+        def create_source_file():
+            """Создание нового Java файла"""
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(LangT("Создать файл"))
+            dialog.geometry("400x180")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (180 // 2)
+            dialog.geometry(f'+{x}+{y}')
+            
+            frame = ctk.CTkFrame(dialog)
+            frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            ctk.CTkLabel(frame, text=LangT("Введите имя файла (с расширением .java):"), font=("Arial", 12)).pack(pady=5)
+            
+            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry.pack(pady=10)
+            entry.focus()
+            
+            def confirm():
+                file_name = entry.get().strip()
+                if not file_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя файла!"))
+                    return
+                
+                if not file_name.endswith('.java'):
+                    file_name += '.java'
+                
+                new_path = self.current_source_path / file_name
+                if new_path.exists():
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Файл уже существует!"))
+                    return
+                
+                try:
+                    # Создаем файл с базовым шаблоном
+                    try:
+                        package_name = str(self.current_source_path.relative_to(Path(self.mod_folder) / "src")).replace('\\', '.').replace('/', '.')
+                        if package_name == '.':
+                            package_name = mod_name_lower
+                    except:
+                        package_name = mod_name_lower
+                    
+                    template = f"""package {package_name};
+
+public class {file_name.replace('.java', '')} {{
+    // TODO: Добавьте код здесь
+    
+}}
+"""
+                    with open(new_path, 'w', encoding='utf-8') as f:
+                        f.write(template)
+                    
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Файл '{file_name}' создан!"))
+                    dialog.destroy()
+                    update_source_filter()
+                    
+                    # Открываем созданный файл для редактирования
+                    edit_file(new_path)
+                    
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось создать файл:\n{str(e)}"))
+            
+            def on_enter(event):
+                confirm()
+            
+            entry.bind("<Return>", on_enter)
+            
+            btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Создать"), command=confirm,
+                        fg_color="#4CAF50", width=100).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=dialog.destroy,
+                        fg_color="#AD4038", width=100).pack(side="left", padx=5)
+        
+        create_btn = ctk.CTkButton(filter_frame, text=LangT("📄 Новый файл"), width=120, height=32, 
+                                   font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
+                                   command=create_source_file)
+        create_btn.pack(side="left", padx=5)
+        
+        # Кнопка создания папки
+        def create_source_folder():
+            """Создание новой папки"""
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(LangT("Создать папку"))
+            dialog.geometry("400x150")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (150 // 2)
+            dialog.geometry(f'+{x}+{y}')
+            
+            frame = ctk.CTkFrame(dialog)
+            frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            ctk.CTkLabel(frame, text=LangT("Введите имя новой папки:"), font=("Arial", 12)).pack(pady=10)
+            
+            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry.pack(pady=10)
+            entry.focus()
+            
+            def confirm():
+                folder_name = entry.get().strip()
+                if not folder_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя папки!"))
+                    return
+                
+                new_path = self.current_source_path / folder_name
+                if new_path.exists():
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Папка уже существует!"))
+                    return
+                
+                try:
+                    new_path.mkdir(parents=True, exist_ok=True)
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Папка '{folder_name}' создана!"))
+                    dialog.destroy()
+                    update_source_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось создать папку:\n{str(e)}"))
+            
+            def on_enter(event):
+                confirm()
+            
+            entry.bind("<Return>", on_enter)
+            
+            btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Создать"), command=confirm,
+                        fg_color="#2196F3", width=100).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=dialog.destroy,
+                        fg_color="#AD4038", width=100).pack(side="left", padx=5)
+        
+        create_folder_btn = ctk.CTkButton(filter_frame, text=LangT("📁 Новая папка"), width=120, height=32, 
+                                          font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
+                                          command=create_source_folder)
+        create_folder_btn.pack(side="left", padx=5)
+        
+        # Кнопка "Назад"
+        def go_back_source():
+            if self.source_nav_stack:
+                self.current_source_path = self.source_nav_stack.pop()
+                update_source_filter()
+        
+        back_btn = ctk.CTkButton(filter_frame, text=LangT("← Назад"), width=80, height=32,
+                                fg_color="#555555", command=go_back_source, state="disabled")
+        back_btn.pack(side="left", padx=5)
+        
+        # Информация о текущем пути
+        path_label = ctk.CTkLabel(filter_frame, text="", font=("Arial", 10), text_color="#888888")
+        path_label.pack(side="right", padx=10)
+        
+        # Контейнер для карточек
+        cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        cards_container.pack(fill="both", expand=True)
+        
+        def calculate_grid():
+            container_width = cards_container.winfo_width()
+            if container_width < 10: return 1, 140, 140
+            CARD_WIDTH, CARD_HEIGHT, HORIZONTAL_PADDING = 140, 140, 10
+            cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+            return cards_per_row, CARD_WIDTH, CARD_HEIGHT
+        
+        def open_source_folder(folder_path):
+            """Открытие папки"""
+            self.source_nav_stack.append(self.current_source_path)
+            self.current_source_path = folder_path
+            back_btn.configure(state="normal" if self.source_nav_stack else "disabled")
+            update_source_filter()
+        
+        def edit_file(file_path):
+            """Открытие файла для редактирования"""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception as e:
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось прочитать файл:\n{str(e)}"))
+                return
+            
+            # Создаем окно редактора
+            editor_window = ctk.CTkToplevel(self.root)
+            editor_window.title(LangT(f"Редактор: {file_path.name}"))
+            editor_window.geometry("800x600")
+            editor_window.minsize(600, 400)
+            editor_window.transient(self.root)
+            editor_window.grab_set()
+            
+            # Основной фрейм
+            main_frame = ctk.CTkFrame(editor_window)
+            main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+            
+            # Информация о файле
+            info_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            info_frame.pack(fill="x", pady=(0, 10))
+            
+            ctk.CTkLabel(
+                info_frame,
+                text=LangT(f"📄 {file_path.name}"),
+                font=("Arial", 14, "bold"),
+                text_color="#4CAF50"
+            ).pack(side="left")
+            
+            # Путь к файлу
+            try:
+                rel_path = file_path.relative_to(Path(self.mod_folder) / "src")
+                path_text = LangT(f"Путь: src/{rel_path}")
+            except:
+                path_text = LangT(f"Путь: {file_path}")
+            
+            ctk.CTkLabel(
+                info_frame,
+                text=path_text,
+                font=("Arial", 10),
+                text_color="#888888"
+            ).pack(side="right")
+            
+            # Редактор кода (текстовое поле)
+            text_frame = ctk.CTkFrame(main_frame, fg_color="#1e1e1e", corner_radius=8)
+            text_frame.pack(fill="both", expand=True)
+            
+            text_editor = ctk.CTkTextbox(
+                text_frame,
+                font=("Consolas", 12),
+                fg_color="#1e1e1e",
+                text_color="#d4d4d4",
+                wrap="none",
+                border_width=2,
+                border_color="#404040"
+            )
+            text_editor.pack(fill="both", expand=True, padx=5, pady=5)
+            text_editor.insert("1.0", content)
+            
+            # Подсветка строк
+            def update_line_numbers(event=None):
+                cursor_pos = text_editor.index("insert")
+                line = cursor_pos.split('.')[0]
+                status_label.configure(text=LangT(f"Строка: {line} | Файл: {file_path.name}"))
+            
+            text_editor.bind("<KeyRelease>", update_line_numbers)
+            text_editor.bind("<ButtonRelease-1>", update_line_numbers)
+            
+            # Статус бар
+            status_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=30)
+            status_frame.pack(fill="x", pady=(5, 0))
+            
+            status_label = ctk.CTkLabel(
+                status_frame,
+                text=LangT(f"Файл: {file_path.name}"),
+                font=("Arial", 10),
+                text_color="#888888"
+            )
+            status_label.pack(side="left")
+            
+            # Кнопки внизу
+            btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            btn_frame.pack(fill="x", pady=10)
+            
+            def save_file():
+                """Сохранение файла"""
+                try:
+                    new_content = text_editor.get("1.0", "end-1c")
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(new_content)
+                    
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Файл сохранен!"))
+                    status_label.configure(text=LangT(f"✅ Сохранен: {file_path.name}"), text_color="#4CAF50")
+                    editor_window.after(2000, lambda: status_label.configure(text=LangT(f"Файл: {file_path.name}"), text_color="#888888"))
+                    
+                    # Обновляем отображение
+                    update_source_filter()
+                    
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось сохранить файл:\n{str(e)}"))
+            
+            def close_editor():
+                if messagebox.askyesno(LangT("Подтверждение"), LangT("Закрыть редактор?")):
+                    editor_window.destroy()
+            
+            # Кнопки
+            save_btn = ctk.CTkButton(
+                btn_frame,
+                text=LangT("💾 Сохранить"),
+                command=save_file,
+                height=35,
+                width=120,
+                font=("Arial", 12, "bold"),
+                fg_color="#2E7D32",
+                hover_color="#1B5E20"
+            )
+            save_btn.pack(side="left", padx=5)
+            
+            cancel_btn = ctk.CTkButton(
+                btn_frame,
+                text=LangT("❌ Закрыть"),
+                command=close_editor,
+                height=35,
+                width=120,
+                font=("Arial", 12),
+                fg_color="#AD4038",
+                hover_color="#8B2C2C"
+            )
+            cancel_btn.pack(side="left", padx=5)
+            
+            # Ctrl+S для сохранения
+            def on_ctrl_s(event):
+                save_file()
+                return "break"
+            
+            editor_window.bind("<Control-s>", on_ctrl_s)
+            editor_window.bind("<Control-S>", on_ctrl_s)
+            
+            # Escape для закрытия
+            editor_window.bind("<Escape>", lambda e: close_editor())
+            
+            # Обновляем строку при открытии
+            update_line_numbers()
+        
+        def delete_source_item(path, name, item_type):
+            """Удаление файла или папки"""
+            type_text = "папку" if item_type == "folder" else "файл"
+            if messagebox.askyesno(
+                LangT("Подтверждение удаления"),
+                LangT(f"Вы уверены, что хотите удалить {type_text} '{name}'?\n\n"
+                      f"Путь: {path}\n"
+                      f"⚠️ Это действие необратимо!"),
+                icon='warning'
+            ):
+                try:
+                    if path.is_dir():
+                        shutil.rmtree(path)
+                    else:
+                        path.unlink()
+                    
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ {type_text.capitalize()} '{name}' удалена!"))
+                    update_source_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить:\n{str(e)}"))
+        
+        def rename_source_item(path, old_name, item_type):
+            """Переименование файла или папки"""
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(LangT("Переименовать"))
+            dialog.geometry("400x150")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (150 // 2)
+            dialog.geometry(f'+{x}+{y}')
+            
+            frame = ctk.CTkFrame(dialog)
+            frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            type_text = "Папка" if item_type == "folder" else "Файл"
+            ctk.CTkLabel(frame, text=LangT(f"{type_text}: {old_name}"), font=("Arial", 12)).pack(pady=5)
+            ctk.CTkLabel(frame, text=LangT("Введите новое имя:"), font=("Arial", 12)).pack(pady=5)
+            
+            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry.insert(0, old_name)
+            entry.pack(pady=10)
+            entry.focus()
+            entry.select_range(0, len(old_name))
+            
+            def confirm():
+                new_name = entry.get().strip()
+                if not new_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя!"))
+                    return
+                
+                if new_name == old_name:
+                    dialog.destroy()
+                    return
+                
+                new_path = path.parent / new_name
+                if new_path.exists():
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Файл/папка с таким именем уже существует!"))
+                    return
+                
+                try:
+                    path.rename(new_path)
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Переименовано в '{new_name}'!"))
+                    dialog.destroy()
+                    update_source_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось переименовать:\n{str(e)}"))
+            
+            def on_enter(event):
+                confirm()
+            
+            entry.bind("<Return>", on_enter)
+            
+            btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Переименовать"), command=confirm,
+                        fg_color="#2196F3", width=120).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=dialog.destroy,
+                        fg_color="#AD4038", width=100).pack(side="left", padx=5)
+        
+        def update_source_filter():
+            for widget in cards_container.winfo_children():
+                widget.destroy()
+            
+            # Получаем содержимое текущей папки
+            current_content = []
+            if self.current_source_path and self.current_source_path.exists():
+                try:
+                    for item in self.current_source_path.iterdir():
+                        if item.is_dir():
+                            current_content.append(("folder", item.name, item))
+                        elif item.is_file() and item.suffix == '.java':
+                            current_content.append(("file", item.name, item))
+                except Exception as e:
+                    print(f"Ошибка чтения: {e}")
+            
+            # Обновляем путь
+            try:
+                rel_path = self.current_source_path.relative_to(Path(self.mod_folder) / "src") if self.current_source_path != self.source_root else "."
+                if str(rel_path) == ".":
+                    path_label.configure(text=LangT("Путь: src/{mod_name_lower}").format(mod_name_lower=mod_name_lower))
+                else:
+                    path_label.configure(text=LangT("Путь: src/{rel_path}").format(rel_path=rel_path))
+            except:
+                path_label.configure(text=LangT("Путь: src/{rel_path}").format(rel_path=rel_path))
+            
+            if not current_content:
+                error_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                error_frame.pack(fill="both", expand=True, pady=50)
+                
+                if self.current_source_path == self.source_root:
+                    ctk.CTkLabel(error_frame, text=LangT("📭 Папка src/{mod_name_lower} пуста").format(mod_name_lower=mod_name_lower), 
+                                font=("Arial", 14), text_color="#888888").pack()
+                    ctk.CTkLabel(error_frame, text=LangT("Создайте новый файл или папку"), 
+                                font=("Arial", 12), text_color="#666666").pack(pady=5)
+                else:
+                    ctk.CTkLabel(error_frame, text=LangT("📭 Папка пуста"), 
+                                font=("Arial", 14), text_color="#888888").pack()
+                return
+            
+            cards_per_row, CARD_WIDTH, CARD_HEIGHT = calculate_grid()
+            current_row_frame = None
+            
+            for i, (item_type, item_name, item_path) in enumerate(current_content):
+                if i % cards_per_row == 0:
+                    current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                    current_row_frame.pack(fill="x", pady=5)
+                
+                card = ctk.CTkFrame(current_row_frame, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                                fg_color="#363636", corner_radius=10, 
+                                border_width=1, border_color="#404040", cursor="hand2")
+                card.pack_propagate(False)
+                card.pack(side="left", padx=5)
+                
+                if item_type == "folder":
+                    # Отображение папки
+                    ctk.CTkLabel(card, text="📁", font=("Arial", 40)).pack(pady=15)
+                    
+                    name_label = ctk.CTkLabel(card, text=item_name, font=("Arial", 11, "bold"), 
+                                            wraplength=CARD_WIDTH-20)
+                    name_label.pack()
+                    
+                    try:
+                        items_count = len(list(item_path.iterdir()))
+                        ctk.CTkLabel(card, text=LangT("{items_count} элементов").format(items_count=items_count), 
+                                    font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
+                    except:
+                        pass
+                    
+                    # ЛКМ - открыть папку
+                    card.bind("<Button-1>", lambda e, path=item_path: open_source_folder(path))
+                    name_label.bind("<Button-1>", lambda e, path=item_path: open_source_folder(path))
+                    
+                    # ПКМ меню
+                    def make_folder_context_menu(path=item_path, name=item_name):
+                        def handler(event):
+                            menu = tk.Menu(self.root, tearoff=0, bg="#363636", fg="white", activebackground="#505050")
+                            menu.add_command(label="📂 " + LangT("Открыть"), 
+                                        command=lambda: open_source_folder(path))
+                            menu.add_separator()
+                            menu.add_command(label="✏️ " + LangT("Переименовать"), 
+                                        command=lambda: rename_source_item(path, name, "folder"))
+                            menu.add_command(label="🗑️ " + LangT("Удалить"), 
+                                        command=lambda: delete_source_item(path, name, "folder"))
+                            menu.add_separator()
+                            menu.add_command(label="📋 " + LangT("Копировать путь"), 
+                                        command=lambda: self._copy_to_clipboard(str(path)))
+                            menu.add_command(label="🔄 " + LangT("Обновить"), command=update_source_filter)
+                            menu.post(event.x_root, event.y_root)
+                        return handler
+                    
+                    card.bind("<Button-3>", make_folder_context_menu())
+                    name_label.bind("<Button-3>", make_folder_context_menu())
+                    
+                else:
+                    # Отображение Java файла
+                    ctk.CTkLabel(card, text="☕", font=("Arial", 40)).pack(pady=15)
+                    
+                    name_label = ctk.CTkLabel(card, text=item_name[:15] + ("..." if len(item_name) > 15 else ""), 
+                                            font=("Arial", 10, "bold"), wraplength=CARD_WIDTH-20)
+                    name_label.pack()
+                    
+                    try:
+                        size = item_path.stat().st_size
+                        if size < 1024:
+                            size_str = f"{size} B"
+                        elif size < 1024*1024:
+                            size_str = f"{size/1024:.1f} KB"
+                        else:
+                            size_str = f"{size/(1024*1024):.1f} MB"
+                        ctk.CTkLabel(card, text=LangT("Размер: {size_str}").format(size_str=size_str), 
+                                    font=("Arial", 8), text_color="#AAAAAA").pack()
+                    except:
+                        pass
+                    
+                    # ЛКМ - открыть для редактирования
+                    def make_edit_handler(path=item_path):
+                        return lambda event: edit_file(path)
+                    
+                    card.bind("<Button-1>", make_edit_handler())
+                    name_label.bind("<Button-1>", make_edit_handler())
+                    
+                    # ПКМ меню
+                    def make_file_context_menu(path=item_path, name=item_name):
+                        def handler(event):
+                            menu = tk.Menu(self.root, tearoff=0, bg="#363636", fg="white", activebackground="#505050")
+                            menu.add_command(label="✏️ " + LangT("Редактировать"), 
+                                        command=lambda: edit_file(path))
+                            menu.add_separator()
+                            menu.add_command(label="✏️ " + LangT("Переименовать"), 
+                                        command=lambda: rename_source_item(path, name, "file"))
+                            menu.add_command(label="🗑️ " + LangT("Удалить"), 
+                                        command=lambda: delete_source_item(path, name, "file"))
+                            menu.add_separator()
+                            menu.add_command(label="📋 " + LangT("Копировать путь"), 
+                                        command=lambda: self._copy_to_clipboard(str(path)))
+                            menu.add_command(label="🔄 " + LangT("Обновить"), command=update_source_filter)
+                            menu.post(event.x_root, event.y_root)
+                        return handler
+                    
+                    card.bind("<Button-3>", make_file_context_menu())
+                    name_label.bind("<Button-3>", make_file_context_menu())
+        
+        def on_resize(event):
+            if cards_container.winfo_children():
+                update_source_filter()
+        
+        cards_container.bind("<Configure>", on_resize)
+        
+        # Загружаем начальное содержимое
+        update_source_filter()
+        
+    def _setup_textures_tab_content(self, parent_tab):
+        """Настройка содержимого вкладки текстур с возможностью загрузки, удаления и переименования"""
+        
+        # Создаем ScrollableFrame
+        scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+        scroll_frame.pack(fill="both", expand=True)
+        
+        # Путь к текстурам
+        self.textures_root = Path(self.mod_folder) / "assets" / "sprites"
+        if not self.textures_root.exists():
+            try:
+                self.textures_root.mkdir(parents=True, exist_ok=True)
+            except:
+                pass
+        
+        # Переменные для навигации
+        self.texture_nav_stack = []
+        self.current_texture_path = self.textures_root
+        self.selected_texture_types = set(["folder", "texture"])
+        
+        # Верхняя панель
+        top_panel = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        top_panel.pack(fill="x", pady=(0, 15))
+        
+        filter_frame = ctk.CTkFrame(top_panel, fg_color="#363636", corner_radius=8)
+        filter_frame.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkLabel(filter_frame, text=LangT("Фильтр:"), font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
+        
+        # Кнопка настроек
+        def show_texture_settings():
+            parent_window = self.root.winfo_toplevel()
+            
+            settings_window = ctk.CTkToplevel(parent_window)
+            settings_window.title(LangT("Настройки отображения текстур"))
+            settings_window.geometry("400x300")
+            settings_window.transient(parent_window)
+            settings_window.grab_set()
+            
+            settings_window.update_idletasks()
+            x = (settings_window.winfo_screenwidth() // 2) - (400 // 2)
+            y = (settings_window.winfo_screenheight() // 2) - (300 // 2)
+            settings_window.geometry(f'+{x}+{y}')
+            
+            ctk.CTkLabel(settings_window, text=LangT("Выберите типы для отображения"), 
+                        font=("Arial", 16, "bold")).pack(pady=15)
+            
+            settings_frame = ctk.CTkFrame(settings_window, fg_color="#2b2b2b", corner_radius=10)
+            settings_frame.pack(fill="both", expand=True, padx=20, pady=10)
+            
+            folder_var = tk.BooleanVar(value="folder" in self.selected_texture_types)
+            texture_var = tk.BooleanVar(value="texture" in self.selected_texture_types)
+            
+            folder_card = ctk.CTkFrame(settings_frame, fg_color="#363636", corner_radius=10, height=80)
+            folder_card.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(folder_card, text="📁", font=("Arial", 24)).pack(side="left", padx=15)
+            ctk.CTkLabel(folder_card, text=LangT("Папки"), font=("Arial", 13, "bold")).pack(side="left", padx=10)
+            folder_cb = ctk.CTkCheckBox(folder_card, text="", variable=folder_var, width=20,
+                                        fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
+            folder_cb.pack(side="right", padx=15)
+            
+            texture_card = ctk.CTkFrame(settings_frame, fg_color="#363636", corner_radius=10, height=80)
+            texture_card.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(texture_card, text="🖼️", font=("Arial", 24)).pack(side="left", padx=15)
+            ctk.CTkLabel(texture_card, text=LangT("Текстуры"), font=("Arial", 13, "bold")).pack(side="left", padx=10)
+            texture_cb = ctk.CTkCheckBox(texture_card, text="", variable=texture_var, width=20,
+                                        fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
+            texture_cb.pack(side="right", padx=15)
+            
+            def apply_texture_settings():
+                selected = []
+                if folder_var.get():
+                    selected.append("folder")
+                if texture_var.get():
+                    selected.append("texture")
+                self.selected_texture_types = set(selected) if selected else set(["folder", "texture"])
+                update_texture_filter()
+                settings_window.destroy()
+            
+            btn_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
+            btn_frame.pack(fill="x", padx=20, pady=15)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Применить"), command=apply_texture_settings,
+                        fg_color="#397E3C", width=100, height=32).pack(side="right", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=settings_window.destroy,
+                        fg_color="#AD4038", width=100, height=32).pack(side="right", padx=5)
+        
+        settings_btn = ctk.CTkButton(filter_frame, text=LangT("⚙️ Настройки"), width=120, height=32, 
+                                    font=("Arial", 12), fg_color="#397E3C",
+                                    command=show_texture_settings)
+        settings_btn.pack(side="left", padx=5)
+        
+        # КНОПКА ЗАГРУЗКИ ФАЙЛА
+        def upload_texture():
+            """Загрузка текстуры в текущую папку"""
+            try:
+                import tkinter as tk
+                from tkinter import filedialog
+                
+                temp_root = tk.Tk()
+                temp_root.withdraw()
+                temp_root.attributes('-topmost', True)
+                
+                selected_file = filedialog.askopenfilename(
+                    title=LangT("Выберите текстуру для загрузки"),
+                    filetypes=[
+                        (LangT("PNG изображения"), "*.png"),
+                        (LangT("JPEG изображения"), "*.jpg *.jpeg"),
+                        (LangT("Все изображения"), "*.png *.jpg *.jpeg *.gif"),
+                        (LangT("Все файлы"), "*.*")
+                    ]
+                )
+                
+                temp_root.destroy()
+                
+                if selected_file:
+                    source_path = Path(selected_file)
+                    target_path = self.current_texture_path / source_path.name
+                    
+                    if target_path.exists():
+                        response = messagebox.askyesno(
+                            LangT("Подтверждение"),
+                            LangT(f"Файл '{source_path.name}' уже существует.\nЗаменить?")
+                        )
+                        if not response:
+                            return
+                    
+                    shutil.copy2(source_path, target_path)
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Файл '{source_path.name}' загружен!"))
+                    update_texture_filter()
+                    
+            except Exception as e:
+                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось загрузить файл:\n{str(e)}"))
+        
+        upload_btn = ctk.CTkButton(filter_frame, text=LangT("📤 Загрузить"), width=120, height=32, 
+                                  font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
+                                  command=upload_texture)
+        upload_btn.pack(side="left", padx=5)
+        
+        # КНОПКА СОЗДАНИЯ ПАПКИ
+        def create_texture_folder():
+            """Создание новой папки в текущей директории"""
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(LangT("Создать папку"))
+            dialog.geometry("400x150")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (150 // 2)
+            dialog.geometry(f'+{x}+{y}')
+            
+            frame = ctk.CTkFrame(dialog)
+            frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            ctk.CTkLabel(frame, text=LangT("Введите имя новой папки:"), font=("Arial", 12)).pack(pady=10)
+            
+            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry.pack(pady=10)
+            entry.focus()
+            
+            def confirm():
+                folder_name = entry.get().strip()
+                if not folder_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя папки!"))
+                    return
+                
+                new_path = self.current_texture_path / folder_name
+                if new_path.exists():
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Папка уже существует!"))
+                    return
+                
+                try:
+                    new_path.mkdir(parents=True, exist_ok=True)
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Папка '{folder_name}' создана!"))
+                    dialog.destroy()
+                    update_texture_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось создать папку:\n{str(e)}"))
+            
+            def on_enter(event):
+                confirm()
+            
+            entry.bind("<Return>", on_enter)
+            
+            btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Создать"), command=confirm,
+                        fg_color="#4CAF50", width=100).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=dialog.destroy,
+                        fg_color="#AD4038", width=100).pack(side="left", padx=5)
+        
+        create_folder_btn = ctk.CTkButton(filter_frame, text=LangT("📁 Новая папка"), width=120, height=32, 
+                                         font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
+                                         command=create_texture_folder)
+        create_folder_btn.pack(side="left", padx=5)
+        
+        # Кнопка "Назад"
+        def go_back_texture():
+            if self.texture_nav_stack:
+                self.current_texture_path = self.texture_nav_stack.pop()
+                update_texture_filter()
+        
+        back_btn = ctk.CTkButton(filter_frame, text=LangT("← Назад"), width=80, height=32,
+                                fg_color="#555555", command=go_back_texture, state="disabled")
+        back_btn.pack(side="left", padx=5)
+        
+        def update_filter_label():
+            if len(self.selected_texture_types) == 2:
+                filter_label.configure(text=LangT("Все типы"))
+            elif len(self.selected_texture_types) == 1:
+                if "folder" in self.selected_texture_types:
+                    filter_label.configure(text=LangT("Только папки"))
+                else:
+                    filter_label.configure(text=LangT("Только текстуры"))
+            else:
+                filter_label.configure(text=LangT("Ничего не выбрано"))
+        
+        filter_label = ctk.CTkLabel(filter_frame, text=LangT("Все типы"), 
+                                    font=("Arial", 11), text_color="#AAAAAA")
+        filter_label.pack(side="left", padx=10)
+        
+        # Информация о текущем пути
+        path_label = ctk.CTkLabel(filter_frame, text="", font=("Arial", 10), text_color="#888888")
+        path_label.pack(side="right", padx=10)
+        
+        # Контейнер для карточек
+        cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        cards_container.pack(fill="both", expand=True)
+        
+        def calculate_grid():
+            container_width = cards_container.winfo_width()
+            if container_width < 10: return 1, 140, 140
+            CARD_WIDTH, CARD_HEIGHT, HORIZONTAL_PADDING = 140, 140, 10
+            cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+            return cards_per_row, CARD_WIDTH, CARD_HEIGHT
+        
+        def open_texture_folder(folder_path):
+            """Открытие папки"""
+            self.texture_nav_stack.append(self.current_texture_path)
+            self.current_texture_path = folder_path
+            back_btn.configure(state="normal" if self.texture_nav_stack else "disabled")
+            update_texture_filter()
+        
+        # ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ФАЙЛАМИ
+        def delete_texture_item(path, name, item_type):
+            """Удаление файла или папки"""
+            type_text = "папку" if item_type == "folder" else "файл"
+            if messagebox.askyesno(
+                LangT("Подтверждение удаления"),
+                LangT(f"Вы уверены, что хотите удалить {type_text} '{name}'?\n\n"
+                      f"Путь: {path}\n"
+                      f"⚠️ Это действие необратимо!"),
+                icon='warning'
+            ):
+                try:
+                    if path.is_dir():
+                        shutil.rmtree(path)
+                    else:
+                        path.unlink()
+                    
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ {type_text.capitalize()} '{name}' удалена!"))
+                    update_texture_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить:\n{str(e)}"))
+        
+        def rename_texture_item(path, old_name, item_type):
+            """Переименование файла или папки"""
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(LangT("Переименовать"))
+            dialog.geometry("400x150")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (150 // 2)
+            dialog.geometry(f'+{x}+{y}')
+            
+            frame = ctk.CTkFrame(dialog)
+            frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            type_text = "Папка" if item_type == "folder" else "Файл"
+            ctk.CTkLabel(frame, text=LangT(f"{type_text}: {old_name}"), font=("Arial", 12)).pack(pady=5)
+            ctk.CTkLabel(frame, text=LangT("Введите новое имя:"), font=("Arial", 12)).pack(pady=5)
+            
+            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry.insert(0, old_name)
+            entry.pack(pady=10)
+            entry.focus()
+            entry.select_range(0, len(old_name))
+            
+            def confirm():
+                new_name = entry.get().strip()
+                if not new_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя!"))
+                    return
+                
+                if new_name == old_name:
+                    dialog.destroy()
+                    return
+                
+                new_path = path.parent / new_name
+                if new_path.exists():
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Файл/папка с таким именем уже существует!"))
+                    return
+                
+                try:
+                    path.rename(new_path)
+                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Переименовано в '{new_name}'!"))
+                    dialog.destroy()
+                    update_texture_filter()
+                except Exception as e:
+                    messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось переименовать:\n{str(e)}"))
+            
+            def on_enter(event):
+                confirm()
+            
+            entry.bind("<Return>", on_enter)
+            
+            btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text=LangT("Переименовать"), command=confirm,
+                        fg_color="#2196F3", width=120).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=dialog.destroy,
+                        fg_color="#AD4038", width=100).pack(side="left", padx=5)
+        
+        def update_texture_filter():
+            for widget in cards_container.winfo_children():
+                widget.destroy()
+            
+            # Получаем содержимое текущей папки
+            current_content = []
+            if self.current_texture_path and self.current_texture_path.exists():
+                try:
+                    for item in self.current_texture_path.iterdir():
+                        if item.is_dir() and "folder" in self.selected_texture_types:
+                            current_content.append(("folder", item.name, item))
+                        elif item.is_file() and item.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif'] and "texture" in self.selected_texture_types:
+                            current_content.append(("texture", item.name, item))
+                except Exception as e:
+                    print(f"Ошибка чтения: {e}")
+            
+            # Обновляем путь
+            try:
+                rel_path = self.current_texture_path.relative_to(self.textures_root) if self.current_texture_path != self.textures_root else "."
+                if str(rel_path) == ".":
+                    path_label.configure(text=LangT("Путь: assets/sprites"))
+                else:
+                    path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
+            except:
+                path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
+            
+            update_filter_label()
+            
+            if not current_content:
+                error_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                error_frame.pack(fill="both", expand=True, pady=50)
+                
+                if self.current_texture_path == self.textures_root:
+                    ctk.CTkLabel(error_frame, text=LangT("📭 Нет текстур в папке sprites"), 
+                                font=("Arial", 14), text_color="#888888").pack()
+                    ctk.CTkLabel(error_frame, text=LangT("Поместите текстуры (.png) в папку assets/sprites"), 
+                                font=("Arial", 12), text_color="#666666").pack(pady=5)
+                else:
+                    ctk.CTkLabel(error_frame, text=LangT("📭 Папка пуста"), 
+                                font=("Arial", 14), text_color="#888888").pack()
+                return
+            
+            cards_per_row, CARD_WIDTH, CARD_HEIGHT = calculate_grid()
+            current_row_frame = None
+            
+            for i, (item_type, item_name, item_path) in enumerate(current_content):
+                if i % cards_per_row == 0:
+                    current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                    current_row_frame.pack(fill="x", pady=5)
+                
+                card = ctk.CTkFrame(current_row_frame, width=CARD_WIDTH, height=CARD_HEIGHT, 
+                                fg_color="#363636", corner_radius=10, 
+                                border_width=1, border_color="#404040", cursor="hand2")
+                card.pack_propagate(False)
+                card.pack(side="left", padx=5)
+                
+                if item_type == "folder":
+                    # Отображение папки
+                    ctk.CTkLabel(card, text="📁", font=("Arial", 40)).pack(pady=15)
+                    
+                    name_label = ctk.CTkLabel(card, text=item_name, font=("Arial", 11, "bold"), 
+                                            wraplength=CARD_WIDTH-20)
+                    name_label.pack()
+                    
+                    try:
+                        items_count = len(list(item_path.iterdir()))
+                        ctk.CTkLabel(card, text=LangT("{items_count} элементов").format(items_count=items_count), 
+                                    font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
+                    except:
+                        ctk.CTkLabel(card, text=LangT("Папка"), 
+                                    font=("Arial", 9), text_color="#AAAAAA").pack(pady=3)
+                    
+                    # ЛКМ - открыть папку
+                    card.bind("<Button-1>", lambda e, path=item_path: open_texture_folder(path))
+                    name_label.bind("<Button-1>", lambda e, path=item_path: open_texture_folder(path))
+                    
+                    # ПКМ меню
+                    def make_folder_context_menu(path=item_path, name=item_name):
+                        def handler(event):
+                            menu = tk.Menu(self.root, tearoff=0, bg="#363636", fg="white", activebackground="#505050")
+                            menu.add_command(label="📂 " + LangT("Открыть"), 
+                                        command=lambda: open_texture_folder(path))
+                            menu.add_separator()
+                            menu.add_command(label="✏️ " + LangT("Переименовать"), 
+                                        command=lambda: rename_texture_item(path, name, "folder"))
+                            menu.add_command(label="🗑️ " + LangT("Удалить"), 
+                                        command=lambda: delete_texture_item(path, name, "folder"))
+                            menu.add_separator()
+                            menu.add_command(label="📋 " + LangT("Копировать путь"), 
+                                        command=lambda: self._copy_to_clipboard(str(path)))
+                            menu.add_command(label="🔄 " + LangT("Обновить"), command=update_texture_filter)
+                            menu.post(event.x_root, event.y_root)
+                        return handler
+                    
+                    card.bind("<Button-3>", make_folder_context_menu())
+                    name_label.bind("<Button-3>", make_folder_context_menu())
+                    
+                else:
+                    # Отображение текстуры
+                    try:
+                        from PIL import Image
+                        img = Image.open(item_path)
+                        img.thumbnail((60, 60), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img)
+                        img_label = ctk.CTkLabel(card, image=ctk_img, text="")
+                        img_label.pack(pady=10)
+                        
+                        size_text = f"{img.width}x{img.height}"
+                        ctk.CTkLabel(card, text=size_text, font=("Arial", 8), 
+                                    text_color="#AAAAAA").pack()
+                    except Exception as e:
+                        ctk.CTkLabel(card, text="🖼️", font=("Arial", 40)).pack(pady=15)
+                        ctk.CTkLabel(card, text=LangT("Ошибка"), font=("Arial", 8), 
+                                    text_color="#F44336").pack()
+                    
+                    name_label = ctk.CTkLabel(card, text=item_name[:15] + ("..." if len(item_name) > 15 else ""), 
+                                            font=("Arial", 10, "bold"), wraplength=CARD_WIDTH-20)
+                    name_label.pack(pady=2)
+                    
+                    ext = item_path.suffix.upper()
+                    ext_color = "#4CAF50" if ext == ".PNG" else "#FFA500"
+                    ctk.CTkLabel(card, text=ext, font=("Arial", 9), text_color=ext_color).pack()
+                    
+                    # Открытие текстуры по двойному клику
+                    def make_texture_click_handler(path):
+                        def handler(event):
+                            import subprocess
+                            import platform
+                            try:
+                                if platform.system() == 'Windows':
+                                    os.startfile(str(path))
+                                elif platform.system() == 'Darwin':
+                                    subprocess.run(['open', str(path)])
+                                else:
+                                    subprocess.run(['xdg-open', str(path)])
+                            except Exception as e:
+                                print(f"Ошибка открытия: {e}")
+                        return handler
+                    
+                    card.bind("<Double-Button-1>", make_texture_click_handler(item_path))
+                    name_label.bind("<Double-Button-1>", make_texture_click_handler(item_path))
+                    
+                    # ПКМ меню
+                    def make_texture_context_menu(path=item_path, name=item_name):
+                        def handler(event):
+                            menu = tk.Menu(self.root, tearoff=0, bg="#363636", fg="white", activebackground="#505050")
+                            menu.add_command(label="🖼️ " + LangT("Открыть"), 
+                                        command=lambda: make_texture_click_handler(path)(None))
+                            menu.add_separator()
+                            menu.add_command(label="✏️ " + LangT("Переименовать"), 
+                                        command=lambda: rename_texture_item(path, name, "texture"))
+                            menu.add_command(label="🗑️ " + LangT("Удалить"), 
+                                        command=lambda: delete_texture_item(path, name, "texture"))
+                            menu.add_separator()
+                            menu.add_command(label="📋 " + LangT("Копировать путь"), 
+                                        command=lambda: self._copy_to_clipboard(str(path)))
+                            menu.add_command(label="🔄 " + LangT("Обновить"), command=update_texture_filter)
+                            menu.post(event.x_root, event.y_root)
+                        return handler
+                    
+                    card.bind("<Button-3>", make_texture_context_menu())
+                    name_label.bind("<Button-3>", make_texture_context_menu())
+            
+            # Двойной клик для открытия текстур
+            for widget in cards_container.winfo_children():
+                for child in widget.winfo_children():
+                    if isinstance(child, ctk.CTkFrame):
+                        for subchild in child.winfo_children():
+                            if isinstance(subchild, ctk.CTkLabel) and subchild.cget("text") in [".PNG", ".JPG", ".JPEG", ".GIF"]:
+                                parent = subchild.master
+                                parent.bind("<Double-Button-1>", lambda e, path=item_path: make_texture_click_handler(path)(e))
+        
+        def on_resize(event):
+            if cards_container.winfo_children():
+                update_texture_filter()
+        
+        cards_container.bind("<Configure>", on_resize)
+        
+        # Загружаем начальное содержимое
+        update_texture_filter()
+        
+    def _copy_to_clipboard(self, text):
+        """Копирование в буфер обмена"""
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+
+    def _load_textures_content(self):
+        """Загрузка содержимого текущей папки текстур"""
+        for widget in self.textures_scroll_frame.winfo_children():
+            widget.destroy()
+        
+        if not self.current_textures_path or not self.current_textures_path.exists():
+            self._show_textures_error()
+            return
+        
+        try:
+            rel_path = self.current_textures_path.relative_to(self.textures_root)
+            path_text = f"assets/sprites/{rel_path}" if str(rel_path) != '.' else "assets/sprites"
+            self.current_path_label.configure(text=LangT("Текущая папка: ") + path_text)
+        except:
+            self.current_path_label.configure(text=LangT("Текущая папка: ") + "assets/sprites")
+        
+        items = []
+        try:
+            folders = [f for f in self.current_textures_path.iterdir() if f.is_dir()]
+            textures = [f for f in self.current_textures_path.iterdir() 
+                    if f.is_file() and f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']]
+            items = folders + textures
+        except Exception as e:
+            self._show_textures_error(str(e))
+            return
+        
+        if not items:
+            empty_frame = ctk.CTkFrame(self.textures_scroll_frame, fg_color="transparent")
+            empty_frame.pack(fill="both", expand=True, pady=50)
+            
+            ctk.CTkLabel(
+                empty_frame, 
+                text="📁 " + LangT("Нет текстур в этой папке"), 
+                font=("Arial", 16), 
+                text_color="#888888"
+            ).pack()
+            
+            ctk.CTkLabel(
+                empty_frame, 
+                text=LangT("Поместите текстуры (.png, .jpg) в папку assets/sprites"), 
+                font=("Arial", 12), 
+                text_color="#666666"
+            ).pack(pady=5)
+            return
+        
+        container_width = self.textures_scroll_frame.winfo_width()
+        if container_width < 10:
+            container_width = 800
+        
+        CARD_WIDTH = 140
+        CARD_HEIGHT = 160
+        cards_per_row = max(1, (container_width - 10) // (CARD_WIDTH + 10))
+        
+        current_row_frame = None
+        
+        for i, item in enumerate(items):
+            if i % cards_per_row == 0:
+                current_row_frame = ctk.CTkFrame(self.textures_scroll_frame, fg_color="transparent")
+                current_row_frame.pack(fill="x", pady=5)
+            
+            card = ctk.CTkFrame(
+                current_row_frame, 
+                width=CARD_WIDTH, 
+                height=CARD_HEIGHT, 
+                fg_color="#363636", 
+                corner_radius=10,
+                border_width=1, 
+                border_color="#404040",
+                cursor="hand2"
+            )
+            card.pack_propagate(False)
+            card.pack(side="left", padx=5)
+            
+            if item.is_dir():
+                self._create_folder_card(card, item)
+            else:
+                self._create_texture_card(card, item)
+
+    def _create_folder_card(self, card, folder_path):
+        """Создание карточки папки"""
+        icon_label = ctk.CTkLabel(card, text="📁", font=("Arial", 40))
+        icon_label.pack(pady=(15, 5))
+        
+        name_label = ctk.CTkLabel(
+            card, 
+            text=folder_path.name, 
+            font=("Arial", 11, "bold"), 
+            wraplength=120
+        )
+        name_label.pack(pady=5)
+        
+        try:
+            item_count = len(list(folder_path.iterdir()))
+            ctk.CTkLabel(
+                card, 
+                text=LangT("{item_count} элементов").format(item_count=item_count), 
+                font=("Arial", 9), 
+                text_color="#AAAAAA"
+            ).pack()
+        except:
+            pass
+        
+        def open_folder(event=None):
+            self.textures_history.append(self.current_textures_path)
+            self.current_textures_path = folder_path
+            self.textures_back_button.configure(state="normal" if self.textures_history else "disabled")
+            self._load_textures_content()
+        
+        card.bind("<Double-Button-1>", open_folder)
+        name_label.bind("<Double-Button-1>", open_folder)
+        icon_label.bind("<Double-Button-1>", open_folder)
+
+    def _create_texture_card(self, card, texture_path):
+        """Создание карточки текстуры"""
+        try:
+            from PIL import Image
+            img = Image.open(texture_path)
+            img.thumbnail((60, 60), Image.Resampling.LANCZOS)
+            ctk_img = ctk.CTkImage(img)
+            texture_label = ctk.CTkLabel(card, image=ctk_img, text="")
+            texture_label.pack(pady=(10, 5))
+            
+            size_text = f"{img.width}x{img.height}"
+        except Exception as e:
+            texture_label = ctk.CTkLabel(card, text="🖼️", font=("Arial", 40))
+            texture_label.pack(pady=(10, 5))
+            size_text = "?"
+        
+        name_label = ctk.CTkLabel(
+            card, 
+            text=texture_path.stem[:18] + ("..." if len(texture_path.stem) > 18 else ""), 
+            font=("Arial", 10, "bold"), 
+            wraplength=120
+        )
+        name_label.pack(pady=2)
+        
+        ctk.CTkLabel(
+            card, 
+            text=LangT("Размер: ") + size_text, 
+            font=("Arial", 8), 
+            text_color="#AAAAAA"
+        ).pack()
+        
+        ctk.CTkLabel(
+            card, 
+            text=texture_path.suffix.upper(), 
+            font=("Arial", 8), 
+            text_color="#4CAF50" if texture_path.suffix.lower() == '.png' else "#FFA500"
+        ).pack(pady=2)
+        
+        def open_texture(event=None):
+            import subprocess
+            import platform
+            try:
+                if platform.system() == 'Windows':
+                    os.startfile(str(texture_path))
+                elif platform.system() == 'Darwin':
+                    subprocess.run(['open', str(texture_path)])
+                else:
+                    subprocess.run(['xdg-open', str(texture_path)])
+            except Exception as e:
+                print(f"Ошибка открытия: {e}")
+        
+        card.bind("<Double-Button-1>", open_texture)
+        texture_label.bind("<Double-Button-1>", open_texture)
+        name_label.bind("<Double-Button-1>", open_texture)
+
+    def _go_back_in_textures(self):
+        """Возврат к предыдущей папке"""
+        if self.textures_history:
+            self.current_textures_path = self.textures_history.pop()
+            self.textures_back_button.configure(state="normal" if self.textures_history else "disabled")
+            self._load_textures_content()
+
+    def _refresh_textures(self):
+        """Обновление содержимого текстур"""
+        self._load_textures_content()
+
+    def _show_textures_error(self, error_msg=""):
+        """Показ ошибки"""
+        for widget in self.textures_scroll_frame.winfo_children():
+            widget.destroy()
+        
+        error_frame = ctk.CTkFrame(self.textures_scroll_frame, fg_color="transparent")
+        error_frame.pack(fill="both", expand=True, pady=50)
+        
+        ctk.CTkLabel(
+            error_frame, 
+            text="📁❌", 
+            font=("Arial", 48), 
+            text_color="#888888"
+        ).pack()
+        
+        ctk.CTkLabel(
+            error_frame, 
+            text=LangT("Папка textures не найдена"), 
+            font=("Arial", 16), 
+            text_color="#888888"
+        ).pack(pady=10)
+        
+        ctk.CTkLabel(
+            error_frame, 
+            text=LangT("Создайте папку") + f" {self.textures_root}", 
+            font=("Arial", 12), 
+            text_color="#666666"
+        ).pack()
+
+    def open_mod_folder(self):
+        """Открытие папки мода в проводнике"""
+        try:
+            path = str(self.mod_folder)
+            if platform.system() == "Windows":
+                os.startfile(path)
+            elif platform.system() == "Darwin":
+                subprocess.run(["open", path])
+            else:
+                subprocess.run(["xdg-open", path])
+        except Exception as e:
+            messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось открыть папку: {e}"))
+
+    def go_back(self):
+        """Возврат к главному интерфейсу"""
+        # Безопасно закрываем окно прогресса, если оно открыто
+        self.safe_close_progress_window()
+        self.compiling = False
+        self.main_app.show_main_ui()
+
+    def clear_window(self):
+        """Очистка окна"""
+        for widget in self.root.winfo_children():
+            widget.destroy()
