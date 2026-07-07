@@ -58,7 +58,7 @@ class BlockCreator:
     PATEH_FOLDER = [
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
-        "generic_crafter", "bridges", "conveyors"
+        "generic_crafter", "bridges", "conveyors", "storage_block"
     ]
 
 #----------ФУНКЦИИ----------
@@ -299,10 +299,11 @@ class BlockCreator:
         
         return True, ""
 
+    #tree
     def create_tech_tree_file_universal(self, block_var_name: str, block_constructor_name: str,
-                                    research_block: str, research_items: list,
-                                    block_type: str, folder_name: str, 
-                                    class_name: str = None) -> bool:
+                                        research_block: str, research_items: list,
+                                        block_type: str, folder_name: str, 
+                                        class_name: str = None) -> bool:
         """
         Универсальная функция создания файла дерева технологий
         
@@ -311,7 +312,7 @@ class BlockCreator:
             block_constructor_name: имя конструктора блока
             research_block: блок для исследования
             research_items: список предметов [(item_name, count), ...]
-            block_type: тип блока (wall, battery, solar, shield, power_node, beam_node, generator, crafter)
+            block_type: тип блока (wall, battery, solar, shield, power_node, beam_node, generator, crafter, storage)
             folder_name: имя папки (walls, batterys, solar_panels, etc.)
             class_name: имя класса для дерева технологий (если None, генерируется из block_type)
         
@@ -323,7 +324,6 @@ class BlockCreator:
             
             # Определяем имя класса для дерева технологий
             if not class_name:
-                # Преобразуем block_type в имя класса
                 type_to_class = {
                     "wall": "WallsTree",
                     "battery": "BatteryTree",
@@ -332,7 +332,10 @@ class BlockCreator:
                     "power_node": "PowerNodeTree",
                     "beam_node": "BeamNodeTree",
                     "generator": "ConsumeGeneratorTree",
-                    "crafter": "GenericCrafterTree"
+                    "crafter": "GenericCrafterTree",
+                    "storage": "StoragesTree",
+                    "bridge": "BridgesTree",
+                    "conveyor": "ConveyorTree"
                 }
                 class_name = type_to_class.get(block_type, f"{block_type.capitalize()}Tree")
             
@@ -342,26 +345,103 @@ class BlockCreator:
             # Формируем строку с предметами для исследования
             research_item_parts = []
             custom_items = self.get_custom_items()
+            has_custom_items = False
             
             for item_name, count in research_items:
                 code_name = self.get_item_code_name(item_name, custom_items)
                 research_item_parts.append(f"{code_name}, {count}")
+                if item_name in custom_items:
+                    has_custom_items = True
             
             research_items_stack = ", ".join(research_item_parts)
             
-            # Определяем родительский блок
-            if research_block.startswith("Blocks."):
-                parent_block = research_block
-                research_block_name = research_block
-                parent_var_name = research_block.replace("Blocks.", "").replace(".", "_")
-            elif "." in research_block:
+            # === НОВАЯ ЛОГИКА: СКАНИРУЕМ ФАЙЛЫ ДЛЯ ПОИСКА БЛОКА ===
+            # Очищаем имя от Blocks. если есть
+            clean_block_name = research_block
+            if clean_block_name.startswith("Blocks."):
+                clean_block_name = clean_block_name.replace("Blocks.", "")
+            
+            # Если имя уже содержит точки и не Blocks. - это полный путь
+            if "." in clean_block_name and not clean_block_name.startswith("Blocks."):
                 parent_block = research_block
                 research_block_name = research_block
                 parent_var_name = research_block.split(".")[-1]
+                print(f"DEBUG: Полный путь к блоку: {parent_block}")
             else:
-                parent_block = f"Blocks.{research_block}"
-                research_block_name = f"Blocks.{research_block}"
-                parent_var_name = research_block
+                # Ищем блок в файлах мода
+                found_mod_block = False
+                folders_to_check = [
+                    "walls", "batterys", "solar_panels", "consume_generators",
+                    "beam_nodes", "power_nodes", "shield_walls", "generic_crafter",
+                    "bridges", "conveyors", "Storages"
+                ]
+                
+                folder_to_class = {
+                    "walls": "Walls",
+                    "batterys": "Batterys",
+                    "solar_panels": "SolarPanels",
+                    "shield_walls": "ShieldWalls",
+                    "power_nodes": "PowerNodes",
+                    "beam_nodes": "BeamNodes",
+                    "consume_generators": "ConsumeGenerators",
+                    "generic_crafter": "GenericCrafters",
+                    "bridges": "Bridges",
+                    "conveyors": "Conveyors",
+                    "Storages": "Storages",
+                }
+                
+                for folder in folders_to_check:
+                    class_file_name = folder_to_class.get(folder, folder.capitalize())
+                    file_path = Path(self.mod_folder) / "src" / mod_name_lower / "init" / "blocks" / folder / f"{class_file_name}.java"
+                    
+                    if not file_path.exists():
+                        continue
+                    
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as file:
+                            content = file.read()
+                        
+                        # Ищем объявление переменной блока
+                        patterns = [
+                            rf'public\s+static\s+\w+\s+{clean_block_name}\s*=\s*new\s+\w+\(',
+                            rf'public\s+static\s+final\s+\w+\s+{clean_block_name}\s*=\s*new\s+\w+\(',
+                            rf'public\s+static\s+\w+\s+{clean_block_name};',
+                            rf'public\s+static\s+final\s+\w+\s+{clean_block_name};',
+                            rf'\b{clean_block_name}\s*=\s*new\s+\w+\(',
+                            rf'\b{clean_block_name}\s*;',
+                        ]
+                        
+                        for pattern in patterns:
+                            if re.search(pattern, content):
+                                # Нашли блок в этом файле
+                                class_name_for_block = folder_to_class.get(folder, folder.capitalize())
+                                parent_block = f"{mod_name_lower}.init.blocks.{folder}.{class_name_for_block}.{clean_block_name}"
+                                research_block_name = parent_block
+                                parent_var_name = clean_block_name
+                                found_mod_block = True
+                                
+                                # Сохраняем информацию для импорта
+                                self._found_block_folder = folder
+                                self._found_block_class = class_name_for_block
+                                
+                                print(f"DEBUG: Найден модовый блок {clean_block_name} в {folder}")
+                                break
+                        
+                        if found_mod_block:
+                            break
+                            
+                    except Exception as e:
+                        print(f"DEBUG: Ошибка чтения {file_path}: {e}")
+                        continue
+                
+                # Если блок не найден в модовых файлах - считаем ванильным
+                if not found_mod_block:
+                    parent_block = f"Blocks.{clean_block_name}"
+                    research_block_name = f"Blocks.{clean_block_name}"
+                    parent_var_name = clean_block_name
+                    print(f"DEBUG: Ванильный блок для исследования: {parent_block}")
+                    self._found_block_folder = None
+                    self._found_block_class = None
             
             parent_node_var = f"{parent_var_name}_{block_var_name}Node"
             block_node_var = f"{block_var_name}Node"
@@ -375,37 +455,78 @@ class BlockCreator:
                 "power_nodes": "power_nodes.PowerNodes",
                 "beam_nodes": "beam_nodes.BeamNodes",
                 "consume_generators": "consume_generators.ConsumeGenerators",
-                "generic_crafter": "generic_crafter.GenericCrafters"
+                "generic_crafter": "generic_crafter.GenericCrafters",
+                "bridges": "bridges.Bridges",
+                "conveyors": "conveyors.Conveyors",
+                "Storages": "Storages.Storages",
             }
             
             import_path = folder_to_import.get(folder_name, folder_name)
             
-            # Формируем код для нового узла (с правильными отступами)
+            # Формируем дополнительные импорты
+            additional_imports = ""
+            if has_custom_items:
+                additional_imports = f"\nimport {mod_name_lower}.init.items.ModItems;"
+            
+            # Если нашли модовый блок - добавляем static import
+            if hasattr(self, '_found_block_folder') and self._found_block_folder:
+                folder = self._found_block_folder
+                class_name_for_block = self._found_block_class
+                additional_imports += f"\nimport static {mod_name_lower}.init.blocks.{folder}.{class_name_for_block}.*;"
+            
+            # Формируем код для нового узла
             new_node_code = f"""
-                    TechNode {parent_node_var} = {parent_block}.techNode;
-                    
-                    if ({parent_node_var} != null) {{
-                        // Создаем узел для вашего блока
-                        TechNode {block_node_var} = new TechNode(
-                            {parent_node_var},
-                            {block_var_name},
-                            ItemStack.with({research_items_stack})
-                        );
-                        
-                        // Добавляем условие - должен быть исследован указанный блок
-                        {block_node_var}.objectives.add(new Research({research_block_name}));
-                    }}"""
+                            TechNode {parent_node_var} = {parent_block}.techNode;
+                            
+                            if ({parent_node_var} != null) {{
+                                // Создаем узел для вашего блока
+                                TechNode {block_node_var} = new TechNode(
+                                    {parent_node_var},
+                                    {block_var_name},
+                                    ItemStack.with({research_items_stack})
+                                );
+                                
+                                // Добавляем условие - должен быть исследован указанный блок
+                                {block_node_var}.objectives.add(new Research({research_block_name}));
+                            }}"""
             
             # Проверяем, существует ли уже файл
             if tree_file_path.exists():
-                # Читаем существующий файл
                 with open(tree_file_path, 'r', encoding='utf-8') as file:
                     existing_content = file.read()
                 
-                # Проверяем, не добавлен ли уже этот блок
                 if f"{block_node_var}" in existing_content:
                     print(LangT(f"Блок {block_var_name} уже есть в {class_name}.java"))
                     return True
+                
+                # Проверяем, есть ли уже импорт ModItems
+                mod_items_import = f"import {mod_name_lower}.init.items.ModItems;"
+                if has_custom_items and mod_items_import not in existing_content:
+                    lines = existing_content.split('\n')
+                    last_import_index = -1
+                    for i, line in enumerate(lines):
+                        if line.startswith('import ') and not line.startswith('import static'):
+                            last_import_index = i
+                    
+                    if last_import_index != -1:
+                        lines.insert(last_import_index + 1, mod_items_import)
+                        existing_content = '\n'.join(lines)
+                        print(LangT(f"Добавлен импорт ModItems в {class_name}.java"))
+                
+                # Проверяем, есть ли уже static import для модового блока
+                if hasattr(self, '_found_block_folder') and self._found_block_folder:
+                    static_import = f"import static {mod_name_lower}.init.blocks.{self._found_block_folder}.{self._found_block_class}.*;"
+                    if static_import not in existing_content:
+                        lines = existing_content.split('\n')
+                        last_import_index = -1
+                        for i, line in enumerate(lines):
+                            if line.startswith('import ') and not line.startswith('import static'):
+                                last_import_index = i
+                        
+                        if last_import_index != -1:
+                            lines.insert(last_import_index + 1, static_import)
+                            existing_content = '\n'.join(lines)
+                            print(LangT(f"Добавлен импорт {static_import} в {class_name}.java"))
                 
                 # Находим место для вставки нового кода ВНУТРИ метода Load()
                 lines = existing_content.split('\n')
@@ -416,7 +537,6 @@ class BlockCreator:
                 brace_count = 0
                 in_load_method = False
                 
-                # Находим начало и конец метода Load()
                 for i, line in enumerate(lines):
                     if 'public static void Load()' in line:
                         load_method_start = i
@@ -426,47 +546,65 @@ class BlockCreator:
                     if in_load_method:
                         brace_count += line.count('{') - line.count('}')
                         
-                        # Когда закрыли все скобки метода Load()
                         if brace_count == 0 and in_load_method and i > load_method_start:
                             load_method_end = i
                             in_load_method = False
                 
                 if load_method_start != -1 and load_method_end != -1:
-                    # Вставляем новый код ПЕРЕД закрывающей скобкой метода Load()
                     for i, line in enumerate(lines):
                         modified_lines.append(line)
                         
-                        # Если это строка с закрывающей скобкой метода Load()
-                        if i == load_method_end - 1:  # Вставляем перед последней строкой метода
+                        if i == load_method_end - 1:
                             modified_lines.append(new_node_code)
                             inserted = True
                             print(LangT(f"Вставлен код для {block_var_name} в метод Load() в {class_name}.java"))
                     
                     if inserted:
-                        # Записываем обновленное содержимое
                         new_content = '\n'.join(modified_lines)
                         with open(tree_file_path, 'w', encoding='utf-8') as file:
                             file.write(new_content)
                         print(LangT(f"✅ Файл {class_name}.java успешно обновлен"))
                         return True
+                    else:
+                        print(LangT(f"Не найден метод Load() в {class_name}.java, создаем новый файл"))
+                        tree_content = f"""package {mod_name_lower}.content;
+
+        import arc.struct.*;
+        import mindustry.game.Objectives.*;
+        import mindustry.type.*;
+        import mindustry.content.*;
+        import mindustry.content.TechTree.TechNode;
+        import static mindustry.content.Blocks.*;
+        import static {mod_name_lower}.init.blocks.{import_path}.*;{additional_imports}
+
+        public class {class_name} {{
+            
+            public static void Load() {{{new_node_code}
+            }}
+        }}"""
+                        
+                        with open(tree_file_path, 'w', encoding='utf-8') as file:
+                            file.write(tree_content)
+                        
+                        print(LangT(f"✅ Файл {class_name}.java успешно пересоздан"))
+                        return True
                 else:
-                    # Если не нашли метод Load(), создаем новый файл
                     print(LangT(f"Не найден метод Load() в {class_name}.java, создаем новый файл"))
                     tree_content = f"""package {mod_name_lower}.content;
 
-    import arc.struct.*;
-    import mindustry.game.Objectives.*;
-    import mindustry.type.*;
-    import mindustry.content.*;
-    import mindustry.content.TechTree.TechNode;
-    import static mindustry.content.Blocks.*;
-    import static {mod_name_lower}.init.blocks.{import_path}.*;
+        import arc.struct.*;
+        import mindustry.game.Objectives.*;
+        import mindustry.type.*;
+        import mindustry.content.*;
+        import mindustry.content.TechTree.TechNode;
+        import static mindustry.content.Blocks.*;
+        import static {mod_name_lower}.init.blocks.{import_path}.*;{additional_imports}
 
-    public class {class_name} {{
-        
-        public static void Load() {{{new_node_code}
-        }}
-    }}"""
+        public class {class_name} {{
+            
+            public static void Load() {{{new_node_code}
+            }}
+        }}"""
                     
                     with open(tree_file_path, 'w', encoding='utf-8') as file:
                         file.write(tree_content)
@@ -477,19 +615,19 @@ class BlockCreator:
                 # Создаем новый файл с базовой структурой
                 tree_content = f"""package {mod_name_lower}.content;
 
-    import arc.struct.*;
-    import mindustry.game.Objectives.*;
-    import mindustry.type.*;
-    import mindustry.content.*;
-    import mindustry.content.TechTree.TechNode;
-    import static mindustry.content.Blocks.*;
-    import static {mod_name_lower}.init.blocks.{import_path}.*;
+        import arc.struct.*;
+        import mindustry.game.Objectives.*;
+        import mindustry.type.*;
+        import mindustry.content.*;
+        import mindustry.content.TechTree.TechNode;
+        import static mindustry.content.Blocks.*;
+        import static {mod_name_lower}.init.blocks.{import_path}.*;{additional_imports}
 
-    public class {class_name} {{
-        
-        public static void Load() {{{new_node_code}
-        }}
-    }}"""
+        public class {class_name} {{
+            
+            public static void Load() {{{new_node_code}
+            }}
+        }}"""
                 
                 with open(tree_file_path, 'w', encoding='utf-8') as file:
                     file.write(tree_content)
@@ -502,7 +640,7 @@ class BlockCreator:
             import traceback
             traceback.print_exc()
             return False
-    
+          
     def _generate_tree_node_code(self, parent_node_var: str, block_node_var: str,
                                 parent_block: str, block_var_name: str,
                                 research_items_stack: str, research_block_name: str) -> str:
@@ -704,70 +842,20 @@ class BlockCreator:
         )
         cancel_btn.pack()
 
-    def get_mod_blocks_for_research_universal(self):
-        """Получает список блоков из мода для исследования с указанием типа папки"""
-        mod_blocks = {}
-        mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-        
-        # Пути к файлам с блоками
-        block_files = [
-            ("walls", f"src/{mod_name_lower}/init/blocks/walls/Walls.java", LangT("🧱 Стены")),
-            ("solar_panels", f"src/{mod_name_lower}/init/blocks/solar_panels/SolarPanels.java", LangT("☀️ Солнечные панели")),
-            ("batterys", f"src/{mod_name_lower}/init/blocks/batterys/Batterys.java", LangT("🔋 Батареи")),
-            ("consume_generators", f"src/{mod_name_lower}/init/blocks/consume_generators/ConsumeGenerators.java", LangT("⚡ Генераторы")),
-            ("beam_nodes", f"src/{mod_name_lower}/init/blocks/beam_nodes/BeamNodes.java", LangT("📡 Энерг. башни")),
-            ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", LangT("🔌 Энерг. узлы")),
-            ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", LangT("🛡️ Щитовые стены")),
-            ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", LangT("🏭 Заводы")),
-            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты"))
-        ]
-        
-        for folder, file_path, display_prefix in block_files:
-            full_path = Path(self.mod_folder) / file_path
-            if full_path.exists():
-                try:
-                    with open(full_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    
-                    # Ищем объявления блоков
-                    patterns = [
-                        r'public\s+static\s+\w+\s+(\w+)\s*=\s*new\s+\w+\("([^"]+)"\)',
-                        r'public\s+static\s+final\s+\w+\s+(\w+)\s*=\s*new\s+\w+\("([^"]+)"\)',
-                        r'(\w+)\s*=\s*new\s+\w+\("([^"]+)"\)',
-                    ]
-                    
-                    for pattern in patterns:
-                        matches = re.findall(pattern, content)
-                        for match in matches:
-                            if isinstance(match, tuple) and len(match) >= 2:
-                                var_name = match[0]
-                                internal_name = match[1]
-                                if var_name and var_name not in mod_blocks:
-                                    mod_blocks[var_name] = (f"{display_prefix} - {internal_name}", folder)
-                            elif isinstance(match, str):
-                                var_name = match
-                                if var_name and var_name not in mod_blocks:
-                                    mod_blocks[var_name] = (f"{display_prefix} - {var_name}", folder)
-                    
-                    # Ищем просто объявления переменных
-                    var_pattern = r'public\s+static\s+\w+\s+(\w+);'
-                    var_matches = re.findall(var_pattern, content)
-                    for var_name in var_matches:
-                        if var_name and var_name not in mod_blocks and var_name not in ["CATENAME", "NAME", "CATEDOR"]:
-                            mod_blocks[var_name] = (f"{display_prefix} - {var_name}", folder)
-                            
-                except Exception as e:
-                    print(LangT(f"Ошибка чтения {full_path}: {e}"))
-        
-        return mod_blocks
-    
+    #чёрный список блоков здесь  
     def _get_vanilla_blocks(self):
         """Получает список ванильных блоков"""
         vanilla_blocks = []
         blocks_dir = Path(resource_path("Creator/icons/blocks"))
         
         # Черный список для фильтрации
-        blacklist_blocks = ["beam-node", "shielded-wall", "bridge-conveyor-arrow", "bridge-conveyor-bridge", "bridge-conveyor-end"]
+        blacklist_blocks = ["beam-node", "shielded-wall", "bridge-conveyor-arrow", "bridge-conveyor-bridge", "bridge-conveyor-end",
+                                        "conveyor-0-0", "conveyor-0-1", "conveyor-0-2", "conveyor-0-3",
+            "conveyor-1-0", "conveyor-1-1", "conveyor-1-2", "conveyor-1-3",
+            "conveyor-2-0", "conveyor-2-1", "conveyor-2-2", "conveyor-2-3",
+            "conveyor-3-0", "conveyor-3-1", "conveyor-3-2", "conveyor-3-3",
+            "conveyor-4-0", "conveyor-4-1", "conveyor-4-2", "conveyor-4-3",
+            "container-team"]
         blacklist_suffixes = [
             "-top", "-bottom", "-left", "-right", "-back", "-front",
             "-glow", "-overlay", "-mask", "-shadow", "-effect",
@@ -9645,6 +9733,662 @@ public class {NAME} {{
         self.build_items = []
         self.research_items = []
 
+    def create_storage(self):
+        """Создает или добавляет новый блок хранения в storage/Storages.java"""
+
+        PATEH_FOLDER = self.PATEH_FOLDER
+
+        CATENAME = "StorageBlock"
+        CATEDOR = "storage"
+        TEMPO_ICON = "container.png"
+        TEMPO_ICON_TEAM = "container-team.png"
+        BL_NAME_2 = LangT("Хранилище")
+        BL_CR_NAME = LangT("Хранилище")
+        BL_NAME = LangT("хранилища")
+        ENTRY_NAME1 = "storage"
+        NAME = "Storages"
+        FOLDER = "Storages"
+        REAL_CATEDOR = "effect"
+
+        # Очищаем окно
+        self.clear_window()
+        
+        # Основной фрейм с прокруткой
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        scroll_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            width=500,
+            height=600,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            title_frame,
+            text=LangT("Создание хранилища"),
+            font=("Arial", 24, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=10)
+        
+        # === Карточка для основной информации ===
+        info_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        info_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            info_card,
+            text=LangT("Основная информация"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        # Поле ввода названия
+        name_frame = ctk.CTkFrame(info_card, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            name_frame,
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
+            font=("Arial", 16),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_name = ctk.CTkEntry(
+            name_frame,
+            width=400,
+            height=40,
+            placeholder_text=f"{ENTRY_NAME1} name",
+            font=("Arial", 15),
+            border_width=2,
+            corner_radius=8,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_name.pack(fill="x", pady=(0, 5))
+        
+        # === Функции валидации ===
+        def validate_float_input(value):
+            if value == "" or value == ".":
+                return True
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            try:
+                return float(value) <= 5000.00
+            except ValueError:
+                return False
+
+        def validate_int_input(value):
+            if value == "":
+                return True
+            if not value.isdigit():
+                return False
+            return int(value) <= 999999
+
+        vcmd_float = (self.root.register(validate_float_input), '%P')
+        vcmd_int = (self.root.register(validate_int_input), '%P')
+
+        # === Карточка для свойств ===
+        properties_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        properties_card.pack(fill="x", pady=(0, 20))
+
+        ctk.CTkLabel(
+            properties_card,
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Грид для свойств
+        properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
+        properties_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Здоровье
+        hp_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        hp_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            hp_frame,
+            text=LangT("Прочность (health):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_hp = ctk.CTkEntry(
+            hp_frame,
+            width=180,
+            height=38,
+            placeholder_text="400",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_hp.pack(fill="x")
+
+        # Скорость
+        speed_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        speed_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            speed_frame,
+            text=LangT("Скорость стройки (buildTime):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_speed = ctk.CTkEntry(
+            speed_frame,
+            width=180,
+            height=38,
+            placeholder_text="1",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_speed.pack(fill="x")
+
+        # Размер
+        size_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        size_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            size_frame,
+            text=LangT("Размер (size):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        size_var = ctk.StringVar(value="1")
+        size_combo = ctk.CTkComboBox(
+            size_frame,
+            values=[str(i) for i in range(1, 16)],
+            variable=size_var,
+            width=180,
+            height=38,
+            font=("Arial", 14)
+        )
+        size_combo.pack(fill="x")
+        
+        # Вместимость (специфично для хранилища)
+        capacity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        capacity_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            capacity_frame,
+            text=LangT("Вместимость (itemCapacity):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_capacity = ctk.CTkEntry(
+            capacity_frame,
+            width=180,
+            height=38,
+            placeholder_text="500",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_capacity.pack(fill="x")
+
+        # === Always Unlocked с индикатором ===
+        always_unlocked_var = ctk.BooleanVar(value=False)
+        always_unlocked_status = ctk.CTkLabel(properties_card, text="", font=("Arial", 12))
+
+        # === КАРТОЧКА ДЛЯ ПРЕДМЕТОВ СТРОИТЕЛЬСТВА ===
+        build_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        build_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            build_card,
+            text=LangT("🔨 Предметы для строительства"),
+            font=("Arial", 18, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
+        build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
+        build_items_label = ctk.CTkLabel(
+            build_items_frame,
+            textvariable=build_items_var,
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=400
+        )
+        build_items_label.pack(anchor="w", pady=(5, 0))
+        
+        ctk.CTkButton(
+            build_items_frame,
+            text=LangT("📋 Выбрать предметы для строительства"),
+            command=lambda: self.open_items_editor(build_items_var, "build"),
+            height=35,
+            font=("Arial", 13),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=6
+        ).pack(anchor="w", pady=(0, 5))
+
+        # === КАРТОЧКА ДЛЯ ИССЛЕДОВАНИЯ ===
+        research_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        
+        # Переменные для исследования
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
+        selected_block_internal_var = tk.StringVar(value="")
+        selected_block_type_var = tk.StringVar(value="")
+        block_icon_label = ctk.CTkLabel(properties_card, text="📦", font=("Arial", 30))
+        block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
+
+        # ИСПОЛЬЗУЕМ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ
+        always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
+            always_unlocked_var=always_unlocked_var,
+            research_card=research_card,
+            always_unlocked_status=always_unlocked_status,
+            build_card=build_card,
+            selected_block_var=selected_block_var,
+            selected_block_internal_var=selected_block_internal_var,
+            selected_block_type_var=selected_block_type_var,
+            block_icon_label=block_icon_label,
+            block_path_label=block_path_label,
+            research_items_var=research_items_var,
+            on_block_selected_callback=None
+        )
+
+        # === Статус ===
+        status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        status_frame.pack(fill="x", pady=(0, 20))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            font=("Arial", 14),
+            wraplength=450,
+            justify="left",
+            text_color="#E0E0E0"
+        )
+        status_label.pack()
+
+        # === Фрейм для кнопок ===
+        button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=20)
+
+        # === Основная функция создания хранилища ===
+        def process_storage():
+            original_name = entry_name.get().strip()
+            
+            if not original_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Введите название хранилища!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Проверка для always_unlocked = false
+            is_valid, error_msg = self.validate_research(
+                always_unlocked_var=always_unlocked_var,
+                research_items=self.research_items if hasattr(self, 'research_items') else [],
+                selected_block_internal_var=selected_block_internal_var
+            )
+            
+            if not is_valid:
+                status_label.configure(text=error_msg, text_color="#F44336")
+                return
+            
+            if not hasattr(self, 'build_items') or not self.build_items:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Форматируем имя
+            constructor_name = self.format_to_lower_camel(original_name)
+            if not constructor_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
+                    text_color="#F44336"
+                )
+                return
+
+            # Проверяем, существует ли уже такое имя
+            if self.check_block_name_exists(original_name, PATEH_FOLDER):
+                status_label.configure(
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Копируем текстуры (по аналогии с батареей - две текстуры)
+            size_multiplier = int(size_var.get())
+            texture_configs = [
+                {"template": TEMPO_ICON, "suffix": ""},
+                {"template": TEMPO_ICON_TEAM, "suffix": "-team"},
+            ]
+            
+            # Используем функцию для множественных текстур с путем type/name/
+            texture_copied = self.copy_block_textures_multi(
+                block_name=original_name,
+                size_multiplier=size_multiplier,
+                target_folder=FOLDER,
+                texture_configs=texture_configs
+            )
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
+            
+            # Получаем значения свойств
+            hp_value = entry_hp.get().strip() or "400"
+            speed_raw = entry_speed.get().strip() or "1"
+            size_value = size_var.get()
+            capacity_value = entry_capacity.get().strip() or "500"
+            
+            hp_value = str(int(float(hp_value)))
+            capacity_value = str(int(float(capacity_value)))
+            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+            
+            # Получаем кастомные предметы
+            custom_items = self.get_custom_items()
+            var_name = constructor_name
+            
+            # Формируем код для предметов строительства
+            build_itemstack_code = ""
+            build_items_list = []
+            if hasattr(self, 'build_items') and self.build_items:
+                item_counts = {}
+                for item in self.build_items:
+                    item_counts[item] = item_counts.get(item, 0) + 1
+                
+                item_parts = []
+                for item_name, count in item_counts.items():
+                    code_name = self.get_item_code_name(item_name, custom_items)
+                    item_parts.append(f"{code_name}, {count}")
+                    build_items_list.append((item_name, count))
+                
+                build_itemstack_code = f"\n            requirements(Category.{REAL_CATEDOR},\n                ItemStack.with({', '.join(item_parts)}));"
+            
+            # Формируем свойства хранилища
+            properties = f"""    health = {hp_value};
+                    size = {size_value};
+                    buildTime = {speed_raw};
+                    alwaysUnlocked = {always_unlocked_value};
+                    buildVisibility = BuildVisibility.shown;
+                    category = Category.{REAL_CATEDOR};{build_itemstack_code}
+                    itemCapacity = {capacity_value};
+
+                    localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                    description = Core.bundle.get("{var_name}.description", "OH NO");"""
+            
+            # Пути к файлам
+            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+            block_registration_path = self.get_absolute_path(f"src/{mod_name_lower}/init/blocks/{FOLDER}/{NAME}.java")
+            main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
+            
+            block_registration_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Читаем или создаем файл регистрации блоков
+            try:
+                with open(block_registration_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                content = f"""package {mod_name_lower}.init.blocks.{FOLDER};
+
+    import arc.graphics.Color;
+    import arc.Core;
+    import mindustry.type.ItemStack;
+    import mindustry.type.Category;
+    import mindustry.world.Block;
+    import mindustry.world.blocks.storage.{CATENAME};
+    import mindustry.world.meta.BuildVisibility;
+    import mindustry.content.Items;
+    import mindustry.Vars;
+    import {mod_name_lower}.init.items.ModItems;
+
+    public class {NAME} {{
+        public static {CATENAME};
+                                                
+        public static void Load() {{
+            // Регистрация блоков
+        }}
+    }}"""
+            
+            storage_exists = var_name in content
+            tree_file_created = False
+            main_file_updated = False
+            
+            if not storage_exists:
+                # Добавляем переменную блока
+                if f"public static {CATENAME};" in content:
+                    content = content.replace(
+                        f"public static {CATENAME};",
+                        f"public static {CATENAME} {var_name};"
+                    )
+                elif f"public static {CATENAME} " in content:
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if f"public static {CATENAME} " in line and var_name not in line:
+                            lines[i] = line.rstrip(';') + f", {var_name};"
+                            content = '\n'.join(lines)
+                            break
+                
+                # Добавляем инициализацию блока
+                load_start = content.find("public static void Load() {")
+                if load_start != -1:
+                    open_brace = content.find('{', load_start)
+                    if open_brace != -1:
+                        insert_pos = open_brace + 1
+                        indent = "        "
+                        storage_code = f'\n{indent}{var_name} = new {CATENAME}("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        content = content[:insert_pos] + storage_code + content[insert_pos:]
+                
+                # Сохраняем файл
+                with open(block_registration_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # Обновляем главный файл мода
+                try:
+                    with open(main_mod_path, 'r', encoding='utf-8') as file:
+                        main_content = file.read()
+                    
+                    # Добавляем импорт
+                    import_statement = f"import {mod_name_lower}.init.blocks.{FOLDER}.{NAME};"
+                    if import_statement not in main_content:
+                        import_add_pos = main_content.find("//import_add")
+                        if import_add_pos != -1:
+                            insert_pos = import_add_pos + len("//import_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                    
+                    # Добавляем вызов Load
+                    load_statement = f"{NAME}.Load();"
+                    if load_statement not in main_content:
+                        registration_add_pos = main_content.find("//Registration_add")
+                        if registration_add_pos != -1:
+                            insert_pos = registration_add_pos + len("//Registration_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                    
+                    with open(main_mod_path, 'w', encoding='utf-8') as file:
+                        file.write(main_content)
+                    
+                    main_file_updated = True
+                    
+                    # Создаем файл дерева технологий, если Always Unlocked = false
+                    if not always_unlocked_var.get():
+                        research_items_list = []
+                        if hasattr(self, 'research_items') and self.research_items:
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                research_items_list.append((item_name, count))
+                        
+                        research_block = selected_block_internal_var.get()
+                        
+                        # Используем универсальную функцию
+                        tree_file_created = self.create_tech_tree_file_universal(
+                            block_var_name=var_name,
+                            block_constructor_name=constructor_name,
+                            research_block=research_block,
+                            research_items=research_items_list,
+                            block_type="storage",
+                            folder_name=FOLDER,
+                            class_name="StoragesTree"
+                        )
+                        
+                        if tree_file_created:
+                            self.update_main_mod_file_universal(
+                                import_path=f"{mod_name_lower}.content.StoragesTree",
+                                load_statement="StoragesTree.Load();"
+                            )
+                    
+                    # Формируем сообщение о результате
+                    status_messages = [
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создано!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
+                    ]
+                    
+                    # Добавляем информацию о Always Unlocked
+                    if always_unlocked_var.get():
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
+                    else:
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
+                    
+                    status_messages.extend([
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • 📏 Размер: {size_value}"),
+                        LangT(f"  • 📦 Вместимость: {capacity_value}"),
+                    ])
+                    
+                    if build_items_list:
+                        items_list = []
+                        for item_name, count in build_items_list:
+                            if item_name in custom_items:
+                                items_list.append(f"ModItems.{item_name} ×{count}")
+                            else:
+                                display_name = item_name.replace('-', ' ').title()
+                                items_list.append(f"{display_name} ×{count}")
+                        
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
+                    
+                    if not always_unlocked_var.get():
+                        if hasattr(self, 'research_items') and self.research_items:
+                            research_list = []
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                if item_name in custom_items:
+                                    research_list.append(f"ModItems.{item_name} ×{count}")
+                                else:
+                                    display_name = item_name.replace('-', ' ').title()
+                                    research_list.append(f"{display_name} ×{count}")
+                            
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
+                        
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
+                        
+                        if tree_file_created:
+                            status_messages.append(LangT(f"  • 🌳 StoragesTree.java создан и добавлен в main (StoragesTree.Load())"))
+                        else:
+                            status_messages.append(LangT(f"  • ⚠️ StoragesTree.java не создан"))
+                    
+                    if main_file_updated:
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
+                    
+                    status_text = "\n".join(status_messages)
+                    status_label.configure(text=status_text, text_color="#4CAF50")
+                    
+                except Exception as e:
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
+            else:
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
+            
+            self.root.after(5000, lambda: status_label.configure(text=""))
+
+        # === Кнопки действий ===
+        buttons_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT(LangT("Создать Хранилище")),
+            command=process_storage,
+            height=45,
+            width=200,
+            font=("Arial", 16, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("← Назад"),
+            command=self.back_to_main,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        # Инициализация переменных
+        self.build_items = []
+        self.research_items = []
+    
 #----------ФУНКЦИИ 2----------
     def open_editor_with_target(self, selected_var, item_type, target):
         """
@@ -10113,7 +10857,7 @@ public class {NAME} {{
         
         # ЧЕРНЫЙ СПИСОК БЛОКОВ - блоки, которые нужно исключить из отображения
         blacklist_blocks = [
-            "beam-node", "shielded-wall",
+            "beam-node", "shielded-wall", "container-team",
             "conveyor-0-0", "conveyor-0-1", "conveyor-0-2", "conveyor-0-3",
             "conveyor-1-0", "conveyor-1-1", "conveyor-1-2", "conveyor-1-3",
             "conveyor-2-0", "conveyor-2-1", "conveyor-2-2", "conveyor-2-3",
@@ -10129,7 +10873,7 @@ public class {NAME} {{
             "-bottom-1", "-bottom-2", "-turbine",
             "-edge", "-corner", "-middle",
             "-1", "-2", "-3", "-4", "-5",
-            "-a", "-b", "-c", "-d",
+            "-a", "-b", "-c", "-d", "-team",
             "_top", "_bottom", "_left", "_right",
             "_glow", "_overlay", "_mask",
             "_1", "_2", "_3", "_4", "_5",
@@ -10166,7 +10910,7 @@ public class {NAME} {{
         
         # Сканируем папку blocks для ванильных текстур
         vanilla_blocks = []
-        blocks_dir = Path(resource_path("creator/icons/blocks"))
+        blocks_dir = Path(resource_path("Сreator/icons/blocks"))
         
         if blocks_dir.exists():
             print(LangT(f"Сканируем папку: {blocks_dir}"))
@@ -10287,7 +11031,7 @@ public class {NAME} {{
                             "walls", "batterys", "solar_panels", 
                             "consume_generators", "beam_nodes", 
                             "power_nodes", "shield_walls", "bridges",
-                            "generic_crafter"
+                            "generic_crafter", "storage_block"
                         ]
                     
                     # Ищем в двух вариантах путей
@@ -10295,7 +11039,7 @@ public class {NAME} {{
                         # Первый вариант: напрямую в папке
                         test_path1 = resource_path(Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / f"{block_name}.png")
                         # Второй вариант: в подпапке с именем блока
-                        test_path2 = resource_path(Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / block_name / f"{block_name}.png")
+                        test_path2 = resource_path(Path(self.mod_folder) / "assets" / "sprites" / "blocks" / folder / "block_name" / f"{block_name}.png")
                         
                         if test_path1.exists():
                             icon_path = test_path1
@@ -10568,7 +11312,8 @@ public class {NAME} {{
             ("power_nodes", f"src/{mod_name_lower}/init/blocks/power_nodes/PowerNodes.java", LangT("🔌 Энерг. узлы")),
             ("shield_walls", f"src/{mod_name_lower}/init/blocks/shield_walls/ShieldWalls.java", LangT("🛡️ Щитовые стены")),
             ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", LangT("🏭 Заводы")),
-            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты"))
+            ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты")),
+            ("storage_block", f"src/{mod_name_lower}/init/blocks/Storages/Storages.java", LangT("хранилища"))
         ]
         
         for folder, file_path, display_prefix in block_files:

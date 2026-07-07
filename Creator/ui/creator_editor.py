@@ -144,7 +144,7 @@ class CreatorEditor:
     PATEH_FOLDER = [
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
-        "generic_crafter", "bridges", "conveyors"
+        "generic_crafter", "bridges", "conveyors", "storage_block"
     ]
     
     # Функции-обертки для блоков
@@ -228,6 +228,12 @@ class CreatorEditor:
             print("Ошибка: block_creator не инициализирован")
             messagebox.showinfo(LangT("Информация"), LangT("Модуль создания конвейера пока не доступен"))
 
+    def create_storage(self):
+        if self.block_creator:
+            self.block_creator.create_storage()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+            
     # ===================
     def move_and_rename_file(self):
         """
@@ -2457,7 +2463,8 @@ class CreatorEditor:
             (LangT("Экранированная стена"), "blocks/shielded-wall.png", self.create_shield_wall),
             (LangT("Завод"), "blocks/kiln.png", self.create_generic_crafter),
             (LangT("Мост"), "blocks/bridge-conveyor.png", self.create_bridge),
-            (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor)
+            (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor),
+            (LangT("storage"), "blocks/container.png", self.create_storage)
         ]
 
         blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -2654,6 +2661,11 @@ class CreatorEditor:
                 "type": "conveyor",
                 "class": "Conveyor",
                 "path": "src/{mod_name}/init/blocks/conveyors/Conveyors.java"
+            },
+            {
+                "type": "storage_block",
+                "class": "StorageBlock",
+                "path": "src/{mod_name}/init/blocks/Storages/Storages.java"
             }
         ]
         
@@ -3186,12 +3198,13 @@ class CreatorEditor:
         
         return False  # Имя свободно
 
+#lkm
     def show_context_menu(self, element_name, element_type, x, y, folder_path=None):
         """Показывает контекстное меню для элемента с функциями print и delete"""
         
         # Создаем всплывающее окно
         menu_window = ctk.CTkToplevel(self.root)
-        menu_window.title(LangT(f"Действия для {element_name}"))
+        menu_window.title(LangT("Действия для '{element_name}'").format(element_name=element_name))
         menu_window.geometry("450x450")
         menu_window.resizable(False, False)
         
@@ -3209,7 +3222,7 @@ class CreatorEditor:
         # Заголовок
         ctk.CTkLabel(
             main_frame,
-            text=LangT(f"Выберите действие для: {element_name}"),
+            text=LangT("Выберите действие для: {element_name}").format(element_name=element_name),
             font=("Arial", 14, "bold"),
             text_color="#4CAF50"
         ).pack(pady=(0, 15))
@@ -3292,7 +3305,8 @@ class CreatorEditor:
                         "shield_wall": "ShieldWallTree",
                         "generic_crafter": "GenericCrafterTree",
                         "conveyor": "ConveyorTree",
-                        "circular_bridge": "BridgesTree"
+                        "circular_bridge": "BridgesTree",
+                        "storage_block": "StoragesTree"
                     }
                     
                     if element_type in tree_files:
@@ -3529,6 +3543,7 @@ class CreatorEditor:
         self.show_context_menu(element_name, element_type, x, y, folder_path)
         return "break"
 
+#blocks
     def _setup_blocks_tab(self, parent_tab):
         """Настройка вкладки с блоками"""
         scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
@@ -3607,7 +3622,13 @@ class CreatorEditor:
                 "class": "Conveyor",
                 "icon": "➡️", 
                 "display": LangT("Конвейер"), 
-                "sprite_folder": "conveyors"}
+                "sprite_folder": "conveyors"},
+            "storage_block": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/Storages/Storages.java"],
+                "class": "StorageBlock",
+                "icon": "🧱",
+                "display": LangT("хранилища"),
+                "sprite_folder": "Storages"},
         }
         
         def search_blocks(block_type, config):
@@ -3888,6 +3909,7 @@ class CreatorEditor:
             ctk.CTkLabel(scroll_frame, text=LangT("📭 Нет созданного контента"), font=("Arial", 16), text_color="#888888").pack(pady=50)
             ctk.CTkLabel(scroll_frame, text=LangT("Используйте создатель блоков для добавления контента"), font=("Arial", 12), text_color="#666666").pack()
 
+#tabs
     def setup_content_panel(self, right_frame):
         """Настройка панели контента - отображение существующего контента с ПКМ меню и вкладкой текстур"""
         
@@ -3911,6 +3933,7 @@ class CreatorEditor:
         # Настраиваем вкладку исходников
         self._setup_source_tab_content(source_tab)
 
+#code
     def _setup_source_tab_content(self, parent_tab):
         """Настройка содержимого вкладки исходников - редактор файлов из папки src"""
         
@@ -4502,7 +4525,8 @@ public class {file_name.replace('.java', '')} {{
         
         # Загружаем начальное содержимое
         update_source_filter()
-        
+
+#textures        
     def _setup_textures_tab_content(self, parent_tab):
         """Настройка содержимого вкладки текстур с возможностью загрузки, удаления и переименования"""
         

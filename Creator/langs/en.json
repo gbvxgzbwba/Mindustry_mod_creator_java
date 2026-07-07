@@ -251,7 +251,7 @@
   "Переводы": "Translations",
   "🔧 Компилировать": "🔧 Compile",
   "Загрузить иконку мода": "Upload Mod Icon",
-  "Действия для {element_name}": "Actions for {element_name}",
+  "Действия для '{element_name}'": "Actions for '{element_name}'",
   "Выберите действие для: {element_name}": "Select action for: {element_name}",
   "📦 Предмет": "📦 Item",
   "💧 Жидкость": "💧 Liquid",
@@ -587,5 +587,23 @@
   "Выбрано элементов: 0": "Selected items: 0",
   "Выбрано элементов: {selected_countget}": "Selected items: {selected_countget}",
   "Выбрано предметов: 0": "Selected items: 0",
-  "Выбрано предметов: {selected_countget}": "Selected items: {selected_countget}"
+  "Выбрано предметов: {selected_countget}": "Selected items: {selected_countget}",
+
+  "Создание хранилища": "Creating a storage",
+  "хранилища": "storage",
+  "Создать Хранилище": "Create Storage",
+  "Создать папку": "Create folder",
+  "📤 Загрузить": "Load png",
+  "📁 Новая папка": "📁 New folder",
+  "Введите имя новой папки:": "Enter the name of the new folder:",
+  "Создать файл": "Create file",
+  "Введите имя файла (с расширением .java):": "Enter the file name (with the .java extension):",
+  "Исходники": "Sources",
+  "📄 Новый файл": "📄 New file",
+  "Исходники:": "Sources:",
+  "Открыть": "Open",
+  "Переименовать": "ReName",
+  "Удалить": "Delete",
+  "Копировать путь": "Copy Path",
+  "Обновить": "UpDate"
 }
