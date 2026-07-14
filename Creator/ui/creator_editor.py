@@ -141,13 +141,16 @@ class CreatorEditor:
             return default_settings
     
     #block folder
+    #HDB-B
     PATEH_FOLDER = [
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
-        "generic_crafter", "bridges", "conveyors", "storage_block"
+        "generic_crafter", "bridges", "conveyors", "storage_block",
+        "bridges_liquid"
     ]
     
     # Функции-обертки для блоков
+    #HDB-B
     def create_wall(self):
         """Создание стены (обертка)"""
         if self.block_creator:
@@ -233,6 +236,12 @@ class CreatorEditor:
             self.block_creator.create_storage()
         else:
             print("Ошибка: block_creator не инициализирован")
+    
+    def create_bridge_liquid(self):
+        if self.block_creator:
+            self.block_creator.create_bridge_liquid()
+        else:
+            print("Ошибка: block_creator не инициализирован")
             
     # ===================
     def move_and_rename_file(self):
@@ -285,6 +294,7 @@ class CreatorEditor:
         except Exception as e:
             messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при перемещении: {e}"))
 
+    #HDB-B
     def compile_mod(self):
         """Запуск компиляции в отдельном потоке с окном логов"""
         if self.compiling:
@@ -423,7 +433,7 @@ class CreatorEditor:
             # Собираем все строки в блоке
             moditems_line = None
             modliquid_line = None
-            tree_line = None
+            tree_lines = []
             other_lines = []
             
             for i in range(start_line, end_line):
@@ -437,15 +447,15 @@ class CreatorEditor:
                     elif "ModLiquid.Load();" in stripped:
                         modliquid_line = (i, line)
                         print(LangT(f"  🔹 Найден ModLiquid.Load() на строке {i + 1}"))
-                    elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", "BatteryTree.Load();", "SolarTree.Load();", "ShieldTree.Load();", "PowerNodeTree.Load();", "BeamTree.Load();", "GeneratorTree.Load();", "CrafterTree.Load();"]):
-                        tree_line = (i, line)
+                    elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", "BatteryTree.Load();", "SolarTree.Load();", "ShieldTree.Load();", "PowerNodeTree.Load();", "BeamTree.Load();", "GeneratorTree.Load();", "CrafterTree.Load();", "StoragesTree.Load();", "BridgesTree.Load();", "ConveyorTree.Load();", "LiquidBridgesTree.Load();", "GenericCrafterTree.Load();", "ConsumeGeneratorTree.Load();", "BeamNodeTree.Load();", "PowerNodeTree.Load();", "ShieldWallTree.Load();"]):
+                        tree_lines.append((i, line))
                         print(LangT(f"  🔻 Найден Tree.Load() на строке {i + 1}"))
                     else:
                         other_lines.append((i, line))
                         print(LangT(f"  🔸 Обычная строка [{i + 1}]: {stripped}"))
             
             # Если не найдено ни одного из нужных методов
-            if moditems_line is None and modliquid_line is None and tree_line is None and not other_lines:
+            if moditems_line is None and modliquid_line is None and tree_lines and not other_lines:
                 print(LangT("⚠️ В блоке нет строк для сортировки"))
                 return file_content
             
@@ -471,12 +481,13 @@ class CreatorEditor:
                         print(LangT("❌ ModLiquid не на правильной позиции"))
             
             # Проверяем позицию Tree - должна быть последней
-            if tree_line:
-                tree_pos, _ = tree_line
+            if tree_lines:
                 max_other_pos = max([pos for pos, _ in other_lines]) if other_lines else start_line - 1
-                if tree_pos <= max_other_pos:
-                    changes_needed = True
-                    print(LangT(f"❌ Tree не внизу (позиция {tree_pos + 1}, последняя обычная строка {max_other_pos + 1})"))
+                for tree_pos, _ in tree_lines:
+                    if tree_pos <= max_other_pos:
+                        changes_needed = True
+                        print(LangT(f"❌ Tree не внизу (позиция {tree_pos + 1}, последняя обычная строка {max_other_pos + 1})"))
+                        break
             
             if not changes_needed:
                 print(LangT("✅ Порядок уже правильный"))
@@ -507,8 +518,7 @@ class CreatorEditor:
                 print(LangT(f"  📌 {len(other_texts)} обычных строк (отсортированы)"))
             
             # 4. Tree (в самом конце)
-            if tree_line:
-                _, tree_str = tree_line
+            for _, tree_str in tree_lines:
                 sorted_lines.append(tree_str)
                 print(LangT("  📌 Tree в конец"))
             
@@ -519,16 +529,16 @@ class CreatorEditor:
             return '\n'.join(new_lines)
         
         def compile_thread():
+            # СОХРАНЯЕМ ТЕКУЩУЮ ПАПКУ ПЕРЕД ЛЮБЫМИ ИЗМЕНЕНИЯМИ
+            original_cwd = os.getcwd()
+            
             try:
-                original_cwd = os.getcwd()
-                
                 log_to_window("="*60, "HEADER")
                 log_to_window(LangT("🚀 НАЧАЛО КОМПИЛЯЦИИ"), "HEADER")
                 log_to_window("="*60, "HEADER")
                 log_to_window(LangT("📁 Мод: {mod_name}").format(mod_name=self.mod_name), "INFO")
                 log_to_window(LangT("📂 Папка: {mod_folder}").format(mod_folder=self.mod_folder), "INFO")
                 
-                # ПЕРЕД ВСЕМ - сортируем строки в главном файле
                 mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
                 main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
                 
@@ -572,6 +582,7 @@ class CreatorEditor:
                         LangT(f"{gradle_script} не найден в папке мода!")
                     ))
                     self.compiling = False
+                    # ВОЗВРАЩАЕМСЯ В ИСХОДНУЮ ПАПКУ
                     os.chdir(original_cwd)
                     close_btn.configure(state="normal")
                     progress.stop()
@@ -581,7 +592,6 @@ class CreatorEditor:
                 
                 # Компилируем с выводом в реальном времени
                 cmd = [gradle_script, "jar"]
-                #"📋 Команда: {' '.join(cmd)}"
                 log_to_window(LangT("📋 Команда: {joincmd}").format(joincmd=' '.join(cmd)), "INFO")
                 log_to_window(LangT("\n⏳ Компиляция выполняется...\n"), "HEADER")
                 
@@ -610,6 +620,7 @@ class CreatorEditor:
                         if line.strip():
                             log_to_window(line.strip(), "ERROR" if return_code != 0 else "GRADLE")
                 
+                # ВОЗВРАЩАЕМСЯ В ИСХОДНУЮ ПАПКУ
                 os.chdir(original_cwd)
                 
                 log_to_window("\n" + "="*60, "HEADER")
@@ -630,9 +641,9 @@ class CreatorEditor:
                             LangT("✅ Мод скомпилирован!\n\n📦 JAR: {jar_name}\n📊 Размер: {jar_size} KB").format(jar_name=jar_name,jar_size=jar_size)
                         ))
                         
-                        # Запускаем перемещение файла - ТАК ЖЕ КАК В СТАРОМ КОДЕ
+                        # Запускаем перемещение файла
                         log_to_window(LangT("📦 Запуск перемещения JAR..."), "INFO")
-                        self.teleporte()  # Прямой вызов, как в старом коде
+                        self.teleporte()
                     else:
                         log_to_window(LangT("⚠️ JAR файл не найден в build/libs/"), "WARNING")
                         self.root.after(0, lambda: messagebox.showinfo(
@@ -668,8 +679,9 @@ class CreatorEditor:
                 ))
             
             finally:
+                # ВСЕГДА ВОЗВРАЩАЕМСЯ В ИСХОДНУЮ ПАПКУ
                 try:
-                    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+                    os.chdir(original_cwd)
                 except:
                     pass
                 
@@ -681,7 +693,7 @@ class CreatorEditor:
         # Запускаем компиляцию в отдельном потоке
         thread = threading.Thread(target=compile_thread, daemon=True)
         thread.start()
-
+    
     def create_progress_window(self):
         """Создание окна прогресса в главном потоке"""
         # Сначала безопасно закрываем старое окно, если оно есть
@@ -2395,6 +2407,7 @@ class CreatorEditor:
             messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при выборе файла:\n{e}"))
             return None
 
+    #HDB-B
     def show_blocks_selection(self):
         """Окно выбора типа блока для создания"""
         
@@ -2464,7 +2477,8 @@ class CreatorEditor:
             (LangT("Завод"), "blocks/kiln.png", self.create_generic_crafter),
             (LangT("Мост"), "blocks/bridge-conveyor.png", self.create_bridge),
             (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor),
-            (LangT("storage"), "blocks/container.png", self.create_storage)
+            (LangT("storage"), "blocks/container.png", self.create_storage),
+            (LangT("Жидкостный мост"), "blocks/bridge-conveyor.png", self.create_bridge_liquid)
         ]
 
         blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -2542,6 +2556,7 @@ class CreatorEditor:
         )
         info_label.pack()
 
+    #HDB-B
     def create_bundle_editor(self):
         """Создание редактора bundle файлов"""
         self.clear_window()
@@ -2666,6 +2681,11 @@ class CreatorEditor:
                 "type": "storage_block",
                 "class": "StorageBlock",
                 "path": "src/{mod_name}/init/blocks/Storages/Storages.java"
+            },
+            {
+                "type": "bridges_liquid",
+                "class": "CircularBridgeLiquid",
+                "path": "src/{mod_name}/init/blocks/bridges_liquid/BridgesLiquid.java"
             }
         ]
         
@@ -3198,352 +3218,8 @@ class CreatorEditor:
         
         return False  # Имя свободно
 
-#lkm
-    def show_context_menu(self, element_name, element_type, x, y, folder_path=None):
-        """Показывает контекстное меню для элемента с функциями print и delete"""
-        
-        # Создаем всплывающее окно
-        menu_window = ctk.CTkToplevel(self.root)
-        menu_window.title(LangT("Действия для '{element_name}'").format(element_name=element_name))
-        menu_window.geometry("450x450")
-        menu_window.resizable(False, False)
-        
-        # Позиционируем окно рядом с курсором
-        menu_window.geometry(f"+{x+10}+{y+10}")
-        
-        # Делаем окно поверх всех
-        menu_window.attributes('-topmost', True)
-        menu_window.grab_set()
-        
-        # Основной фрейм
-        main_frame = ctk.CTkFrame(menu_window)
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        # Заголовок
-        ctk.CTkLabel(
-            main_frame,
-            text=LangT("Выберите действие для: {element_name}").format(element_name=element_name),
-            font=("Arial", 14, "bold"),
-            text_color="#4CAF50"
-        ).pack(pady=(0, 15))
-        
-        # Информация о типе элемента
-        type_text = LangT("📦 Предмет") if element_type == "item" else \
-                    LangT("💧 Жидкость") if element_type == "liquid" else \
-                    LangT("🧱 Блок")
-        
-        ctk.CTkLabel(
-            main_frame,
-            text=type_text,
-            font=("Arial", 12),
-            text_color="#888888"
-        ).pack(pady=(0, 15))
-        
-        # Разделитель
-        ctk.CTkFrame(main_frame, height=2, fg_color="#404040").pack(fill="x", pady=10)
-        
-        # Фрейм для кнопок действий
-        actions_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        actions_frame.pack(fill="both", expand=True)
-        
-        def format_to_lower_camel(text):
-            """Преобразует текст в lowerCamelCase"""
-            if not text or not isinstance(text, str):
-                return ""
-            text = text.replace('-', ' ').replace('_', ' ')
-            words = text.strip().split()
-            if not words:
-                return ""
-            result = words[0].lower()
-            for word in words[1:]:
-                if word:
-                    result += word.capitalize()
-            return result
-        
-        # Функция для удаления (вся логика внутри)
-        def action_delete():
-            """Полное удаление элемента"""
-            mod_name = self.mod_name
-            mod_folder = self.mod_folder
-            open_creator = self.open_creator
-            
-            # Подтверждение удаления
-            result = messagebox.askyesno(
-                LangT("Подтверждение удаления"),
-                LangT("Вы уверены, что хотите удалить элемент '{element_name}'?\n\n").format(element_name=element_name)+
-                    LangT("Будут удалены:\n")+
-                    LangT("• Все текстуры элемента\n")+
-                    LangT("• Код в Java файлах\n\n")+
-                    LangT("⚠️ Это действие необратимо!"),
-                icon='warning'
-            )
-            
-            if not result:
-                return
-            
-            menu_window.destroy()
-            
-            try:
-                import re
-                from pathlib import Path
-                
-                mod_name_lower = mod_name.lower() if mod_name else mod_name
-                formatted_name = format_to_lower_camel(element_name)
-                deleted_items = []
-                errors = []
-                warnings = []
-                
-                # ========== ПРОВЕРКА НАЛИЧИЯ В ДЕРЕВЕ ТЕХНОЛОГИЙ ==========
-                if element_type not in ["item", "liquid"]:
-                    tree_files = {
-                        "wall": "WallsTree",
-                        "battery": "BatteryTree",
-                        "solar_panel": "SolarTree",
-                        "generator": "ConsumeGeneratorTree",
-                        "beam_node": "BeamNodeTree",
-                        "power_node": "PowerNodeTree",
-                        "shield_wall": "ShieldWallTree",
-                        "generic_crafter": "GenericCrafterTree",
-                        "conveyor": "ConveyorTree",
-                        "circular_bridge": "BridgesTree",
-                        "storage_block": "StoragesTree"
-                    }
-                    
-                    if element_type in tree_files:
-                        tree_class = tree_files[element_type]
-                        tree_file_path = Path(mod_folder) / "src" / mod_name_lower / "content" / f"{tree_class}.java"
-                        
-                        if tree_file_path.exists():
-                            with open(tree_file_path, 'r', encoding='utf-8') as f:
-                                tree_content = f.read()
-                            
-                            if formatted_name in tree_content:
-                                warnings.append(LangT(f"⚠️ Блок найден в дереве технологий ({tree_class}.java)"))
-                                warnings.append(LangT(f"   Рекомендуется сначала удалить его из дерева вручную"))
-                                
-                                result2 = messagebox.askyesno(
-                                    LangT("Предупреждение"),
-                                    LangT(f"Элемент '{element_name}' найден в дереве технологий ({tree_class}.java)!\n\n"
-                                        f"Если вы продолжите, удаление из дерева может вызвать ошибки.\n\n"
-                                        f"Продолжить удаление (только текстуры и Java код)?"),
-                                    icon='warning'
-                                )
-                                
-                                if not result2:
-                                    return
-                
-                # ========== 1. УДАЛЕНИЕ ТЕКСТУР ==========
-                texture_count = 0
-                search_paths = []
-                
-                if element_type == "item":
-                    search_paths = [
-                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.png",
-                        Path(mod_folder) / "assets" / "sprites" / "items" / f"{formatted_name}.jpg",
-                        Path(mod_folder) / "sprites" / "items" / f"{formatted_name}.png",
-                    ]
-                elif element_type == "liquid":
-                    search_paths = [
-                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.png",
-                        Path(mod_folder) / "assets" / "sprites" / "liquids" / f"{formatted_name}.jpg",
-                        Path(mod_folder) / "sprites" / "liquids" / f"{formatted_name}.png",
-                    ]
-                else:
-                    block_folders = {
-                        "wall": "walls",
-                        "battery": "batterys",
-                        "solar_panel": "solar_panels",
-                        "generator": "consume_generators",
-                        "beam_node": "beam_nodes",
-                        "power_node": "power_nodes",
-                        "shield_wall": "shield_walls",
-                        "generic_crafter": "generic_crafter",
-                        "bridge": "bridges",
-                        "conveyor": "conveyors",
-                        "circular_bridge": "bridges"
-                    }
-                    target_folder = folder_path or block_folders.get(element_type, "")
-                    
-                    if target_folder:
-                        base_dir = Path(mod_folder) / "assets" / "sprites" / "blocks" / target_folder
-                        if base_dir.exists():
-                            if element_type in ["circular_bridge", "circular_bridge_liquid"]:
-                                for file in base_dir.glob(f"{formatted_name}*.*"):
-                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
-                                        search_paths.append(file)
-                                sub_dir = base_dir / formatted_name
-                                if sub_dir.exists():
-                                    for file in sub_dir.glob(f"*.*"):
-                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
-                                            search_paths.append(file)
-                            else:
-                                for file in base_dir.glob(f"{formatted_name}.png"):
-                                    if file.suffix in ['.png', '.jpg', '.jpeg']:
-                                        search_paths.append(file)
-                                sub_dir = base_dir / formatted_name
-                                if sub_dir.exists():
-                                    for file in sub_dir.glob(f"*.*"):
-                                        if file.suffix in ['.png', '.jpg', '.jpeg']:
-                                            search_paths.append(file)
-                
-                for path in search_paths:
-                    if path and path.exists():
-                        path.unlink()
-                        texture_count += 1
-                
-                for path in search_paths:
-                    if path and path.parent.exists() and not any(path.parent.iterdir()):
-                        path.parent.rmdir()
-                
-                if texture_count > 0:
-                    deleted_items.append(LangT("🖼️ Удалено текстур: {texture_count}").format(texture_count=texture_count))
-                else:
-                    errors.append(LangT(f"⚠️ Текстуры не найдены"))
-                
-                # ========== 2. УДАЛЕНИЕ ИЗ JAVA ФАЙЛА ==========
-                java_deleted = False
-                
-                if element_type == "item":
-                    items_file_path = Path(mod_folder) / "src" / mod_name_lower / "init" / "items" / "ModItems.java"
-                    if items_file_path.exists():
-                        with open(items_file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        original = content
-                        
-                        # Удаляем инициализацию (более точный паттерн)
-                        lines = content.split('\n')
-                        new_lines = []
-                        skip_until = -1
-                        i = 0
-                        
-                        while i < len(lines):
-                            line = lines[i]
-                            
-                            # Ищем строку с инициализацией удаляемого элемента
-                            if skip_until <= i and re.search(rf'{formatted_name}\s*=\s*new\s+Item\s*\(', line):
-                                # Нашли начало, пропускаем до конца блока
-                                brace_count = 0
-                                found_start = False
-                                j = i
-                                
-                                while j < len(lines):
-                                    current_line = lines[j]
-                                    
-                                    # Считаем фигурные скобки
-                                    if '{' in current_line:
-                                        brace_count += current_line.count('{')
-                                        found_start = True
-                                    if '}' in current_line:
-                                        brace_count -= current_line.count('}')
-                                    
-                                    # Проверяем конец блока
-                                    if found_start and brace_count == 0 and ';' in current_line:
-                                        i = j + 1
-                                        break
-                                    j += 1
-                                else:
-                                    i += 1
-                                continue
-                            
-                            # Добавляем строку если не пропускаем
-                            if skip_until <= i:
-                                new_lines.append(line)
-                            i += 1
-                        
-                        content = '\n'.join(new_lines)
-                        
-                        # Удаляем из объявления
-                        lines = content.split('\n')
-                        new_lines = []
-                        for line in lines:
-                            if 'public static Item' in line and formatted_name in line:
-                                match = re.search(r'public static Item\s+(.+?);', line)
-                                if match:
-                                    vars_str = match.group(1)
-                                    var_list = [v.strip() for v in vars_str.split(',')]
-                                    remaining_vars = [v for v in var_list if v != formatted_name]
-                                    if remaining_vars:
-                                        indent = ' ' * (len(line) - len(line.lstrip()))
-                                        new_line = f"{indent}public static Item {', '.join(remaining_vars)};"
-                                        new_lines.append(new_line)
-                            else:
-                                new_lines.append(line)
-                        content = '\n'.join(new_lines)
-                        
-                        # Удаляем пустые строки
-                        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
-                        
-                        if content != original:
-                            with open(items_file_path, 'w', encoding='utf-8') as f:
-                                f.write(content)
-                            java_deleted = True
-                            deleted_items.append(LangT("📦 Удален из ModItems.java"))
-                        else:
-                            errors.append(LangT(f"⚠️ Не удалось удалить из ModItems.java"))
-                
-                # ========== 3. РЕЗУЛЬТАТ ==========
-                if warnings:
-                    messagebox.showwarning(LangT("Внимание"), "\n".join(warnings))
-                
-                if errors:
-                    status_text = LangT(f"⚠️ Удаление элемента '{element_name}' выполнено с ошибками:\n\n")
-                    status_text += LangT("✅ Успешно:\n") + "\n".join(deleted_items) + LangT("\n\n❌ Ошибки:\n") + "\n".join(errors)
-                    messagebox.showwarning(LangT("Предупреждение"), status_text)
-                else:
-                    status_text = LangT("✅ Элемент '{element_name}' успешно удален!\n\n").format(element_name=element_name)
-                    status_text += "\n".join(deleted_items)
-                    messagebox.showinfo(LangT("Успех"), status_text)
-                
-                # Обновляем отображение
-                open_creator()
-                
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить элемент: {str(e)}"))
-
-        # Кнопка Delete
-        delete_btn = ctk.CTkButton(
-            actions_frame,
-            text=LangT("🗑️ Удалить элемент"),
-            command=action_delete,
-            height=45,
-            font=("Arial", 14),
-            fg_color="#F44336",
-            hover_color="#D32F2F",
-            corner_radius=10
-        )
-        delete_btn.pack(fill="x", pady=8)
-        
-        # Разделитель
-        ctk.CTkFrame(main_frame, height=1, fg_color="#404040").pack(fill="x", pady=10)
-        
-        # Закрыть
-        close_btn = ctk.CTkButton(
-            main_frame,
-            text=LangT("Закрыть"),
-            command=menu_window.destroy,
-            height=35,
-            font=("Arial", 12),
-            fg_color="#424242",
-            hover_color="#616161"
-        )
-        close_btn.pack(side="bottom", fill="x", pady=(10, 0))
-        
-        # Привязываем нажатие Escape для закрытия
-        def on_escape(event):
-            menu_window.destroy()
-        
-        menu_window.bind("<Escape>", on_escape)
-
-    def on_element_right_click(self, event, element_name, element_type, widget, folder_path=None):
-        """Обработчик правого клика по элементу"""
-        x = event.x_root
-        y = event.y_root
-        self.show_context_menu(element_name, element_type, x, y, folder_path)
-        return "break"
-
 #blocks
+#HDB-B
     def _setup_blocks_tab(self, parent_tab):
         """Настройка вкладки с блоками"""
         scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
@@ -3629,6 +3305,13 @@ class CreatorEditor:
                 "icon": "🧱",
                 "display": LangT("хранилища"),
                 "sprite_folder": "Storages"},
+            "bridges_liquid": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/bridges_liquid/BridgesLiquid.java"],
+                "class": "CircularBridgeLiquid",
+                "icon": " ",
+                "display": LangT("Жидкостный мост"),
+                "sprite_folder": "bridges_liquid"
+            }
         }
         
         def search_blocks(block_type, config):
@@ -3892,12 +3575,12 @@ class CreatorEditor:
                                 text_color="#4CAF50" if has_sprite else "#F44336")
                     sprite_status.pack()
                     
-                    def make_right_click_handler(name=block_name, type_name=block_type):
-                        return lambda event: self.on_element_right_click(event, name, type_name, card)
-                    
-                    card.bind("<Button-1>", make_right_click_handler())
-                    name_label.bind("<Button-1>", make_right_click_handler())
-                    sprite_status.bind("<Button-1>", make_right_click_handler())
+                    #def make_right_click_handler(name=block_name, type_name=block_type):
+                    #    return lambda event: self.on_element_right_click(event, name, type_name, card)
+                    #
+                    #card.bind("<Button-1>", make_right_click_handler())
+                    #name_label.bind("<Button-1>", make_right_click_handler())
+                    #sprite_status.bind("<Button-1>", make_right_click_handler())
             
             def on_resize(event):
                 if cards_container.winfo_children():
@@ -3907,7 +3590,6 @@ class CreatorEditor:
             update_filter_from_settings()
         else:
             ctk.CTkLabel(scroll_frame, text=LangT("📭 Нет созданного контента"), font=("Arial", 16), text_color="#888888").pack(pady=50)
-            ctk.CTkLabel(scroll_frame, text=LangT("Используйте создатель блоков для добавления контента"), font=("Arial", 12), text_color="#666666").pack()
 
 #tabs
     def setup_content_panel(self, right_frame):
@@ -3917,16 +3599,15 @@ class CreatorEditor:
         self.content_notebook = ctk.CTkTabview(right_frame, fg_color="#2b2b2b")
         self.content_notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Вкладка блоков
-        blocks_tab = self.content_notebook.add(LangT("Блоки"))
+        # Вкладка blocks
+        blocks_tab = self.content_notebook.add(LangT("Контент"))
         # Вкладка текстур
         textures_tab = self.content_notebook.add(LangT("Текстуры"))
         # Вкладка исходников
         source_tab = self.content_notebook.add(LangT("Исходники"))
         
-        # Настраиваем вкладку блоков
+        # Настратваем вкладку blocks
         self._setup_blocks_tab(blocks_tab)
-        
         # Настраиваем вкладку текстур
         self._setup_textures_tab_content(textures_tab)
         
@@ -3941,20 +3622,38 @@ class CreatorEditor:
         scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
         scroll_frame.pack(fill="both", expand=True)
         
-        # Путь к исходникам
-        mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-        self.source_root = Path(self.mod_folder) / "src" / mod_name_lower
+        # Ищем папку с исходниками
+        src_folder = Path(self.mod_folder) / "src"
         
-        # Если папки нет - создаем
-        if not self.source_root.exists():
-            try:
-                self.source_root.mkdir(parents=True, exist_ok=True)
-            except:
-                pass
+        # Проверяем, есть ли папка src
+        if not src_folder.exists():
+            # Если папки src нет - создаем
+            src_folder.mkdir(parents=True, exist_ok=True)
+            # И создаем базовую папку для исходников
+            base_folder = src_folder / "mod"
+            base_folder.mkdir(exist_ok=True)
+            self.source_root = base_folder
+        else:
+            # Ищем все папки в src
+            existing_folders = [f for f in src_folder.iterdir() if f.is_dir()]
+            
+            if existing_folders:
+                # Если есть папки - берем первую
+                self.source_root = existing_folders[0]
+                print(f"Найдена папка с исходниками: {self.source_root.name}")
+            else:
+                # Если папок нет - создаем
+                base_folder = src_folder / "mod"
+                base_folder.mkdir(exist_ok=True)
+                self.source_root = base_folder
+                print("Создана новая папка для исходников: mod")
         
         # Текущий путь для навигации
         self.source_nav_stack = []
         self.current_source_path = self.source_root
+        
+        # Сохраняем имя корневой папки для использования в пакетах
+        self.source_package_name = self.source_root.name
         
         # Верхняя панель
         top_panel = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -4004,25 +3703,40 @@ class CreatorEditor:
                     return
                 
                 try:
-                    # Создаем файл с базовым шаблоном
+                    # Формируем имя пакета на основе пути
                     try:
-                        package_name = str(self.current_source_path.relative_to(Path(self.mod_folder) / "src")).replace('\\', '.').replace('/', '.')
-                        if package_name == '.':
-                            package_name = mod_name_lower
+                        relative_path = self.current_source_path.relative_to(src_folder)
+                        if str(relative_path) == '.':
+                            pkg_name = self.source_package_name
+                        else:
+                            pkg_name = str(relative_path).replace('\\', '.').replace('/', '.')
+                            # Очищаем имя пакета от недопустимых символов
+                            pkg_name = ''.join(c if c.isalnum() or c == '.' else '_' for c in pkg_name)
+                            # Убираем лишние точки
+                            while '..' in pkg_name:
+                                pkg_name = pkg_name.replace('..', '.')
+                            pkg_name = pkg_name.strip('.')
                     except:
-                        package_name = mod_name_lower
+                        pkg_name = self.source_package_name
                     
-                    template = f"""package {package_name};
+                    # Создаем шаблон класса
+                    class_name = file_name.replace('.java', '')
+                    # Очищаем имя класса от недопустимых символов
+                    class_name = ''.join(c for c in class_name if c.isalnum() or c == '_')
+                    if not class_name:
+                        class_name = "NewClass"
+                    
+                    template = f"""package {pkg_name};
 
-public class {file_name.replace('.java', '')} {{
-    // TODO: Добавьте код здесь
-    
-}}
-"""
+    public class {class_name} {{
+        // TODO: Добавьте код здесь
+        
+    }}
+    """
                     with open(new_path, 'w', encoding='utf-8') as f:
                         f.write(template)
                     
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Файл '{file_name}' создан!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Файл '{file_name}' создан!").format(file_name=file_name))
                     dialog.destroy()
                     update_source_filter()
                     
@@ -4046,8 +3760,8 @@ public class {file_name.replace('.java', '')} {{
                         fg_color="#AD4038", width=100).pack(side="left", padx=5)
         
         create_btn = ctk.CTkButton(filter_frame, text=LangT("📄 Новый файл"), width=120, height=32, 
-                                   font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
-                                   command=create_source_file)
+                                font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
+                                command=create_source_file)
         create_btn.pack(side="left", padx=5)
         
         # Кнопка создания папки
@@ -4055,7 +3769,7 @@ public class {file_name.replace('.java', '')} {{
             """Создание новой папки"""
             dialog = ctk.CTkToplevel(self.root)
             dialog.title(LangT("Создать папку"))
-            dialog.geometry("400x150")
+            dialog.geometry("400x200")
             dialog.resizable(False, False)
             dialog.transient(self.root)
             dialog.grab_set()
@@ -4080,6 +3794,12 @@ public class {file_name.replace('.java', '')} {{
                     messagebox.showwarning(LangT("Предупреждение"), LangT("Введите имя папки!"))
                     return
                 
+                # Очищаем имя папки от недопустимых символов
+                folder_name = ''.join(c for c in folder_name if c.isalnum() or c in ['_', '-'])
+                if not folder_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Имя папки содержит только недопустимые символы!"))
+                    return
+                
                 new_path = self.current_source_path / folder_name
                 if new_path.exists():
                     messagebox.showwarning(LangT("Предупреждение"), LangT("Папка уже существует!"))
@@ -4087,7 +3807,7 @@ public class {file_name.replace('.java', '')} {{
                 
                 try:
                     new_path.mkdir(parents=True, exist_ok=True)
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Папка '{folder_name}' создана!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Папка '{folder_name}' создана!").format(folder_name=folder_name))
                     dialog.destroy()
                     update_source_filter()
                 except Exception as e:
@@ -4107,8 +3827,8 @@ public class {file_name.replace('.java', '')} {{
                         fg_color="#AD4038", width=100).pack(side="left", padx=5)
         
         create_folder_btn = ctk.CTkButton(filter_frame, text=LangT("📁 Новая папка"), width=120, height=32, 
-                                          font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
-                                          command=create_source_folder)
+                                        font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
+                                        command=create_source_folder)
         create_folder_btn.pack(side="left", padx=5)
         
         # Кнопка "Назад"
@@ -4154,7 +3874,7 @@ public class {file_name.replace('.java', '')} {{
             
             # Создаем окно редактора
             editor_window = ctk.CTkToplevel(self.root)
-            editor_window.title(LangT(f"Редактор: {file_path.name}"))
+            editor_window.title(LangT("Редактор: {file_path_name}").format(file_path_name=file_path.name))
             editor_window.geometry("800x600")
             editor_window.minsize(600, 400)
             editor_window.transient(self.root)
@@ -4177,10 +3897,10 @@ public class {file_name.replace('.java', '')} {{
             
             # Путь к файлу
             try:
-                rel_path = file_path.relative_to(Path(self.mod_folder) / "src")
-                path_text = LangT(f"Путь: src/{rel_path}")
+                rel_path = file_path.relative_to(src_folder)
+                path_text = LangT("Путь: src/{rel_path}").format(rel_path=rel_path)
             except:
-                path_text = LangT(f"Путь: {file_path}")
+                path_text = LangT("Путь: {file_path}").format(file_path=file_path)
             
             ctk.CTkLabel(
                 info_frame,
@@ -4209,7 +3929,7 @@ public class {file_name.replace('.java', '')} {{
             def update_line_numbers(event=None):
                 cursor_pos = text_editor.index("insert")
                 line = cursor_pos.split('.')[0]
-                status_label.configure(text=LangT(f"Строка: {line} | Файл: {file_path.name}"))
+                status_label.configure(text=LangT("Строка: {line} | Файл: {file_path}").format(line=line, file_path=file_path.name))
             
             text_editor.bind("<KeyRelease>", update_line_numbers)
             text_editor.bind("<ButtonRelease-1>", update_line_numbers)
@@ -4292,12 +4012,10 @@ public class {file_name.replace('.java', '')} {{
         
         def delete_source_item(path, name, item_type):
             """Удаление файла или папки"""
-            type_text = "папку" if item_type == "folder" else "файл"
+            type_text = LangT("папку") if item_type == "folder" else LangT("файл")
             if messagebox.askyesno(
                 LangT("Подтверждение удаления"),
-                LangT(f"Вы уверены, что хотите удалить {type_text} '{name}'?\n\n"
-                      f"Путь: {path}\n"
-                      f"⚠️ Это действие необратимо!"),
+                LangT("Вы уверены, что хотите удалить {type_text} '{name}'?\n\n Путь: {path}\n ⚠️ Это действие необратимо!").format(type_text=type_text, name=name, path=path),
                 icon='warning'
             ):
                 try:
@@ -4306,7 +4024,7 @@ public class {file_name.replace('.java', '')} {{
                     else:
                         path.unlink()
                     
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ {type_text.capitalize()} '{name}' удалена!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ {type_text} '{name}' удалена!").format(name=name, type_text=type_text.capitalize()))
                     update_source_filter()
                 except Exception as e:
                     messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить:\n{str(e)}"))
@@ -4315,7 +4033,7 @@ public class {file_name.replace('.java', '')} {{
             """Переименование файла или папки"""
             dialog = ctk.CTkToplevel(self.root)
             dialog.title(LangT("Переименовать"))
-            dialog.geometry("400x150")
+            dialog.geometry("400x250")
             dialog.resizable(False, False)
             dialog.transient(self.root)
             dialog.grab_set()
@@ -4328,11 +4046,11 @@ public class {file_name.replace('.java', '')} {{
             frame = ctk.CTkFrame(dialog)
             frame.pack(fill="both", expand=True, padx=20, pady=20)
             
-            type_text = "Папка" if item_type == "folder" else "Файл"
+            type_text = LangT("Папка") if item_type == "folder" else LangT("Файл")
             ctk.CTkLabel(frame, text=LangT(f"{type_text}: {old_name}"), font=("Arial", 12)).pack(pady=5)
             ctk.CTkLabel(frame, text=LangT("Введите новое имя:"), font=("Arial", 12)).pack(pady=5)
             
-            entry = ctk.CTkEntry(frame, width=300, font=("Arial", 12))
+            entry = ctk.CTkEntry(frame, width=500, font=("Arial", 12))
             entry.insert(0, old_name)
             entry.pack(pady=10)
             entry.focus()
@@ -4348,6 +4066,25 @@ public class {file_name.replace('.java', '')} {{
                     dialog.destroy()
                     return
                 
+                # Очищаем имя от недопустимых символов
+                if item_type == "folder":
+                    new_name = ''.join(c for c in new_name if c.isalnum() or c in ['_', '-'])
+                else:
+                    # Для файлов сохраняем расширение
+                    if '.' in new_name:
+                        name_part, ext = new_name.rsplit('.', 1)
+                        name_part = ''.join(c for c in name_part if c.isalnum() or c == '_')
+                        if ext:
+                            new_name = f"{name_part}.{ext}"
+                        else:
+                            new_name = name_part
+                    else:
+                        new_name = ''.join(c for c in new_name if c.isalnum() or c == '_')
+                
+                if not new_name:
+                    messagebox.showwarning(LangT("Предупреждение"), LangT("Имя содержит только недопустимые символы!"))
+                    return
+                
                 new_path = path.parent / new_name
                 if new_path.exists():
                     messagebox.showwarning(LangT("Предупреждение"), LangT("Файл/папка с таким именем уже существует!"))
@@ -4355,7 +4092,7 @@ public class {file_name.replace('.java', '')} {{
                 
                 try:
                     path.rename(new_path)
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Переименовано в '{new_name}'!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Переименовано в '{new_name}'!").format(new_name=new_name))
                     dialog.destroy()
                     update_source_filter()
                 except Exception as e:
@@ -4392,9 +4129,9 @@ public class {file_name.replace('.java', '')} {{
             
             # Обновляем путь
             try:
-                rel_path = self.current_source_path.relative_to(Path(self.mod_folder) / "src") if self.current_source_path != self.source_root else "."
+                rel_path = self.current_source_path.relative_to(src_folder) if self.current_source_path != self.source_root else "."
                 if str(rel_path) == ".":
-                    path_label.configure(text=LangT("Путь: src/{mod_name_lower}").format(mod_name_lower=mod_name_lower))
+                    path_label.configure(text=LangT("Путь: src/{source_root}").format(source_root=self.source_root.name))
                 else:
                     path_label.configure(text=LangT("Путь: src/{rel_path}").format(rel_path=rel_path))
             except:
@@ -4405,7 +4142,7 @@ public class {file_name.replace('.java', '')} {{
                 error_frame.pack(fill="both", expand=True, pady=50)
                 
                 if self.current_source_path == self.source_root:
-                    ctk.CTkLabel(error_frame, text=LangT("📭 Папка src/{mod_name_lower} пуста").format(mod_name_lower=mod_name_lower), 
+                    ctk.CTkLabel(error_frame, text=LangT(f"📭 Папка src/{self.source_root.name} пуста"), 
                                 font=("Arial", 14), text_color="#888888").pack()
                     ctk.CTkLabel(error_frame, text=LangT("Создайте новый файл или папку"), 
                                 font=("Arial", 12), text_color="#666666").pack(pady=5)
@@ -4525,7 +4262,7 @@ public class {file_name.replace('.java', '')} {{
         
         # Загружаем начальное содержимое
         update_source_filter()
-
+    
 #textures        
     def _setup_textures_tab_content(self, parent_tab):
         """Настройка содержимого вкладки текстур с возможностью загрузки, удаления и переименования"""
