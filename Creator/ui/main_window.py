@@ -64,23 +64,22 @@ class MainWindow:
         """Загружает настройки из файла"""
         default_settings = {
             "language": "ru",
-            "save_folder": "mods"
+            "save_folder": "mods",
+            "hide_content": False  # Добавлено
         }
 
-        # Используем единый путь для настроек
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
         settings_dir = Path(appdata) / "MindustryModCreator"
         settings_dir.mkdir(parents=True, exist_ok=True)
         self.settings_file = settings_dir / "settings.json"
         
-        print(f"Загрузка настроек из: {self.settings_file}")  # Отладка
+        print(f"Загрузка настроек из: {self.settings_file}")
 
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
-                    print(f"Загружены настройки: {settings}")  # Отладка
-                    # Добавляем недостающие ключи
+                    print(f"Загружены настройки: {settings}")
                     for key, value in default_settings.items():
                         if key not in settings:
                             settings[key] = value
@@ -92,7 +91,7 @@ class MainWindow:
             print("Файл настроек не найден, создаю новый")
             self.save_settings(default_settings)
             return default_settings.copy()
-    
+      
     def save_settings(self, settings=None):
         """Сохраняет настройки в файл"""
         if settings is None:
@@ -117,53 +116,55 @@ class MainWindow:
         
         settings_window = ctk.CTkToplevel(self.root)
         settings_window.title(LangT("Настройки"))
-        settings_window.geometry("400x350")
+        settings_window.geometry("450x450")
         settings_window.transient(self.root)
         settings_window.grab_set()
         
         # Центрируем окно
         settings_window.update_idletasks()
-        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (400 // 2)
-        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (350 // 2)
-        settings_window.geometry(f"400x350+{x}+{y}")
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (450 // 2)
+        settings_window.geometry(f"450x450+{x}+{y}")
         
-        # Язык - получаем динамически из доступных файлов
-        ctk.CTkLabel(settings_window, text=LangT("Язык / Language:"), font=("Arial", 14)).pack(pady=(20, 5))
+        # Основной фрейм с прокруткой
+        main_scroll = ctk.CTkScrollableFrame(settings_window, fg_color="transparent")
+        main_scroll.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # === ЯЗЫК ===
+        ctk.CTkLabel(main_scroll, text=LangT("Язык / Language:"), font=("Arial", 14)).pack(pady=(10, 5))
         
         available_langs = get_available_languages()
-        # Преобразуем коды языков в отображаемые названия
         lang_display_names = {
             "ru": "Русский",
             "en": "English",
-            # Можно добавить другие языки
         }
         
-        # Создаем список для отображения
         display_values = [lang_display_names.get(lang, lang) for lang in available_langs]
         current_display = lang_display_names.get(self.settings.get("language", "ru"), self.settings.get("language", "ru"))
         
         language_var = ctk.StringVar(value=current_display)
         language_combo = ctk.CTkComboBox(
-            settings_window,
+            main_scroll,
             values=display_values,
             variable=language_var,
-            width=200
+            width=250
         )
         language_combo.pack(pady=5)
         
-        # Папка сохранения
-        ctk.CTkLabel(settings_window, text=LangT("Папка сохранения модов:"), font=("Arial", 14)).pack(pady=(20, 5))
+        # === РАЗДЕЛИТЕЛЬ ===
+        ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
+        
+        # === ПАПКА СОХРАНЕНИЯ ===
+        ctk.CTkLabel(main_scroll, text=LangT("Папка сохранения модов:"), font=("Arial", 14)).pack(pady=(10, 5))
         
         appdata_roaming = os.getenv('APPDATA')
         
-        # Словарь для отображения: текст для пользователя -> реальный путь
         folder_options = {
             LangT("Программа"): "mods",
             LangT("Игра Steam"): r"C:\Program Files (x86)\Steam\steamapps\common\Mindustry\saves\mods",
             LangT("Игра Free"): os.path.join(appdata_roaming, "Mindustry", "mods") if appdata_roaming else "mods"
         }
         
-        # Получаем текущий путь и находим соответствующий отображаемый текст
         current_path = self.settings.get("save_folder", "mods")
         display_value = current_path
         for display_text, path in folder_options.items():
@@ -176,21 +177,60 @@ class MainWindow:
         display_var = ctk.StringVar(value=display_value)
         
         folder_combo = ctk.CTkComboBox(
-            settings_window,
+            main_scroll,
             values=list(folder_options.keys()),
             variable=display_var,
             width=250
         )
         folder_combo.pack(pady=5)
         
-        # Кнопки
-        button_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
-        button_frame.pack(pady=30)
+        # === РАЗДЕЛИТЕЛЬ ===
+        ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
+        
+        # === ПЕРЕКЛЮЧАТЕЛЬ ПОКАЗА КОНТЕНТА ===
+        hide_content_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
+        hide_content_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(
+            hide_content_frame,
+            text=LangT("Показывать контент в редакторе:"),
+            font=("Arial", 14)
+        ).pack(side="left", padx=(0, 10))
+        
+        # Переменная для состояния переключателя
+        hide_content_var = ctk.BooleanVar(value=not self.settings.get("hide_content", False))
+        
+        hide_content_switch = ctk.CTkSwitch(
+            hide_content_frame,
+            text=LangT("Вкл") if hide_content_var.get() else LangT("Выкл"),
+            variable=hide_content_var,
+            command=lambda: hide_content_switch.configure(
+                text=LangT("Вкл") if hide_content_var.get() else LangT("Выкл")
+            ),
+            onvalue=True,
+            offvalue=False,
+            width=60
+        )
+        hide_content_switch.pack(side="left")
+        
+        # Пояснение
+        ctk.CTkLabel(
+            main_scroll,
+            text=LangT("Отключите для скрытия списка блоков/предметов в редакторе"),
+            font=("Arial", 10),
+            text_color="#888888"
+        ).pack(pady=(0, 5))
+        
+        # === РАЗДЕЛИТЕЛЬ ===
+        ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
+        
+        # === КНОПКИ ===
+        button_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
+        button_frame.pack(pady=20)
         
         def save_settings():
             # Получаем выбранный язык
             selected_display = language_var.get()
-            # Находим код языка по отображаемому имени
             selected_lang = None
             for lang_code, display_name in lang_display_names.items():
                 if display_name == selected_display:
@@ -203,9 +243,13 @@ class MainWindow:
             selected_folder_display = display_var.get()
             save_path = folder_options[selected_folder_display]
             
+            # Получаем состояние переключателя (инвертируем, так как в настройках хранится hide_content)
+            hide_content = not hide_content_var.get()
+            
             # Сохраняем настройки
             self.settings["language"] = selected_lang if selected_lang else "ru"
             self.settings["save_folder"] = save_path
+            self.settings["hide_content"] = hide_content
             self.save_settings()
             
             # Меняем язык в системе
@@ -215,20 +259,42 @@ class MainWindow:
             # Создаём папку если её нет
             try:
                 Path(save_path).mkdir(parents=True, exist_ok=True)
-                messagebox.showinfo(LangT("Успех"), LangT("Настройки сохранены\nПапка: {save_path}").format(save_path=save_path))
+                messagebox.showinfo(
+                    LangT("Успех"),
+                    LangT("Настройки сохранены\nПапка: {save_path}\nПоказ контента: {status}").format(
+                        save_path=save_path,
+                        status=LangT("Включен") if not hide_content else LangT("Отключен")
+                    )
+                )
                 settings_window.destroy()
                 
                 # Обновляем интерфейс с новым языком
                 self.show_main_ui()
             except Exception as e:
                 messagebox.showerror(
-                    LangT("Ошибка"), 
-                    LangT("Не удалось создать папку:\n{save_path}\n\nОшибка: {e}").format(save_path=save_path, e=e)
+                    LangT("Ошибка"),
+                    LangT("Не удалось создать папку:\n{save_path}\n\nОшибка: {e}").format(
+                        save_path=save_path,
+                        e=e
+                    )
                 )
         
-        ctk.CTkButton(button_frame, text=LangT("Сохранить"), command=save_settings, width=120).pack(side="left", padx=10)
-        ctk.CTkButton(button_frame, text=LangT("Отмена"), command=settings_window.destroy, width=120).pack(side="left", padx=10)
-
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("Сохранить"),
+            command=save_settings,
+            width=120,
+            height=35
+        ).pack(side="left", padx=10)
+        
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("Отмена"),
+            command=settings_window.destroy,
+            width=120,
+            height=35
+        ).pack(side="left", padx=10)
+    
     def find_and_setup_java(self):
         """Находит или устанавливает Java 17"""
         #print("\n" + "="*50)

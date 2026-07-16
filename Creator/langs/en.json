@@ -575,7 +575,6 @@
   "Выбрано элементов: {selected_countget}": "Selected items: {selected_countget}",
   "Выбрано предметов: 0": "Selected items: 0",
   "Выбрано предметов: {selected_countget}": "Selected items: {selected_countget}",
-
   "Создание хранилища": "Creating a storage",
   "Создать Хранилище": "Create Storage",
   "Создать папку": "Create folder",
@@ -626,5 +625,22 @@
   "Файл уже существует!": "The file already exists!",
   "Папка уже существует!": "The folder already exists!",
   "✅ Файл сохранен!": "✅ File saved!",
-  "Жидкостный мост": "Liquid bridge"
+  "Жидкостный мост": "Liquid bridge",
+  "Помпы": "Pump",
+  "Жидкость в секунду (outputAmount):": "Fluid per second (outputAmount):",
+  "Вместимость (liquidCapacity):": "Capacity (liquidCapacity):",
+  "💧 Жидкости для выхода (обязательно):": "💧 Exit liquids (required):",
+  "💧 Выбрать жидкости для выхода": "💧 Select liquids for exit",
+  "Скорость вращения (rotateSpeed):": "Rotation speed (rotateSpeed):",
+  "Выбор жидкости для выхода": "Choosing an liquid to exit",
+  "Помпа": "Liquid Pump",
+  "✅ Файл '{source_path}' загружен!": "✅ The '{source_path}' file has been uploaded!",
+  "❌ Ошибка: Выберите жидкость для выхода!": "❌ Error: Select an exit liquid!",
+  "❌ Ошибка: Выберите предметы для строительства!": "❌ Error: Select items to build!",
+  "Загрузка контента отключена": "Content load is disabled",
+  "Включите 'Показывать контент' в настройках для отображения": "Enable 'Show content' in the settings to display",
+  "Показывать контент в редакторе:": "Show content in the editor:",
+  "Отключите для скрытия списка блоков/предметов в редакторе": "Disable to hide the list of blocks/items in the editor",
+  "Выкл": "Off",
+  "Вкл": "On"
 }

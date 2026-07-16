@@ -60,7 +60,7 @@ class BlockCreator:
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
         "generic_crafter", "bridges", "conveyors", "storage_block",
-        "bridges_liquid"
+        "bridges_liquid", "solid_pump"
     ]
 
 #----------ФУНКЦИИ----------
@@ -348,7 +348,8 @@ class BlockCreator:
                     "storage": "StoragesTree",
                     "bridge": "BridgesTree",
                     "conveyor": "ConveyorTree",
-                    "bridgeliquid": "LiquidBridgesTree"
+                    "bridgeliquid": "LiquidBridgesTree",
+                    "solidpump": "SolidPumpTree"
                 }
                 class_name = type_to_class.get(block_type, f"{block_type.capitalize()}Tree")
             
@@ -398,7 +399,7 @@ class BlockCreator:
                 folders_to_check = [
                     "walls", "batterys", "solar_panels", "consume_generators",
                     "beam_nodes", "power_nodes", "shield_walls", "generic_crafter",
-                    "bridges", "conveyors", "Storages", "bridges_liquid"
+                    "bridges", "conveyors", "Storages", "bridges_liquid", "solid_pump"
                 ]
                 
                 folder_to_class = {
@@ -413,7 +414,8 @@ class BlockCreator:
                     "bridges": "Bridges",
                     "conveyors": "Conveyors",
                     "Storages": "Storages",
-                    "bridges_liquid": "BridgesLiquid"
+                    "bridges_liquid": "BridgesLiquid",
+                    "solid_pump": "SolidPumpMMC"
                 }
                 
                 for folder in folders_to_check:
@@ -500,7 +502,8 @@ class BlockCreator:
                 "bridges": "bridges.Bridges",
                 "conveyors": "conveyors.Conveyors",
                 "Storages": "Storages.Storages",
-                "bridges_liquid": "bridges_liquid.BridgesLiquid"
+                "bridges_liquid": "bridges_liquid.BridgesLiquid",
+                "solid_pump": "solid_pump.SolidPump"
             }
             
             import_path = folder_to_import.get(folder_name, folder_name)
@@ -968,7 +971,7 @@ class BlockCreator:
             "conveyor-2-0", "conveyor-2-1", "conveyor-2-2", "conveyor-2-3",
             "conveyor-3-0", "conveyor-3-1", "conveyor-3-2", "conveyor-3-3",
             "conveyor-4-0", "conveyor-4-1", "conveyor-4-2", "conveyor-4-3",
-            "container-team"]
+            "container-team", "water-extractor-rotator"]
         blacklist_suffixes = [
             "-top", "-bottom", "-left", "-right", "-back", "-front",
             "-glow", "-overlay", "-mask", "-shadow", "-effect",
@@ -1209,7 +1212,7 @@ class BlockCreator:
                 # Список папок для модовых блоков
                 BLOCKS_PATHS = ["walls", "batterys", "solar_panels", "consume_generators",
                             "beam_nodes", "power_nodes", "shield_walls", "generic_crafter",
-                            "bridges", "Storages", "bridges_liquid"]
+                            "bridges", "Storages", "bridges_liquid", "solid_pump"]
 
                 # Перебираем все возможные папки
                 for folder in BLOCKS_PATHS:
@@ -2378,6 +2381,186 @@ public class CircularBridgeLiquid extends ItemBridge {{
         return created_files
 
         #CircularBridgeLiquid
+
+    #SolidPumpMMC
+    def SolidPumpMMC(self):
+        """Создает файл SolidPumpMMC.java для кастомного типа блока"""
+        
+        # Формируем имя пакета (нижний регистр)
+        package_name = self.mod_name.lower() if self.mod_name else self.mod_name
+        
+        # Содержимое файла с правильными плейсхолдерами
+        content = f"""package {package_name}.custom_types.blocks.pump;
+
+import arc.*;
+import arc.graphics.g2d.*;
+import arc.math.*;
+import arc.scene.ui.layout.Table;
+import arc.util.*;
+import mindustry.content.*;
+import mindustry.entities.*;
+import mindustry.game.*;
+import mindustry.graphics.*;
+import mindustry.logic.*;
+import mindustry.type.*;
+import mindustry.ui.*;
+import mindustry.world.*;
+import mindustry.world.blocks.production.Pump;
+import mindustry.world.blocks.production.Pump.PumpBuild;
+import mindustry.world.meta.*;
+import mindustry.world.modules.PowerModule;
+
+public class SolidPumpMMC extends Pump{{
+    public Liquid result = Liquids.water;
+    public float rotateSpeed = 1f;
+    public float outputAmount = 1f;
+    public float powerConsumption = 0f;
+
+    public TextureRegion rotatorRegion;
+
+    public SolidPumpMMC(String name){{
+        super(name);
+        envEnabled = Env.terrestrial;
+    }}
+
+    @Override
+    public void init(){{
+        super.init();
+        if(powerConsumption > 0){{
+            hasPower = true;
+            // Правильный способ добавить потребление энергии
+            this.consumePower(powerConsumption);
+        }}
+    }}
+
+    @Override
+    public void load(){{
+        super.load();
+        rotatorRegion = Core.atlas.find(name + "-rotator");
+    }}
+
+    @Override
+    public void setBars(){{
+        super.setBars();
+        addBar("efficiency", (SolidPumpBuild entity) -> new Bar(() -> Core.bundle.formatFloat("bar.pumpspeed",
+        entity.lastPump * 60, 1),
+        () -> Pal.ammo,
+        () -> entity.warmup * entity.efficiency));
+    }}
+
+    @Override
+    public void setStats(){{
+        super.setStats();
+        stats.remove(Stat.output);
+        stats.add(Stat.output, result, outputAmount, true);
+        if(powerConsumption > 0){{
+            stats.add(Stat.powerUse, powerConsumption, StatUnit.powerSecond);
+        }}
+    }}
+
+    @Override
+    public boolean outputsItems(){{
+        return false;
+    }}
+
+    @Override
+    protected boolean canPump(Tile tile){{
+        return tile != null && !tile.floor().isLiquid;
+    }}
+
+    @Override
+    public boolean canPlaceOn(Tile tile, Team team, int rotation){{
+        return tile != null && !tile.floor().isLiquid;
+    }}
+
+    @Override
+    public TextureRegion[] icons(){{
+        return new TextureRegion[]{{region, rotatorRegion, topRegion}};
+    }}
+
+    public class SolidPumpBuild extends PumpBuild{{
+        public float warmup;
+        public float pumpTime;
+        public float lastPump;
+
+        @Override
+        public void drawCracks(){{}}
+
+        @Override
+        public void draw(){{
+            Draw.rect(region, x, y);
+            Draw.z(Layer.blockCracks);
+            super.drawCracks();
+            Draw.z(Layer.blockAfterCracks);
+
+            Drawf.liquid(liquidRegion, x, y, liquids.get(result) / liquidCapacity, result.color);
+            Drawf.spinSprite(rotatorRegion, x, y, pumpTime * rotateSpeed);
+            Draw.rect(topRegion, x, y);
+        }}
+
+        @Override
+        public void onProximityAdded(){{
+            super.onProximityAdded();
+            if(powerConsumption > 0 && power == null){{
+                power = new PowerModule();
+            }}
+        }}
+
+        @Override
+        public boolean shouldConsume(){{
+            return liquids.get(result) < liquidCapacity - 0.01f;
+        }}
+
+        @Override
+        public void updateTile(){{
+            liquidDrop = result;
+            
+            if(powerConsumption > 0 && power == null){{
+                power = new PowerModule();
+            }}
+            
+            // Проверка наличия энергии
+            boolean hasEnoughPower = true;
+            if(powerConsumption > 0){{
+                // power.status будет 1f если энергии достаточно
+                hasEnoughPower = power.status >= 0.999f;
+            }}
+            
+            boolean canWork = efficiency > 0 && typeLiquid() < liquidCapacity - 0.001f && hasEnoughPower;
+            
+            if(canWork){{
+                float pumpPerTick = (outputAmount / 60f) * delta();
+                float maxPump = Math.min(liquidCapacity - typeLiquid(), pumpPerTick * efficiency);
+                liquids.add(result, maxPump);
+                lastPump = maxPump / Time.delta;
+                warmup = Mathf.lerpDelta(warmup, 1f, 0.02f);
+            }}else{{
+                warmup = Mathf.lerpDelta(warmup, 0f, 0.02f);
+                lastPump = 0f;
+            }}
+
+            pumpTime += warmup * edelta();
+            dumpLiquid(result);
+        }}
+
+        public float typeLiquid(){{
+            return liquids.get(result);
+        }}
+    }}
+}}"""
+        # Создаем файл
+        created_files = self.create_files(
+            content=content,
+            name="SolidPumpMMC",
+            file_type="java",
+            path=str(self.get_absolute_path(f"src/{self.mod_name.lower()}/custom_types/blocks/pump"))
+        )
+        
+        print(LangT(f"✅ SolidPumpMMC.java успешно создан"))
+        
+        return created_files
+
+        #SolidPumpMMC
 
 #----------ФУНКЦИИ СОЗДАНИЯ----------
 
@@ -11660,6 +11843,881 @@ public class {NAME} {{
         self.build_items = []
         self.research_items = []
 
+    def create_solid_pump(self):
+        """Создает или добавляет новый мост в bridges/Bridges.java"""
+        
+        # Константы для моста
+        PATEH_FOLDER = self.PATEH_FOLDER
+
+        CATENAME = "SolidPumpMMC"
+        CATEDOR = "production"
+        TEMPO_ICON = "water-extractor.png"
+        TEMPO_ICON_END = "water-extractor-top.png"
+        TEMPO_ICON_ARROW = "water-extractor-rotator.png"
+        TEMPO_ICON_BRIDGE = "water-extractor-liquid.png"
+        BL_NAME_2 = LangT("Помпы")
+        BL_CR_NAME = LangT("Помпы")
+        BL_NAME = LangT("Помпы")
+        ENTRY_NAME1 = "solidpump"
+        NAME = "SolidPump"
+        FOLDER = "solid_pump"
+        
+        # Очищаем окно
+        self.clear_window()
+        
+        # Основной фрейм с прокруткой
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        scroll_frame = ctk.CTkScrollableFrame(
+            main_frame,
+            width=500,
+            height=700,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Заголовок
+        title_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            title_frame,
+            text=LangT("Создание моста"),
+            font=("Arial", 24, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=10)
+        
+        # === Карточка для основной информации ===
+        info_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        info_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            info_card,
+            text=LangT("Основная информация"),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        # Поле ввода названия
+        name_frame = ctk.CTkFrame(info_card, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            name_frame,
+            text=LangT("Название {BL_NAME} (английское, можно пробел, первая буква маленькая):").format(BL_NAME=BL_NAME),
+            font=("Arial", 16),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_name = ctk.CTkEntry(
+            name_frame,
+            width=400,
+            height=40,
+            placeholder_text=f"{ENTRY_NAME1} name",
+            font=("Arial", 15),
+            border_width=2,
+            corner_radius=8,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_name.pack(fill="x", pady=(0, 5))
+        
+        # === Функции валидации ===
+        def validate_float_input(value):
+            if value == "" or value == ".":
+                return True
+            pattern = r'^\d*\.?\d{0,2}$'
+            if not re.match(pattern, value):
+                return False
+            try:
+                return float(value) <= 5000.00
+            except ValueError:
+                return False
+
+        def validate_int_input(value):
+            if value == "":
+                return True
+            if not value.isdigit():
+                return False
+            return int(value) <= 999999
+
+        vcmd_float = (self.root.register(validate_float_input), '%P')
+        vcmd_int = (self.root.register(validate_int_input), '%P')
+
+        # === Карточка для свойств ===
+        properties_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        properties_card.pack(fill="x", pady=(0, 20))
+
+        ctk.CTkLabel(
+            properties_card,
+            text=LangT("Свойства {BL_NAME}").format(BL_NAME=BL_NAME),
+            font=("Arial", 18, "bold"),
+            text_color="#E0E0E0"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+
+        # Грид для свойств
+        properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
+        properties_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+        # Здоровье
+        hp_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        hp_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            hp_frame,
+            text=LangT("Прочность (health):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_hp = ctk.CTkEntry(
+            hp_frame,
+            width=180,
+            height=38,
+            placeholder_text="400",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_hp.pack(fill="x")
+
+        # Скорость стройки
+        speed_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        speed_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            speed_frame,
+            text=LangT("Скорость стройки (buildTime):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_speed = ctk.CTkEntry(
+            speed_frame,
+            width=180,
+            height=38,
+            placeholder_text="1",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_float,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_speed.pack(fill="x")
+
+        # Размер (фиксирован для моста)
+        size_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        size_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            size_frame,
+            text=LangT("Размер (size):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        size_var = ctk.StringVar(value="1")
+        size_combo = ctk.CTkComboBox(
+            size_frame,
+            values=[str(i) for i in range(1, 16)],
+            variable=size_var,
+            width=180,
+            height=38,
+            font=("Arial", 14)
+        )
+        size_combo.pack(fill="x")
+
+        # Потребление энергии
+        power_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        power_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            power_frame,
+            text=LangT("Потребление энергии (powerUsage) в сек:\n(0 - не требует энергии)"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_power = ctk.CTkEntry(
+            power_frame,
+            width=180,
+            height=38,
+            placeholder_text="0",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_power.pack(fill="x")
+
+        # Предметы в секунду
+        items_per_second_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        items_per_second_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            items_per_second_frame,
+            text=LangT("Жидкость в секунду (outputAmount):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_items_per_second = ctk.CTkEntry(
+            items_per_second_frame,
+            width=180,
+            height=38,
+            placeholder_text="10",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_items_per_second.pack(fill="x")
+
+        # Вместимость
+        capacity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        capacity_frame.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            capacity_frame,
+            text=LangT("Вместимость (liquidCapacity):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        entry_capacity = ctk.CTkEntry(
+            capacity_frame,
+            width=180,
+            height=38,
+            placeholder_text="20",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_capacity.pack(fill="x")
+        
+        # скорость вращения
+        rotateSpeed_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        rotateSpeed_frame.grid(row=3, column=0, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            rotateSpeed_frame,
+            text=LangT("Скорость вращения (rotateSpeed):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        rotateSpeed_entry = ctk.CTkEntry(
+            rotateSpeed_frame,
+            width=180,
+            height=38,
+            placeholder_text="5",
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd_int,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        rotateSpeed_entry.pack(fill="x")
+
+        # === ЖИДКОСТИ ДЛЯ ТОПЛИВА ===
+        fuel_liquids_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        fuel_liquids_frame.grid(row=3, column=1, columnspan=2, padx=10, pady=5, sticky="ew")
+        
+        ctk.CTkLabel(
+            fuel_liquids_frame,
+            text=LangT("💧 Жидкости для выхода (обязательно):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        # Переменная для отображения выбранных жидкостей
+        fuel_liquids_var = tk.StringVar(value=LangT("Ничего не выбрано"))
+        
+        # Кнопка выбора жидкостей
+        ctk.CTkButton(
+            fuel_liquids_frame,
+            text=LangT("💧 Выбрать жидкости для выхода"),
+            command=lambda: self.open_liquids_pump(fuel_liquids_var, "liquid"),
+            height=35,
+            font=("Arial", 13),
+            fg_color="#1976D2",
+            hover_color="#1565C0",
+            corner_radius=6
+        ).pack(anchor="w", pady=(0, 5))
+        
+        fuel_liquids_label = ctk.CTkLabel(
+            fuel_liquids_frame,
+            textvariable=fuel_liquids_var,
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=400
+        )
+        fuel_liquids_label.pack(anchor="w", pady=(0, 5))
+
+        # === Always Unlocked с индикатором ===
+        always_unlocked_var = ctk.BooleanVar(value=False)
+        always_unlocked_status = ctk.CTkLabel(properties_card, text="", font=("Arial", 12))
+
+        # === КАРТОЧКА ДЛЯ ПРЕДМЕТОВ СТРОИТЕЛЬСТВА ===
+        build_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        build_card.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            build_card,
+            text=LangT("🔨 Предметы для строительства"),
+            font=("Arial", 18, "bold"),
+            text_color="#4CAF50"
+        ).pack(pady=(15, 10), padx=20, anchor="w")
+        
+        build_items_frame = ctk.CTkFrame(build_card, fg_color="transparent")
+        build_items_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        build_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
+        build_items_label = ctk.CTkLabel(
+            build_items_frame,
+            textvariable=build_items_var,
+            font=("Arial", 12),
+            text_color="#9E9E9E",
+            wraplength=400
+        )
+        build_items_label.pack(anchor="w", pady=(5, 0))
+        
+        ctk.CTkButton(
+            build_items_frame,
+            text=LangT("📋 Выбрать предметы для строительства"),
+            command=lambda: self.open_items_editor(build_items_var, "build"),
+            height=35,
+            font=("Arial", 13),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=6
+        ).pack(anchor="w", pady=(0, 5))
+
+        # === КАРТОЧКА ДЛЯ ИССЛЕДОВАНИЯ ===
+        research_card = ctk.CTkFrame(
+            scroll_frame,
+            corner_radius=15,
+            border_width=2,
+            border_color="#404040",
+            fg_color="#363636"
+        )
+        
+        # Переменные для исследования
+        selected_block_var = tk.StringVar(value=LangT("Не выбран"))
+        selected_block_internal_var = tk.StringVar(value="")
+        selected_block_type_var = tk.StringVar(value="")
+        block_icon_label = ctk.CTkLabel(properties_card, text="🌉", font=("Arial", 30))
+        block_path_label = ctk.CTkLabel(properties_card, text="", font=("Arial", 10))
+        research_items_var = tk.StringVar(value=LangT("Выбрано: 0 предметов"))
+
+        # Используем универсальную функцию
+        always_unlocked_check, select_block_button, select_items_button = self.setup_research_system(
+            always_unlocked_var=always_unlocked_var,
+            research_card=research_card,
+            always_unlocked_status=always_unlocked_status,
+            build_card=build_card,
+            selected_block_var=selected_block_var,
+            selected_block_internal_var=selected_block_internal_var,
+            selected_block_type_var=selected_block_type_var,
+            block_icon_label=block_icon_label,
+            block_path_label=block_path_label,
+            research_items_var=research_items_var,
+            on_block_selected_callback=None
+        )
+
+        # === Статус ===
+        status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        status_frame.pack(fill="x", pady=(0, 20))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text="",
+            font=("Arial", 14),
+            wraplength=450,
+            justify="left",
+            text_color="#E0E0E0"
+        )
+        status_label.pack()
+
+        # === Фрейм для кнопок ===
+        button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=20)
+
+        # === Основная функция создания моста ===
+        def process_bridge():
+            # Сначала создаем SolidPumpMMC.java
+            self.SolidPumpMMC()
+            original_name = entry_name.get().strip()
+            
+            if not original_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Введите название моста!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Проверка для always_unlocked = false
+            is_valid, error_msg = self.validate_research(
+                always_unlocked_var=always_unlocked_var,
+                research_items=self.research_items if hasattr(self, 'research_items') else [],
+                selected_block_internal_var=selected_block_internal_var
+            )
+            
+            if not is_valid:
+                status_label.configure(text=error_msg, text_color="#F44336")
+                return
+            
+            if not hasattr(self, 'build_items') or not self.build_items:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Выберите предметы для строительства!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # === ПРОВЕРКА НА ВЫБОР ЖИДКОСТИ ===
+            fuel_liquids_raw = fuel_liquids_var.get().strip()
+            if not fuel_liquids_raw or fuel_liquids_raw == LangT("Ничего не выбрано"):
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Выберите жидкость для выхода!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Форматируем имя
+            constructor_name = self.format_to_lower_camel(original_name)
+            if not constructor_name:
+                status_label.configure(
+                    text=LangT("❌ Ошибка: Некорректное название!"), 
+                    text_color="#F44336"
+                )
+                return
+
+            # Проверяем, существует ли уже такое имя
+            if self.check_block_name_exists(original_name, PATEH_FOLDER):
+                status_label.configure(
+                    text=LangT(f"❌ Ошибка: Имя '{constructor_name}' уже используется!"), 
+                    text_color="#F44336"
+                )
+                return
+            
+            # Копируем текстуры (для моста их 4)
+            texture_configs = [
+                {"template": TEMPO_ICON, "suffix": ""},
+                {"template": TEMPO_ICON_END, "suffix": "-top"},
+                {"template": TEMPO_ICON_BRIDGE, "suffix": "-liquid"},
+                {"template": TEMPO_ICON_ARROW, "suffix": "-rotator"},
+            ]
+            
+            size_multiplier = int(size_var.get())
+            texture_copied = self.copy_block_textures_multi(
+                block_name=original_name,
+                size_multiplier=size_multiplier,
+                target_folder=FOLDER,
+                texture_configs=texture_configs
+            )
+            texture_status = LangT("✅ Текстуры созданы") if texture_copied else LangT("⚠️ Текстуры не созданы")
+            
+            # Получаем значения свойств
+            hp_value = entry_hp.get().strip() or "400"
+            speed_raw = entry_speed.get().strip() or "1"
+            power_raw = entry_power.get().strip() or "0"
+            items_per_second_raw = entry_items_per_second.get().strip() or "10"
+            capacity_raw = entry_capacity.get().strip() or "20"
+            size_value = size_var.get()
+            rotateSpeed_raw = rotateSpeed_entry.get().strip() or "5"
+            
+            hp_value = str(int(float(hp_value)))
+            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+            
+            # Получаем кастомные предметы и жидкости
+            custom_items = self.get_custom_items()
+            custom_liquids = self.get_custom_liquids()
+            var_name = constructor_name
+            
+            # Проверяем, нужно ли добавить импорт ModLiquid
+            need_mod_liquid_import = False
+            if "ModLiquid." in fuel_liquids_raw:
+                need_mod_liquid_import = True
+            
+            # Формируем код для предметов строительства
+            build_itemstack_code = ""
+            build_items_list = []
+            if hasattr(self, 'build_items') and self.build_items:
+                item_counts = {}
+                for item in self.build_items:
+                    item_counts[item] = item_counts.get(item, 0) + 1
+                
+                item_parts = []
+                for item_name, count in item_counts.items():
+                    code_name = self.get_item_code_name(item_name, custom_items)
+                    item_parts.append(f"{code_name}, {count}")
+                    build_items_list.append((item_name, count))
+                
+                build_itemstack_code = f"\n            requirements(Category.{CATEDOR},\n                ItemStack.with({', '.join(item_parts)}));"
+            
+            # Формируем код для жидкостей топлива
+            fuel_liquids_code = ""
+            fuel_liquids_list = []
+            has_custom_liquids = False
+            
+            if hasattr(self, 'fuel_liquids_with_amount') and self.fuel_liquids_with_amount:
+                fuel_parts = []
+                for liquid_name, amount in self.fuel_liquids_with_amount:
+                    if liquid_name in custom_liquids:
+                        code_name = f"ModLiquid.{liquid_name}"
+                        has_custom_liquids = True
+                        need_mod_liquid_import = True
+                    else:
+                        code_name = f"Liquids.{liquid_name}"
+                    fuel_parts.append(f"{code_name}, {amount}")
+                    fuel_liquids_list.append((liquid_name, amount))
+                
+                if fuel_parts:
+                    fuel_liquids_code = f"\n            consumes(new ConsumeLiquidFilter({', '.join(fuel_parts)}));"
+            
+            # Формируем свойства моста
+            properties = f"""    health = {hp_value};
+                            size = {size_value};
+                            buildTime = {speed_raw};
+                            alwaysUnlocked = {always_unlocked_value};
+                            buildVisibility = BuildVisibility.shown;
+                            category = Category.{CATEDOR};{build_itemstack_code}
+                            powerConsumption = {power_raw};
+                            outputAmount = {items_per_second_raw};
+                            result = {fuel_liquids_raw};
+                            liquidCapacity = {capacity_raw};
+                            rotateSpeed = {rotateSpeed_raw};{fuel_liquids_code}
+
+                            localizedName = Core.bundle.get("{var_name}.name", "OH NO");
+                            description = Core.bundle.get("{var_name}.description", "OH NO");"""
+            
+            # Пути к файлам
+            mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
+            block_registration_path = self.get_absolute_path(f"src/{mod_name_lower}/init/blocks/{FOLDER}/{NAME}.java")
+            main_mod_path = Path(self.mod_folder) / "src" / mod_name_lower / f"{self.mod_name}JavaMod.java"
+            
+            # Создаем родительскую папку
+            block_registration_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Читаем или создаем файл регистрации блоков
+            try:
+                with open(block_registration_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                # Базовое содержимое файла
+                content = f"""package {mod_name_lower}.init.blocks.{FOLDER};
+
+    import arc.graphics.Color;
+    import arc.Core;
+    import mindustry.type.ItemStack;
+    import mindustry.type.Category;
+    import mindustry.world.Block;
+    import mindustry.world.blocks.distribution.ItemBridge;
+    import mindustry.world.meta.BuildVisibility;
+    import mindustry.content.Items;
+    import mindustry.Vars;
+    import {mod_name_lower}.init.items.ModItems;
+    import {mod_name_lower}.custom_types.blocks.pump.{CATENAME};"""
+
+                # Добавляем импорт ModLiquid если нужно
+                if need_mod_liquid_import:
+                    content += f"\nimport {mod_name_lower}.init.liquids.ModLiquid;"
+                
+                content += f"""
+
+    public class {NAME} {{
+        public static {CATENAME};
+                                                            
+        public static void Load() {{
+            // Регистрация блоков
+        }}
+    }}"""
+            
+            bridge_exists = var_name in content
+            tree_file_created = False
+            main_file_updated = False
+            
+            if not bridge_exists:
+                # Добавляем импорт ModLiquid в существующий файл, если его нет
+                if need_mod_liquid_import:
+                    import_liquid_statement = f"import {mod_name_lower}.init.liquids.ModLiquid;"
+                    if import_liquid_statement not in content:
+                        # Находим место для вставки импорта (после других импортов)
+                        lines = content.split('\n')
+                        insert_pos = -1
+                        for i, line in enumerate(lines):
+                            if line.startswith('import ') and i > insert_pos:
+                                insert_pos = i
+                        if insert_pos != -1:
+                            lines.insert(insert_pos + 1, import_liquid_statement)
+                            content = '\n'.join(lines)
+                        else:
+                            # Если нет импортов, вставляем после package
+                            package_end = content.find('package ') + len('package ')
+                            package_end = content.find('\n', package_end)
+                            if package_end != -1:
+                                lines = content.split('\n')
+                                lines.insert(1, import_liquid_statement)
+                                content = '\n'.join(lines)
+                
+                # Добавляем переменную блока
+                if f"public static {CATENAME};" in content:
+                    content = content.replace(
+                        f"public static {CATENAME};",
+                        f"public static {CATENAME} {var_name};"
+                    )
+                elif f"public static {CATENAME} " in content:
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if f"public static {CATENAME} " in line and var_name not in line:
+                            lines[i] = line.rstrip(';') + f", {var_name};"
+                            content = '\n'.join(lines)
+                            break
+                
+                # Добавляем инициализацию блока
+                load_start = content.find("public static void Load() {")
+                if load_start != -1:
+                    open_brace = content.find('{', load_start)
+                    if open_brace != -1:
+                        insert_pos = open_brace + 1
+                        indent = "        "
+                        bridge_code = f'\n{indent}{var_name} = new {CATENAME}("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        content = content[:insert_pos] + bridge_code + content[insert_pos:]
+                
+                # Сохраняем файл
+                with open(block_registration_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # Обновляем главный файл мода
+                try:
+                    with open(main_mod_path, 'r', encoding='utf-8') as file:
+                        main_content = file.read()
+                    
+                    # Добавляем импорт для ModLiquid, если нужно
+                    if need_mod_liquid_import:
+                        import_liquid_statement = f"import {mod_name_lower}.init.liquids.ModLiquid;"
+                        if import_liquid_statement not in main_content:
+                            import_add_pos = main_content.find("//import_add")
+                            if import_add_pos != -1:
+                                insert_pos = import_add_pos + len("//import_add")
+                                if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                    main_content = main_content[:insert_pos] + f"\n{import_liquid_statement}" + main_content[insert_pos:]
+                                else:
+                                    main_content = main_content[:insert_pos] + f"\n{import_liquid_statement}" + main_content[insert_pos:]
+                    
+                    # Добавляем импорт для блока
+                    import_statement = f"import {mod_name_lower}.init.blocks.{FOLDER}.{NAME};"
+                    if import_statement not in main_content:
+                        import_add_pos = main_content.find("//import_add")
+                        if import_add_pos != -1:
+                            insert_pos = import_add_pos + len("//import_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
+                    
+                    # Добавляем вызов Load
+                    load_statement = f"{NAME}.Load();"
+                    if load_statement not in main_content:
+                        registration_add_pos = main_content.find("//Registration_add")
+                        if registration_add_pos != -1:
+                            insert_pos = registration_add_pos + len("//Registration_add")
+                            if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                            else:
+                                main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
+                    
+                    with open(main_mod_path, 'w', encoding='utf-8') as file:
+                        file.write(main_content)
+                    
+                    main_file_updated = True
+                    
+                    # Создаем файл дерева технологий, если Always Unlocked = false
+                    if not always_unlocked_var.get():
+                        research_items_list = []
+                        if hasattr(self, 'research_items') and self.research_items:
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                research_items_list.append((item_name, count))
+                        
+                        research_block = selected_block_internal_var.get()
+                        
+                        # Используем универсальную функцию
+                        tree_file_created = self.create_tech_tree_file_universal(
+                            block_var_name=var_name,
+                            block_constructor_name=constructor_name,
+                            research_block=research_block,
+                            research_items=research_items_list,
+                            block_type="SolidPumpMMC",
+                            folder_name=FOLDER,
+                            class_name="SolidPumpTree"
+                        )
+                        
+                        if tree_file_created:
+                            self.update_main_mod_file_universal(
+                                import_path=f"{mod_name_lower}.content.SolidPumpTree",
+                                load_statement="SolidPumpTree.Load();"
+                            )
+                    
+                    # Формируем сообщение о результате
+                    status_messages = [
+                        LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
+                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
+                        LangT(f"{texture_status}"),
+                    ]
+                    
+                    # Добавляем информацию о Always Unlocked
+                    if always_unlocked_var.get():
+                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
+                    else:
+                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
+                    
+                    status_messages.extend([
+                        LangT(f"📊 Свойства {BL_NAME}:"),
+                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
+                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
+                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек"),
+                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw}"),
+                        LangT(f"  • 💾 Вместимость: {capacity_raw}")
+                    ])
+                    
+                    if build_items_list:
+                        items_list = []
+                        for item_name, count in build_items_list:
+                            if item_name in custom_items:
+                                items_list.append(f"ModItems.{item_name} ×{count}")
+                            else:
+                                display_name = item_name.replace('-', ' ').title()
+                                items_list.append(f"{display_name} ×{count}")
+                        
+                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
+                    
+                    if fuel_liquids_list:
+                        liquids_list = []
+                        for liquid_name, amount in fuel_liquids_list:
+                            if liquid_name in custom_liquids:
+                                liquids_list.append(f"ModLiquid.{liquid_name} ×{amount}/сек")
+                            else:
+                                liquids_list.append(f"{liquid_name.capitalize()} ×{amount}/сек")
+                        
+                        status_messages.append(LangT(f"  • 💧 Топливо: {', '.join(liquids_list)}"))
+                    
+                    if not always_unlocked_var.get():
+                        if hasattr(self, 'research_items') and self.research_items:
+                            research_list = []
+                            item_counts = {}
+                            for item in self.research_items:
+                                item_counts[item] = item_counts.get(item, 0) + 1
+                            
+                            for item_name, count in item_counts.items():
+                                if item_name in custom_items:
+                                    research_list.append(f"ModItems.{item_name} ×{count}")
+                                else:
+                                    display_name = item_name.replace('-', ' ').title()
+                                    research_list.append(f"{display_name} ×{count}")
+                            
+                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
+                        
+                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
+                        
+                        if tree_file_created:
+                            status_messages.append(LangT(f"  • 🌳 SolidPumpTree.java создан и добавлен в main (BridgesTree.Load())"))
+                        else:
+                            status_messages.append(LangT(f"  • ⚠️ SolidPumpTree.java не создан"))
+                    
+                    if main_file_updated:
+                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
+                    
+                    if need_mod_liquid_import:
+                        status_messages.append(LangT(f"  • 💧 Добавлен импорт ModLiquid в файлы"))
+                    
+                    status_text = "\n".join(status_messages)
+                    status_label.configure(text=status_text, text_color="#4CAF50")
+                    
+                except Exception as e:
+                    status_label.configure(text=LangT(f"❌ Ошибка: {str(e)}"), text_color="#F44336")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                status_label.configure(text=LangT(f"⚠️ {BL_NAME_2} '{var_name}' уже существует"), text_color="#FF9800")
+            
+            self.root.after(5000, lambda: status_label.configure(text=""))
+
+        # === Кнопки действий ===
+        buttons_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
+        buttons_frame.pack(pady=10)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Создать {BL_CR_NAME}").format(BL_CR_NAME=BL_CR_NAME),
+            command=process_bridge,
+            height=45,
+            width=200,
+            font=("Arial", 16, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("← Назад"),
+            command=self.back_to_main,
+            height=45,
+            width=120,
+            font=("Arial", 14),
+            fg_color="#424242",
+            hover_color="#616161",
+            corner_radius=10
+        ).pack(side="left", padx=15)
+        
+        # Инициализация переменных
+        self.build_items = []
+        self.research_items = []
+        self.fuel_liquids_with_amount = []
+            
 #----------ФУНКЦИИ 2----------
     def open_editor_with_target(self, selected_var, item_type, target):
         """
@@ -12304,7 +13362,7 @@ public class {NAME} {{
                             "consume_generators", "beam_nodes", 
                             "power_nodes", "shield_walls", "bridges",
                             "generic_crafter", "storage_block",
-                            "bridges_liquid"
+                            "bridges_liquid", "solid_pump"
                         ]
                     
                     # Ищем в двух вариантах путей
@@ -12588,7 +13646,8 @@ public class {NAME} {{
             ("generic_crafter", f"src/{mod_name_lower}/init/blocks/generic_crafter/GenericCrafters.java", LangT("🏭 Заводы")),
             ("bridges", f"src/{mod_name_lower}/init/blocks/bridges/Bridges.java", LangT("Мосты")),
             ("storage_block", f"src/{mod_name_lower}/init/blocks/Storages/Storages.java", LangT("хранилища")),
-            ("bridgesliquid", f"src/{mod_name_lower}/init/blocks/bridges_liquid/bridgesliquid.java", LangT("Жидкостный мост"))
+            ("bridgesliquid", f"src/{mod_name_lower}/init/blocks/bridges_liquid/bridgesliquid.java", LangT("Жидкостный мост")),
+            ("solidpump", f"src/{mod_name_lower}/init/blocks/solid_pump/SolidPump.java", LangT("Помпа"))
         ]
         
         for folder, file_path, display_prefix in block_files:
@@ -13812,6 +14871,251 @@ public class {NAME} {{
         for widget in self.root.winfo_children():
             widget.destroy()
 
+    def open_liquids_pump(self, selected_var, fuel_type):
+        """Открывает редактор выбора жидкости (только 1 жидкость, без количества)"""
+        # Сохраняем информацию о том, какой тип топлива редактируем
+        self.current_fuel_type = fuel_type
+        self.current_fuel_var = selected_var
+        
+        # Создаем окно редактора
+        editor_window = ctk.CTkToplevel(self.root)
+        
+        if fuel_type == "item":
+            editor_window.title(LangT("Выбор предмета для выхода"))
+        else:  # "liquid"
+            editor_window.title(LangT("Выбор жидкости для выхода"))
+        
+        editor_window.geometry("750x550")
+        editor_window.configure(fg_color="#2b2b2b")
+        editor_window.transient(self.root)
+        editor_window.grab_set()
+        
+        main_frame = ctk.CTkFrame(editor_window, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=8, pady=8)
+        
+        # Создаем вкладки
+        tabview = ctk.CTkTabview(main_frame, fg_color="#2b2b2b")
+        tabview.pack(fill="both", expand=True)
+        
+        mod_tab = tabview.add(LangT("📦 Из мода"))
+        vanilla_tab = tabview.add(LangT("⭐ Ванильное"))
+        
+        # Получаем кастомные и ванильные жидкости
+        custom_liquids = self.get_custom_liquids()
+        vanilla_liquids = self.default_liquids.copy()
+        
+        # Функция для выбора и закрытия
+        def select_and_close(liquid_name):
+            custom_liquids = self.get_custom_liquids()
+            
+            # Определяем, кастомная это жидкость или нет
+            if liquid_name in custom_liquids:
+                display_text = f"ModLiquid.{liquid_name}"
+            else:
+                display_text = f"Liquids.{liquid_name}"
+            
+            selected_var.set(display_text)
+            self.current_fuel_type = None
+            self.current_fuel_var = None
+            editor_window.destroy()
+        
+        def create_liquid_card(parent, liquid_name, is_custom):
+            """Создает карточку для выбора жидкости"""
+            CARD_WIDTH = 140
+            CARD_HEIGHT = 160
+            
+            card = ctk.CTkFrame(
+                parent, 
+                width=CARD_WIDTH, 
+                height=CARD_HEIGHT,
+                fg_color="#363636", 
+                corner_radius=10,
+                border_width=2,
+                border_color="#404040"
+            )
+            card.pack_propagate(False)
+            card.pack(side="left", padx=5, pady=5)
+            
+            # Иконка
+            icon_frame = ctk.CTkFrame(card, fg_color="transparent", width=60, height=60)
+            icon_frame.pack(pady=(15, 5))
+            icon_frame.pack_propagate(False)
+            
+            # Загрузка иконки
+            try:
+                from PIL import Image
+                
+                if is_custom:
+                    liquid_name_lower = liquid_name.lower()
+                    icon_paths = [
+                        Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{liquid_name_lower}.png",
+                        Path(self.mod_folder) / "sprites" / "liquids" / f"{liquid_name_lower}.png",
+                    ]
+                    
+                    icon_found = False
+                    for icon_path in icon_paths:
+                        if icon_path.exists():
+                            img = Image.open(icon_path)
+                            img = img.resize((50, 50), Image.Resampling.LANCZOS)
+                            ctk_img = ctk.CTkImage(img, size=(50, 50))
+                            ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
+                            icon_found = True
+                            break
+                    if not icon_found:
+                        ctk.CTkLabel(icon_frame, text="💧", font=("Arial", 40)).pack(expand=True)
+                else:
+                    icon_path = Path(resource_path("Creator/icons/liquids")) / f"{liquid_name.lower()}.png"
+                    if icon_path.exists():
+                        img = Image.open(icon_path)
+                        img = img.resize((50, 50), Image.Resampling.LANCZOS)
+                        ctk_img = ctk.CTkImage(img, size=(50, 50))
+                        ctk.CTkLabel(icon_frame, image=ctk_img, text="").pack(expand=True)
+                    else:
+                        emoji_map = {"water": "💧", "slag": "🌋", "oil": "🛢️", "cryofluid": "❄️"}
+                        emoji = emoji_map.get(liquid_name, "💧")
+                        ctk.CTkLabel(icon_frame, text=emoji, font=("Arial", 40)).pack(expand=True)
+            except Exception as e:
+                print(f"Error loading icon for {liquid_name}: {e}")
+                ctk.CTkLabel(icon_frame, text="💧", font=("Arial", 40)).pack(expand=True)
+            
+            # Название
+            if is_custom:
+                display_name = liquid_name[:15] + ("..." if len(liquid_name) > 15 else "")
+                name_color = "#4CAF50"
+            else:
+                display_name = liquid_name.capitalize()
+                display_name = display_name[:15] + ("..." if len(display_name) > 15 else "")
+                name_color = "#FFFFFF"
+            
+            name_label = ctk.CTkLabel(
+                card, 
+                text=display_name, 
+                font=("Arial", 11, "bold"),
+                wraplength=CARD_WIDTH-15,
+                text_color=name_color
+            )
+            name_label.pack(pady=5)
+            
+            # Разделитель
+            ctk.CTkFrame(card, height=1, fg_color="#404040").pack(fill="x", pady=6, padx=8)
+            
+            # Кнопка выбора
+            select_btn = ctk.CTkButton(
+                card,
+                text=LangT("Выбрать"),
+                width=80,
+                height=28,
+                font=("Arial", 11, "bold"),
+                fg_color="#1976D2",
+                hover_color="#1565C0",
+                corner_radius=6
+            )
+            select_btn.pack(pady=8)
+            
+            # При нажатии на кнопку - выбираем и закрываем
+            select_btn.configure(command=lambda: select_and_close(liquid_name))
+            
+            # При клике на карточку - выбираем и закрываем
+            card.bind("<Button-1>", lambda e: select_and_close(liquid_name))
+            name_label.bind("<Button-1>", lambda e: select_and_close(liquid_name))
+            icon_frame.bind("<Button-1>", lambda e: select_and_close(liquid_name))
+            
+            # Меняем курсор при наведении
+            card.bind("<Enter>", lambda e: card.configure(cursor="hand2"))
+            card.bind("<Leave>", lambda e: card.configure(cursor=""))
+            
+            # Подсветка при наведении
+            def on_enter(e):
+                card.configure(fg_color="#404040")
+            
+            def on_leave(e):
+                card.configure(fg_color="#363636")
+            
+            card.bind("<Enter>", on_enter)
+            card.bind("<Leave>", on_leave)
+            
+            return card
+        
+        def populate_tab(parent_tab, elements, is_custom):
+            """Заполняет вкладку элементами в grid"""
+            for widget in parent_tab.winfo_children():
+                widget.destroy()
+            
+            scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
+            scroll_frame.pack(fill="both", expand=True)
+            
+            if not elements:
+                empty_label = ctk.CTkLabel(
+                    scroll_frame,
+                    text=LangT("📭 Нет элементов") + (LangT(" в моде") if is_custom else LangT(" (ванильных)")),
+                    font=("Arial", 14),
+                    text_color="#888888"
+                )
+                empty_label.pack(pady=50)
+                return
+            
+            cards_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            cards_container.pack(fill="both", expand=True)
+            
+            if isinstance(elements, dict):
+                sorted_elements = sorted(elements.keys())
+            else:
+                sorted_elements = sorted(elements)
+            
+            def calculate_grid():
+                container_width = cards_container.winfo_width()
+                if container_width < 10:
+                    return 1
+                CARD_WIDTH = 140
+                HORIZONTAL_PADDING = 10
+                cards_per_row = max(1, (container_width - HORIZONTAL_PADDING) // (CARD_WIDTH + HORIZONTAL_PADDING))
+                return cards_per_row
+            
+            def update_grid():
+                for widget in cards_container.winfo_children():
+                    widget.destroy()
+                
+                cards_per_row = calculate_grid()
+                current_row_frame = None
+                
+                for i, liquid_name in enumerate(sorted_elements):
+                    if i % cards_per_row == 0:
+                        current_row_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
+                        current_row_frame.pack(fill="x", pady=2)
+                    
+                    create_liquid_card(current_row_frame, liquid_name, is_custom)
+            
+            def on_resize(event):
+                update_grid()
+            
+            cards_container.bind("<Configure>", on_resize)
+            update_grid()
+        
+        populate_tab(mod_tab, custom_liquids, True)
+        populate_tab(vanilla_tab, vanilla_liquids, False)
+        
+        # Кнопка отмены (без кнопки Сохранить, так как выбор происходит сразу)
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=(15, 5))
+        
+        ctk.CTkButton(
+            button_frame,
+            text=LangT("❌ Закрыть"), 
+            width=130,
+            height=35,
+            font=("Arial", 12, "bold"),
+            fg_color="#f44336", 
+            hover_color="#d32f2f",
+            command=editor_window.destroy
+        ).pack(pady=5)
+        
+        def on_closing():
+            self.current_fuel_type = None
+            self.current_fuel_var = None
+            editor_window.destroy()
+        
+        editor_window.protocol("WM_DELETE_WINDOW", on_closing)
+     
 def create_block_creator(editor_instance):
     """
     Создает экземпляр BlockCreator

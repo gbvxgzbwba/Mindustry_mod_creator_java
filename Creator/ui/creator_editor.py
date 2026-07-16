@@ -146,7 +146,7 @@ class CreatorEditor:
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
         "generic_crafter", "bridges", "conveyors", "storage_block",
-        "bridges_liquid"
+        "bridges_liquid", "solid_pump"
     ]
     
     # Функции-обертки для блоков
@@ -240,6 +240,12 @@ class CreatorEditor:
     def create_bridge_liquid(self):
         if self.block_creator:
             self.block_creator.create_bridge_liquid()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+
+    def create_solid_pump(self):
+        if self.block_creator:
+            self.block_creator.create_solid_pump()
         else:
             print("Ошибка: block_creator не инициализирован")
             
@@ -447,7 +453,16 @@ class CreatorEditor:
                     elif "ModLiquid.Load();" in stripped:
                         modliquid_line = (i, line)
                         print(LangT(f"  🔹 Найден ModLiquid.Load() на строке {i + 1}"))
-                    elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", "BatteryTree.Load();", "SolarTree.Load();", "ShieldTree.Load();", "PowerNodeTree.Load();", "BeamTree.Load();", "GeneratorTree.Load();", "CrafterTree.Load();", "StoragesTree.Load();", "BridgesTree.Load();", "ConveyorTree.Load();", "LiquidBridgesTree.Load();", "GenericCrafterTree.Load();", "ConsumeGeneratorTree.Load();", "BeamNodeTree.Load();", "PowerNodeTree.Load();", "ShieldWallTree.Load();"]):
+                    elif any(tree_name in stripped for tree_name in ["Tree.Load();", "WallsTree.Load();", 
+                                                                     "BatteryTree.Load();", "SolarTree.Load();", 
+                                                                     "ShieldTree.Load();", "PowerNodeTree.Load();", 
+                                                                     "BeamTree.Load();", "GeneratorTree.Load();", 
+                                                                     "CrafterTree.Load();", "StoragesTree.Load();", 
+                                                                     "BridgesTree.Load();", "ConveyorTree.Load();", 
+                                                                     "LiquidBridgesTree.Load();", "GenericCrafterTree.Load();", 
+                                                                     "ConsumeGeneratorTree.Load();", "BeamNodeTree.Load();", 
+                                                                     "PowerNodeTree.Load();", "ShieldWallTree.Load();",
+                                                                     "SolidPumpTree.Load();"]):
                         tree_lines.append((i, line))
                         print(LangT(f"  🔻 Найден Tree.Load() на строке {i + 1}"))
                     else:
@@ -2478,7 +2493,8 @@ class CreatorEditor:
             (LangT("Мост"), "blocks/bridge-conveyor.png", self.create_bridge),
             (LangT("Конвейер"), "blocks/conveyor-0-0.png", self.create_conveyor),
             (LangT("storage"), "blocks/container.png", self.create_storage),
-            (LangT("Жидкостный мост"), "blocks/bridge-conveyor.png", self.create_bridge_liquid)
+            (LangT("Жидкостный мост"), "blocks/bridge-conveyor.png", self.create_bridge_liquid),
+            (LangT("Помпа"), "blocks/pump.png", self.create_solid_pump)
         ]
 
         blocks_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -2686,6 +2702,11 @@ class CreatorEditor:
                 "type": "bridges_liquid",
                 "class": "CircularBridgeLiquid",
                 "path": "src/{mod_name}/init/blocks/bridges_liquid/BridgesLiquid.java"
+            },
+            {
+                "type": "solid_pump",
+                "class": "SolidPumpMMC",
+                "path": "src/{mod_name}/init/blocks/solid_pump/SolidPump.java"
             }
         ]
         
@@ -3225,6 +3246,39 @@ class CreatorEditor:
         scroll_frame = ctk.CTkScrollableFrame(parent_tab, fg_color="#2b2b2b")
         scroll_frame.pack(fill="both", expand=True)
         
+        # Проверяем настройку hide_content
+        hide_content = self.settings.get("hide_content", False)
+        
+        if hide_content:
+            # Показываем сообщение, что загрузка отключена
+            info_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            info_frame.pack(fill="both", expand=True)
+            
+            # Иконка
+            ctk.CTkLabel(
+                info_frame,
+                text="🔒",
+                font=("Arial", 48),
+                text_color="#888888"
+            ).pack(pady=(50, 10))
+            
+            ctk.CTkLabel(
+                info_frame,
+                text=LangT("Загрузка контента отключена"),
+                font=("Arial", 18, "bold"),
+                text_color="#888888"
+            ).pack(pady=5)
+            
+            ctk.CTkLabel(
+                info_frame,
+                text=LangT("Включите 'Показывать контент' в настройках для отображения"),
+                font=("Arial", 12),
+                text_color="#666666"
+            ).pack(pady=5)
+            
+            return
+        
+        # Остальной код метода (без изменений)
         mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
         blocks_config = {
             "item": {
@@ -3311,6 +3365,13 @@ class CreatorEditor:
                 "icon": " ",
                 "display": LangT("Жидкостный мост"),
                 "sprite_folder": "bridges_liquid"
+            },
+            "solid_pump": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/solid_pump/SolidPump.java"],
+                "class": "SolidPumpMMC",
+                "icon": " ",
+                "display": LangT("Помпа"),
+                "sprite_folder": "solid_pump"
             }
         }
         
@@ -3574,13 +3635,6 @@ class CreatorEditor:
                                 font=("Arial", 10), 
                                 text_color="#4CAF50" if has_sprite else "#F44336")
                     sprite_status.pack()
-                    
-                    #def make_right_click_handler(name=block_name, type_name=block_type):
-                    #    return lambda event: self.on_element_right_click(event, name, type_name, card)
-                    #
-                    #card.bind("<Button-1>", make_right_click_handler())
-                    #name_label.bind("<Button-1>", make_right_click_handler())
-                    #sprite_status.bind("<Button-1>", make_right_click_handler())
             
             def on_resize(event):
                 if cards_container.winfo_children():
@@ -4392,7 +4446,7 @@ class CreatorEditor:
                             return
                     
                     shutil.copy2(source_path, target_path)
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Файл '{source_path.name}' загружен!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Файл '{source_path}' загружен!").format(source_path=source_path.name))
                     update_texture_filter()
                     
             except Exception as e:
@@ -4408,7 +4462,7 @@ class CreatorEditor:
             """Создание новой папки в текущей директории"""
             dialog = ctk.CTkToplevel(self.root)
             dialog.title(LangT("Создать папку"))
-            dialog.geometry("400x150")
+            dialog.geometry("400x200")
             dialog.resizable(False, False)
             dialog.transient(self.root)
             dialog.grab_set()
@@ -4440,7 +4494,7 @@ class CreatorEditor:
                 
                 try:
                     new_path.mkdir(parents=True, exist_ok=True)
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ Папка '{folder_name}' создана!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ Папка '{folder_name}' создана!").format(folder_name=folder_name))
                     dialog.destroy()
                     update_texture_filter()
                 except Exception as e:
@@ -4514,12 +4568,10 @@ class CreatorEditor:
         # ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ ФАЙЛАМИ
         def delete_texture_item(path, name, item_type):
             """Удаление файла или папки"""
-            type_text = "папку" if item_type == "folder" else "файл"
+            type_text = LangT("папку") if item_type == "folder" else LangT("файл")
             if messagebox.askyesno(
                 LangT("Подтверждение удаления"),
-                LangT(f"Вы уверены, что хотите удалить {type_text} '{name}'?\n\n"
-                      f"Путь: {path}\n"
-                      f"⚠️ Это действие необратимо!"),
+                LangT("Вы уверены, что хотите удалить {type_text} '{name}'?\n\n Путь: {path}\n ⚠️ Это действие необратимо!").format(type_text=type_text, name=name, path=path),
                 icon='warning'
             ):
                 try:
@@ -4528,7 +4580,7 @@ class CreatorEditor:
                     else:
                         path.unlink()
                     
-                    messagebox.showinfo(LangT("Успех"), LangT(f"✅ {type_text.capitalize()} '{name}' удалена!"))
+                    messagebox.showinfo(LangT("Успех"), LangT("✅ {type_text} '{name}' удалена!").format(name=name, type_text=type_text.capitalize()))
                     update_texture_filter()
                 except Exception as e:
                     messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось удалить:\n{str(e)}"))
