@@ -116,32 +116,78 @@ class CreatorEditor:
         """Загружает настройки из файла"""
         default_settings = {
             "language": "ru",
-            "save_folder": "mods"
+            "save_folder": "mods",
+            "hide_content": False,
+            "game_path": ""  # Добавлено
         }
-        
+
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
         settings_dir = Path(appdata) / "MindustryModCreator"
         settings_dir.mkdir(parents=True, exist_ok=True)
         self.settings_file = settings_dir / "settings.json"
+        
+        print(f"Загрузка настроек из: {self.settings_file}")
 
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
-                    # Добавляем недостающие ключи
+                    print(f"Загружены настройки: {settings}")
                     for key, value in default_settings.items():
                         if key not in settings:
                             settings[key] = value
                     return settings
             except Exception as e:
                 print(f"Ошибка загрузки настроек: {e}")
-                return default_settings
+                return default_settings.copy()
         else:
+            print("Файл настроек не найден, создаю новый")
             self.save_settings(default_settings)
-            return default_settings
+            return default_settings.copy()
     
+    def launch_game(self):
+        """Запускает игру Mindustry"""
+        game_path = self.settings.get("game_path", "").strip()
+        
+        if not game_path:
+            messagebox.showerror(
+                LangT("Ошибка"),
+                LangT("Путь к игре не указан!\n\nУкажите путь к Mindustry в настройках (⚙ Настройки → Путь к игре).")
+            )
+            return
+        
+        if not os.path.exists(game_path):
+            messagebox.showerror(
+                LangT("Ошибка"),
+                LangT("Файл не найден!\n\nПуть: {game_path}\n\nУкажите правильный путь в настройках.").format(game_path=game_path)
+            )
+            return
+        
+        try:
+            # Определяем способ запуска в зависимости от расширения
+            if game_path.endswith('.exe'):
+                # Windows .exe файл
+                subprocess.Popen([game_path], shell=True)
+            elif game_path.endswith('.jar'):
+                # JAR файл - запускаем через java
+                java_cmd = ["java", "-jar", game_path]
+                subprocess.Popen(java_cmd, shell=True)
+            elif game_path.endswith('.app'):
+                # macOS .app
+                subprocess.Popen(["open", game_path])
+            else:
+                # Пробуем запустить как есть
+                subprocess.Popen([game_path], shell=True)
+            
+            messagebox.showinfo(LangT("Информация"), LangT("✅ Игра запущена!"))
+            
+        except Exception as e:
+            messagebox.showerror(
+                LangT("Ошибка"),
+                LangT("Не удалось запустить игру:\n\n{error}").format(error=str(e))
+            )
+        
     #block folder
-    #HDB-B
     PATEH_FOLDER = [
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
@@ -150,7 +196,6 @@ class CreatorEditor:
     ]
     
     # Функции-обертки для блоков
-    #HDB-B
     def create_wall(self):
         """Создание стены (обертка)"""
         if self.block_creator:
@@ -2899,16 +2944,41 @@ class CreatorEditor:
             name_entries.clear()
             desc_entries.clear()
             
+            # Контейнер для сетки 3 колонки
+            grid_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            grid_frame.pack(fill="both", expand=True)
+            
+            # Счетчик для позиционирования
+            col_count = 0
+            row_count = 0
+            
             for key, name_value in translations.items():
                 # Пропускаем ключи .description - они обрабатываются отдельно
                 if key.endswith('.description'):
                     continue
                 
-                # Основной фрейм для элемента
-                item_frame = ctk.CTkFrame(frame, fg_color="#3a3a3a", corner_radius=8)
-                item_frame.pack(fill="x", pady=5, padx=5)
+                # Основной фрейм для элемента (карточка)
+                item_frame = ctk.CTkFrame(
+                    grid_frame, 
+                    fg_color="#3a3a3a", 
+                    corner_radius=8,
+                    border_width=1,
+                    border_color="#555555"
+                )
+                # Размещаем в сетке 3 колонки
+                item_frame.grid(
+                    row=row_count, 
+                    column=col_count, 
+                    padx=5, 
+                    pady=5, 
+                    sticky="nsew"
+                )
                 
-                # Заголовок с ключом
+                # Настройка веса для равномерного распределения
+                grid_frame.grid_columnconfigure(col_count, weight=1, uniform="col")
+                grid_frame.grid_rowconfigure(row_count, weight=1)
+                
+                # Строка 1: Заголовок с ключом
                 ctk.CTkLabel(
                     item_frame,
                     text=key,
@@ -2916,7 +2986,7 @@ class CreatorEditor:
                     text_color="#4CAF50"
                 ).pack(anchor="w", padx=10, pady=(10, 5))
                 
-                # Название
+                # Строка 2: Название
                 name_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
                 name_frame.pack(fill="x", padx=10, pady=5)
                 
@@ -2924,20 +2994,21 @@ class CreatorEditor:
                     name_frame,
                     text=LangT("Название:"),
                     font=("Arial", 10),
-                    width=80
+                    width=70
                 ).pack(side="left")
                 
                 name_var = tk.StringVar(value=name_value)
                 name_entry = ctk.CTkEntry(
                     name_frame,
                     textvariable=name_var,
-                    font=("Arial", 11),
-                    placeholder_text=LangT("Введите название...")
+                    font=("Arial", 10),
+                    placeholder_text=LangT("Введите..."),
+                    height=30
                 )
                 name_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
                 name_entries[key] = name_var
                 
-                # Описание
+                # Строка 3: Описание
                 item_base_name = key.replace('.name', '')
                 desc_key = f"{item_base_name}.description"
                 desc_value = descriptions.get(desc_key, "")
@@ -2949,18 +3020,27 @@ class CreatorEditor:
                     desc_frame,
                     text=LangT("Описание:"),
                     font=("Arial", 10),
-                    width=80
+                    width=70
                 ).pack(side="left")
                 
                 desc_var = tk.StringVar(value=desc_value)
                 desc_entry = ctk.CTkEntry(
                     desc_frame,
                     textvariable=desc_var,
-                    font=("Arial", 11),
-                    placeholder_text=LangT("Введите описание...")
+                    font=("Arial", 10),
+                    placeholder_text=LangT("Введите..."),
+                    height=30
                 )
                 desc_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
                 desc_entries[desc_key] = desc_var
+                
+                # Увеличиваем счетчик колонок
+                col_count += 1
+                
+                # Если заполнили 3 колонки - переходим на новую строку
+                if col_count >= 3:
+                    col_count = 0
+                    row_count += 1
             
             # Если нет переводов
             if not translations:
@@ -2970,7 +3050,7 @@ class CreatorEditor:
                     font=("Arial", 12),
                     text_color="#888888"
                 ).pack(pady=50)
-        
+              
         # ==== ФУНКЦИЯ СОХРАНЕНИЯ ====
         def collect_translations_from_ui():
             """Собирает переводы из полей ввода UI"""
@@ -3051,10 +3131,10 @@ class CreatorEditor:
                 messagebox.showinfo(
                     LangT("Успех"), 
                     LangT(f"Bundle файлы успешно созданы в папке /assets/bundles/\n\n"
-                          f"• bundle.properties: {total_en} записей\n"
-                          f"• bundle_ru.properties: {total_ru} записей\n\n"
-                          f"Пример использования в игре:\n"
-                          f"ModItems.redStone = \"redStone.name\"")
+                        f"• bundle.properties: {total_en} записей\n"
+                        f"• bundle_ru.properties: {total_ru} записей\n\n"
+                        f"Пример использования в игре:\n"
+                        f"ModItems.redStone = \"redStone.name\"")
                 )
                 
             except Exception as e:
@@ -3130,7 +3210,7 @@ class CreatorEditor:
         
         # === ЗАПУСКАЕМ АВТОМАТИЧЕСКИЙ ПОИСК ПРИ ОТКРЫТИИ ===
         self.root.after(100, auto_search)
-
+    
     def setup_actions_panel(self, parent):
         """Настройка панели действий"""
         ctk.CTkLabel(parent, text=LangT("Действия"), font=("Arial", 14, "bold")).pack(pady=8)
@@ -3190,6 +3270,15 @@ class CreatorEditor:
             height=35,
             font=("Arial", 12),
             command=self.compile_mod
+        ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("▶ Запустить игру"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.launch_game
         ).pack(pady=4)
 
         ctk.CTkButton(
@@ -4345,70 +4434,7 @@ class CreatorEditor:
         filter_frame = ctk.CTkFrame(top_panel, fg_color="#363636", corner_radius=8)
         filter_frame.pack(side="left", fill="x", expand=True)
         
-        ctk.CTkLabel(filter_frame, text=LangT("Фильтр:"), font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
-        
-        # Кнопка настроек
-        def show_texture_settings():
-            parent_window = self.root.winfo_toplevel()
-            
-            settings_window = ctk.CTkToplevel(parent_window)
-            settings_window.title(LangT("Настройки отображения текстур"))
-            settings_window.geometry("400x300")
-            settings_window.transient(parent_window)
-            settings_window.grab_set()
-            
-            settings_window.update_idletasks()
-            x = (settings_window.winfo_screenwidth() // 2) - (400 // 2)
-            y = (settings_window.winfo_screenheight() // 2) - (300 // 2)
-            settings_window.geometry(f'+{x}+{y}')
-            
-            ctk.CTkLabel(settings_window, text=LangT("Выберите типы для отображения"), 
-                        font=("Arial", 16, "bold")).pack(pady=15)
-            
-            settings_frame = ctk.CTkFrame(settings_window, fg_color="#2b2b2b", corner_radius=10)
-            settings_frame.pack(fill="both", expand=True, padx=20, pady=10)
-            
-            folder_var = tk.BooleanVar(value="folder" in self.selected_texture_types)
-            texture_var = tk.BooleanVar(value="texture" in self.selected_texture_types)
-            
-            folder_card = ctk.CTkFrame(settings_frame, fg_color="#363636", corner_radius=10, height=80)
-            folder_card.pack(fill="x", padx=10, pady=5)
-            ctk.CTkLabel(folder_card, text="📁", font=("Arial", 24)).pack(side="left", padx=15)
-            ctk.CTkLabel(folder_card, text=LangT("Папки"), font=("Arial", 13, "bold")).pack(side="left", padx=10)
-            folder_cb = ctk.CTkCheckBox(folder_card, text="", variable=folder_var, width=20,
-                                        fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
-            folder_cb.pack(side="right", padx=15)
-            
-            texture_card = ctk.CTkFrame(settings_frame, fg_color="#363636", corner_radius=10, height=80)
-            texture_card.pack(fill="x", padx=10, pady=5)
-            ctk.CTkLabel(texture_card, text="🖼️", font=("Arial", 24)).pack(side="left", padx=15)
-            ctk.CTkLabel(texture_card, text=LangT("Текстуры"), font=("Arial", 13, "bold")).pack(side="left", padx=10)
-            texture_cb = ctk.CTkCheckBox(texture_card, text="", variable=texture_var, width=20,
-                                        fg_color="#397E3C", checkbox_width=18, checkbox_height=18)
-            texture_cb.pack(side="right", padx=15)
-            
-            def apply_texture_settings():
-                selected = []
-                if folder_var.get():
-                    selected.append("folder")
-                if texture_var.get():
-                    selected.append("texture")
-                self.selected_texture_types = set(selected) if selected else set(["folder", "texture"])
-                update_texture_filter()
-                settings_window.destroy()
-            
-            btn_frame = ctk.CTkFrame(settings_window, fg_color="transparent")
-            btn_frame.pack(fill="x", padx=20, pady=15)
-            
-            ctk.CTkButton(btn_frame, text=LangT("Применить"), command=apply_texture_settings,
-                        fg_color="#397E3C", width=100, height=32).pack(side="right", padx=5)
-            ctk.CTkButton(btn_frame, text=LangT("Отмена"), command=settings_window.destroy,
-                        fg_color="#AD4038", width=100, height=32).pack(side="right", padx=5)
-        
-        settings_btn = ctk.CTkButton(filter_frame, text=LangT("⚙️ Настройки"), width=120, height=32, 
-                                    font=("Arial", 12), fg_color="#397E3C",
-                                    command=show_texture_settings)
-        settings_btn.pack(side="left", padx=5)
+        ctk.CTkLabel(filter_frame, text=LangT("TexturesP:"), font=("Arial", 12, "bold"), width=60).pack(side="left", padx=10)
         
         # КНОПКА ЗАГРУЗКИ ФАЙЛА
         def upload_texture():
@@ -4453,8 +4479,8 @@ class CreatorEditor:
                 messagebox.showerror(LangT("Ошибка"), LangT(f"Не удалось загрузить файл:\n{str(e)}"))
         
         upload_btn = ctk.CTkButton(filter_frame, text=LangT("📤 Загрузить"), width=120, height=32, 
-                                  font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
-                                  command=upload_texture)
+                                font=("Arial", 12), fg_color="#4CAF50", hover_color="#388E3C",
+                                command=upload_texture)
         upload_btn.pack(side="left", padx=5)
         
         # КНОПКА СОЗДАНИЯ ПАПКИ
@@ -4514,8 +4540,8 @@ class CreatorEditor:
                         fg_color="#AD4038", width=100).pack(side="left", padx=5)
         
         create_folder_btn = ctk.CTkButton(filter_frame, text=LangT("📁 Новая папка"), width=120, height=32, 
-                                         font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
-                                         command=create_texture_folder)
+                                        font=("Arial", 12), fg_color="#2196F3", hover_color="#1976D2",
+                                        command=create_texture_folder)
         create_folder_btn.pack(side="left", padx=5)
         
         # Кнопка "Назад"
@@ -4527,21 +4553,6 @@ class CreatorEditor:
         back_btn = ctk.CTkButton(filter_frame, text=LangT("← Назад"), width=80, height=32,
                                 fg_color="#555555", command=go_back_texture, state="disabled")
         back_btn.pack(side="left", padx=5)
-        
-        def update_filter_label():
-            if len(self.selected_texture_types) == 2:
-                filter_label.configure(text=LangT("Все типы"))
-            elif len(self.selected_texture_types) == 1:
-                if "folder" in self.selected_texture_types:
-                    filter_label.configure(text=LangT("Только папки"))
-                else:
-                    filter_label.configure(text=LangT("Только текстуры"))
-            else:
-                filter_label.configure(text=LangT("Ничего не выбрано"))
-        
-        filter_label = ctk.CTkLabel(filter_frame, text=LangT("Все типы"), 
-                                    font=("Arial", 11), text_color="#AAAAAA")
-        filter_label.pack(side="left", padx=10)
         
         # Информация о текущем пути
         path_label = ctk.CTkLabel(filter_frame, text="", font=("Arial", 10), text_color="#888888")
@@ -4673,8 +4684,6 @@ class CreatorEditor:
                     path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
             except:
                 path_label.configure(text=LangT("Путь: assets/sprites/{rel_path}").format(rel_path=rel_path))
-            
-            update_filter_label()
             
             if not current_content:
                 error_frame = ctk.CTkFrame(cards_container, fg_color="transparent")
@@ -4828,7 +4837,7 @@ class CreatorEditor:
         
         # Загружаем начальное содержимое
         update_texture_filter()
-        
+         
     def _copy_to_clipboard(self, text):
         """Копирование в буфер обмена"""
         self.root.clipboard_clear()

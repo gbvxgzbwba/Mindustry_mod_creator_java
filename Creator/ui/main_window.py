@@ -12,7 +12,7 @@ import io
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 import sys
 import re
 from Creator.utils.lang_system import LangT, get_current_language
@@ -65,7 +65,8 @@ class MainWindow:
         default_settings = {
             "language": "ru",
             "save_folder": "mods",
-            "hide_content": False  # Добавлено
+            "hide_content": False,
+            "game_path": ""  # Добавлено - путь к игре
         }
 
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
@@ -116,15 +117,15 @@ class MainWindow:
         
         settings_window = ctk.CTkToplevel(self.root)
         settings_window.title(LangT("Настройки"))
-        settings_window.geometry("450x450")
+        settings_window.geometry("450x550")  # Увеличил высоту
         settings_window.transient(self.root)
         settings_window.grab_set()
         
         # Центрируем окно
         settings_window.update_idletasks()
         x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
-        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (450 // 2)
-        settings_window.geometry(f"450x450+{x}+{y}")
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (550 // 2)
+        settings_window.geometry(f"450x550+{x}+{y}")
         
         # Основной фрейм с прокруткой
         main_scroll = ctk.CTkScrollableFrame(settings_window, fg_color="transparent")
@@ -197,7 +198,6 @@ class MainWindow:
             font=("Arial", 14)
         ).pack(side="left", padx=(0, 10))
         
-        # Переменная для состояния переключателя
         hide_content_var = ctk.BooleanVar(value=not self.settings.get("hide_content", False))
         
         hide_content_switch = ctk.CTkSwitch(
@@ -213,10 +213,85 @@ class MainWindow:
         )
         hide_content_switch.pack(side="left")
         
-        # Пояснение
         ctk.CTkLabel(
             main_scroll,
             text=LangT("Отключите для скрытия списка блоков/предметов в редакторе"),
+            font=("Arial", 10),
+            text_color="#888888"
+        ).pack(pady=(0, 5))
+        
+        # === РАЗДЕЛИТЕЛЬ ===
+        ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
+        
+        # === ПУТЬ К ИГРЕ ===
+        ctk.CTkLabel(main_scroll, text=LangT("Путь к исполняемому файлу Mindustry:"), font=("Arial", 14)).pack(pady=(10, 5))
+        
+        game_path_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
+        game_path_frame.pack(fill="x", pady=5)
+        
+        game_path_var = ctk.StringVar(value=self.settings.get("game_path", ""))
+        
+        game_path_entry = ctk.CTkEntry(
+            game_path_frame,
+            textvariable=game_path_var,
+            placeholder_text=LangT("Выберите путь к Mindustry.exe или Mindustry.jar"),
+            width=200,
+            height=35
+        )
+        game_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        
+        def browse_game_path():
+            """Открывает диалог выбора файла игры"""
+            filetypes = []
+            if platform.system() == "Windows":
+                filetypes = [(LangT("Исполняемые файлы"), "*.exe"), (LangT("JAR файлы"), "*.jar"), (LangT("Все файлы"), "*.*")]
+            elif platform.system() == "Darwin":  # macOS
+                filetypes = [(LangT("Приложения"), "*.app"), (LangT("JAR файлы"), "*.jar"), (LangT("Все файлы"), "*.*")]
+            else:  # Linux
+                filetypes = [(LangT("Все файлы"), "*.*")]
+            
+            selected_file = filedialog.askopenfilename(
+                title=LangT("Выберите Mindustry"),
+                filetypes=filetypes
+            )
+            if selected_file:
+                game_path_var.set(selected_file)
+        
+        browse_btn = ctk.CTkButton(
+            game_path_frame,
+            text=LangT("Обзор..."),
+            command=browse_game_path,
+            width=80,
+            height=35
+        )
+        browse_btn.pack(side="right")
+        
+        # Кнопка проверки пути
+        def check_game_path():
+            """Проверяет, существует ли файл игры"""
+            path = game_path_var.get().strip()
+            if not path:
+                messagebox.showwarning(LangT("Предупреждение"), LangT("Путь не указан!"))
+                return
+            
+            if os.path.exists(path):
+                messagebox.showinfo(LangT("Успех"), LangT("✅ Файл найден!"))
+            else:
+                messagebox.showerror(LangT("Ошибка"), LangT("❌ Файл не найден!"))
+        
+        check_btn = ctk.CTkButton(
+            main_scroll,
+            text=LangT("Проверить путь"),
+            command=check_game_path,
+            width=150,
+            height=30,
+            fg_color="#555555"
+        )
+        check_btn.pack(pady=5)
+        
+        ctk.CTkLabel(
+            main_scroll,
+            text=LangT("Укажите путь к Mindustry.exe (Windows) или Mindustry.jar для запуска игры"),
             font=("Arial", 10),
             text_color="#888888"
         ).pack(pady=(0, 5))
@@ -243,13 +318,17 @@ class MainWindow:
             selected_folder_display = display_var.get()
             save_path = folder_options[selected_folder_display]
             
-            # Получаем состояние переключателя (инвертируем, так как в настройках хранится hide_content)
+            # Получаем состояние переключателя
             hide_content = not hide_content_var.get()
+            
+            # Получаем путь к игре
+            game_path = game_path_var.get().strip()
             
             # Сохраняем настройки
             self.settings["language"] = selected_lang if selected_lang else "ru"
             self.settings["save_folder"] = save_path
             self.settings["hide_content"] = hide_content
+            self.settings["game_path"] = game_path
             self.save_settings()
             
             # Меняем язык в системе
@@ -259,11 +338,21 @@ class MainWindow:
             # Создаём папку если её нет
             try:
                 Path(save_path).mkdir(parents=True, exist_ok=True)
+                
+                # Проверяем путь к игре
+                game_status = LangT("Не указан")
+                if game_path:
+                    if os.path.exists(game_path):
+                        game_status = LangT("✅ Найден")
+                    else:
+                        game_status = LangT("❌ Не найден")
+                
                 messagebox.showinfo(
                     LangT("Успех"),
-                    LangT("Настройки сохранены\nПапка: {save_path}\nПоказ контента: {status}").format(
+                    LangT("Настройки сохранены\nПапка: {save_path}\nПоказ контента: {status}\nПуть к игре: {game_status}").format(
                         save_path=save_path,
-                        status=LangT("Включен") if not hide_content else LangT("Отключен")
+                        status=LangT("Включен") if not hide_content else LangT("Отключен"),
+                        game_status=game_status
                     )
                 )
                 settings_window.destroy()
@@ -294,7 +383,7 @@ class MainWindow:
             width=120,
             height=35
         ).pack(side="left", padx=10)
-    
+       
     def find_and_setup_java(self):
         """Находит или устанавливает Java 17"""
         #print("\n" + "="*50)

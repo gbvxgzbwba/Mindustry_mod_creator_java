@@ -3220,59 +3220,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 WallsTree.java создан и добавлен в main (WallsTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ WallsTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -3646,7 +3595,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название батареи!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -3874,60 +3823,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 🔋 Ёмкость: {buff_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 BatteryTree.java создан и добавлен в main (BatteryTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ BatteryTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -4301,7 +4198,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название солнечной панели!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -4531,60 +4428,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • ⚡ Производство энергии: {power_raw}/сек ({power_in_game_str} в коде)"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 SolarTree.java создан и добавлен в main (SolarTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ SolarTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -5037,7 +4882,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название экранированной стены!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -5279,63 +5124,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создана!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье стены: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек ({power_in_game_str} в коде)"),
-                        LangT(f"  • 🛡️ Здоровье щита: {shield_hp_raw}"),
-                        LangT(f"  • ⏱️ Перезарядка: {cooldown_raw}"),
-                        LangT(f"  • 🔄 Регенерация: {regen_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 ShieldWallTree.java создан и добавлен в main (ShieldWallTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ ShieldWallTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -5873,7 +5663,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название узла питания!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -6109,61 +5899,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 📡 Дальность: {range_raw}"),
-                        LangT(f"  • 🔌 Макс. подключений: {max_nodes_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 PowerNodeTree.java создан и добавлен в main (PowerNodeTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ PowerNodeTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -6675,7 +6412,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название лучевого узла!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -6909,60 +6646,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 📡 Дальность луча: {range_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 BeamNodeTree.java создан и добавлен в main (BeamNodeTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ BeamNodeTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -7482,7 +7167,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название генератора!"),
+                    text=LangT("❌ Ошибка: Введите название!"),
                     text_color="#F44336"
                 )
                 return
@@ -7758,86 +7443,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Мощность: {power_raw}/сек ({power_in_game_str} в коде)"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 📦 Вместимость предметов: {capacity_item_raw}"),
-                        LangT(f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if hasattr(self, 'fuel_items_with_amount') and self.fuel_items_with_amount:
-                        fuel_list = []
-                        for item_name, amount in self.fuel_items_with_amount:
-                            if item_name in custom_items:
-                                fuel_list.append(f"ModItems.{item_name} ×{amount}/сек")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                fuel_list.append(f"{display_name} ×{amount}/сек")
-                        
-                        if fuel_list:
-                            status_messages.append(LangT(f"  • 🔥 Предметное топливо: {', '.join(fuel_list)}"))
-                    
-                    if hasattr(self, 'fuel_liquids_with_amount') and self.fuel_liquids_with_amount:
-                        liquid_list = []
-                        for liquid_name, amount in self.fuel_liquids_with_amount:
-                            if liquid_name in custom_liquids:
-                                liquid_list.append(f"ModLiquids.{liquid_name} ×{amount}/сек")
-                            else:
-                                display_name = liquid_name.replace('-', ' ').title()
-                                liquid_list.append(f"{display_name} ×{amount}/сек")
-                        
-                        if liquid_list:
-                            status_messages.append(LangT(f"  • 💧 Жидкое топливо: {', '.join(liquid_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 ConsumeGeneratorTree.java создан и добавлен в main (ConsumeGeneratorTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ ConsumeGeneratorTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -8474,7 +8081,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название завода!"),
+                    text=LangT("❌ Ошибка: Введите название!"),
                     text_color="#F44336"
                 )
                 return
@@ -8783,109 +8390,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⏱️ Время крафта: {craft_time_raw}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 📦 Вместимость предметов: {capacity_item_raw}"),
-                        LangT(f"  • 💧 Вместимость жидкости: {capacity_liquid_raw}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    # Потребление
-                    consume_list = []
-                    if hasattr(self, 'consume_items_with_amount') and self.consume_items_with_amount:
-                        for item_name, amount in self.consume_items_with_amount:
-                            if item_name in custom_items:
-                                consume_list.append(f"ModItems.{item_name} ×{int(amount)}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                consume_list.append(f"{display_name} ×{int(amount)}")
-                    
-                    if hasattr(self, 'consume_liquids_with_amount') and self.consume_liquids_with_amount:
-                        for liquid_name, amount in self.consume_liquids_with_amount:
-                            if liquid_name in custom_liquids:
-                                consume_list.append(f"ModLiquids.{liquid_name} ×{float(amount)}")
-                            else:
-                                display_name = liquid_name.replace('-', ' ').title()
-                                consume_list.append(f"{display_name} ×{float(amount)}")
-                    
-                    if self.consume_power_needed.get():
-                        power_amount = float(self.consume_power_amount.get())
-                        power_in_game = power_amount / 60.0
-                        consume_list.append(LangT(f"⚡ {power_amount} энергии/сек ({power_in_game:.4f}f)"))
-                    
-                    if consume_list:
-                        status_messages.append(LangT(f"  • ⬇️ Потребление: {', '.join(consume_list)}"))
-                    
-                    # Выход
-                    output_list = []
-                    if hasattr(self, 'output_items_with_amount') and self.output_items_with_amount:
-                        for item_name, amount in self.output_items_with_amount:
-                            if item_name in custom_items:
-                                output_list.append(f"ModItems.{item_name} ×{int(amount)}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                output_list.append(f"{display_name} ×{int(amount)}")
-                    
-                    if hasattr(self, 'output_liquids_with_amount') and self.output_liquids_with_amount:
-                        for liquid_name, amount in self.output_liquids_with_amount:
-                            if liquid_name in custom_liquids:
-                                output_list.append(f"ModLiquids.{liquid_name} ×{float(amount)}")
-                            else:
-                                display_name = liquid_name.replace('-', ' ').title()
-                                output_list.append(f"{display_name} ×{float(amount)}")
-                    
-                    if output_list:
-                        status_messages.append(LangT(f"  • ⬆️ Выход: {', '.join(output_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 GenericCrafterTree.java создан и добавлен в main (GenericCrafterTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ GenericCrafterTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -9362,7 +8868,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название моста!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -9599,63 +9105,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек"),
-                        LangT(f"  • 📡 Радиус: {range_raw}"),
-                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw}"),
-                        LangT(f"  • 💾 Вместимость: {capacity_raw}"),
-                        LangT(f"  • 🔄 Круговой режим: {'Да' if circular_var.get() else 'Нет'}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 BridgesTree.java создан и добавлен в main (BridgesTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ BridgesTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -10064,7 +9515,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название конвеера!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -10322,60 +9773,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw_no}"),
-                        LangT(f"  • 💾 Вместимость: {capacity_raw}")
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 ConveyorTree.java создан и добавлен в main (ConveyorTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ ConveyorTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -10751,7 +10150,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название хранилища!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -10980,60 +10379,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создано!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • 📏 Размер: {size_value}"),
-                        LangT(f"  • 📦 Вместимость: {capacity_value}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 StoragesTree.java создан и добавлен в main (StoragesTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ StoragesTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -11084,7 +10431,7 @@ public class {NAME} {{
         PATEH_FOLDER = self.PATEH_FOLDER
 
         CATENAME = "CircularBridgeLiquid"
-        CATEDOR = "distribution"
+        CATEDOR = "liquid"
         TEMPO_ICON = "bridge-conveyor.png"
         TEMPO_ICON_END = "bridge-conveyor-end.png"
         TEMPO_ICON_ARROW = "bridge-conveyor-arrow.png"
@@ -11504,7 +10851,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название моста!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -11741,63 +11088,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек"),
-                        LangT(f"  • 📡 Радиус: {range_raw}"),
-                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw}"),
-                        LangT(f"  • 💾 Вместимость: {capacity_raw}"),
-                        LangT(f"  • 🔄 Круговой режим: {'Да' if circular_var.get() else 'Нет'}"),
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 LiquidBridgesTree.java создан и добавлен в main (BridgesTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ LiquidBridgesTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
@@ -12290,7 +11582,7 @@ public class {NAME} {{
             
             if not original_name:
                 status_label.configure(
-                    text=LangT("❌ Ошибка: Введите название моста!"), 
+                    text=LangT("❌ Ошибка: Введите название!"), 
                     text_color="#F44336"
                 )
                 return
@@ -12604,74 +11896,8 @@ public class {NAME} {{
                     # Формируем сообщение о результате
                     status_messages = [
                         LangT(f"✅ {BL_NAME_2} '{var_name}' успешно создан!"),
-                        LangT(f'📝 Имя в игре: "{constructor_name}"'),
                         LangT(f"{texture_status}"),
                     ]
-                    
-                    # Добавляем информацию о Always Unlocked
-                    if always_unlocked_var.get():
-                        status_messages.append(LangT("🔓 Always Unlocked: ДА (доступен с самого начала)"))
-                    else:
-                        status_messages.append(LangT("🔒 Always Unlocked: НЕТ (требуется исследование)"))
-                    
-                    status_messages.extend([
-                        LangT(f"📊 Свойства {BL_NAME}:"),
-                        LangT(f"  • ❤️ Здоровье: {hp_value}"),
-                        LangT(f"  • ⚡ Скорость стройки: {speed_raw}"),
-                        LangT(f"  • ⚡ Потребление энергии: {power_raw}/сек"),
-                        LangT(f"  • 📦 Предметов/сек: {items_per_second_raw}"),
-                        LangT(f"  • 💾 Вместимость: {capacity_raw}")
-                    ])
-                    
-                    if build_items_list:
-                        items_list = []
-                        for item_name, count in build_items_list:
-                            if item_name in custom_items:
-                                items_list.append(f"ModItems.{item_name} ×{count}")
-                            else:
-                                display_name = item_name.replace('-', ' ').title()
-                                items_list.append(f"{display_name} ×{count}")
-                        
-                        status_messages.append(LangT(f"  • 🔨 Стройка: {', '.join(items_list)}"))
-                    
-                    if fuel_liquids_list:
-                        liquids_list = []
-                        for liquid_name, amount in fuel_liquids_list:
-                            if liquid_name in custom_liquids:
-                                liquids_list.append(f"ModLiquid.{liquid_name} ×{amount}/сек")
-                            else:
-                                liquids_list.append(f"{liquid_name.capitalize()} ×{amount}/сек")
-                        
-                        status_messages.append(LangT(f"  • 💧 Топливо: {', '.join(liquids_list)}"))
-                    
-                    if not always_unlocked_var.get():
-                        if hasattr(self, 'research_items') and self.research_items:
-                            research_list = []
-                            item_counts = {}
-                            for item in self.research_items:
-                                item_counts[item] = item_counts.get(item, 0) + 1
-                            
-                            for item_name, count in item_counts.items():
-                                if item_name in custom_items:
-                                    research_list.append(f"ModItems.{item_name} ×{count}")
-                                else:
-                                    display_name = item_name.replace('-', ' ').title()
-                                    research_list.append(f"{display_name} ×{count}")
-                            
-                            status_messages.append(LangT(f"  • 💰 Исследование: {', '.join(research_list)}"))
-                        
-                        status_messages.append(LangT(f"  • 🎯 Блок исследования: {selected_block_var.get()}"))
-                        
-                        if tree_file_created:
-                            status_messages.append(LangT(f"  • 🌳 SolidPumpTree.java создан и добавлен в main (BridgesTree.Load())"))
-                        else:
-                            status_messages.append(LangT(f"  • ⚠️ SolidPumpTree.java не создан"))
-                    
-                    if main_file_updated:
-                        status_messages.append(LangT(f"  • 📄 Главный файл мода обновлен"))
-                    
-                    if need_mod_liquid_import:
-                        status_messages.append(LangT(f"  • 💧 Добавлен импорт ModLiquid в файлы"))
                     
                     status_text = "\n".join(status_messages)
                     status_label.configure(text=status_text, text_color="#4CAF50")
