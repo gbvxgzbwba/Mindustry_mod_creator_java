@@ -58,7 +58,46 @@ class MainWindow:
         # Проверяем Java при запуске
         self.find_and_setup_java()
         
+        # Инициализация автообновления (после загрузки настроек)
+        self.init_autoupdater()
+        
         self.show_main_ui()
+    
+    def init_autoupdater(self):
+        """Инициализирует модуль автообновления"""
+        try:
+            from Creator.utils.updater import AutoUpdater
+            
+            # Настройки репозитория
+            REPO_URL = "gbvxgzbwba/Mindustry_mod_creator_java"
+            EXE_CONFIGS = [
+                {"name": "MindustryModCreator.exe", "version_prefix": "noConsole"},
+                {"name": "MindustryModCreatorConsole.exe", "version_prefix": "Console"}
+            ]
+            
+            self.updater = AutoUpdater(REPO_URL, EXE_CONFIGS)
+            
+            # Проверяем обновления при запуске (если включено в настройках)
+            if self.settings.get("autoupdate", True):
+                print("🔍 Проверка обновлений при запуске...")
+                # Запускаем проверку в отдельном потоке, чтобы не блокировать UI
+                def check_updates():
+                    try:
+                        self.updater.check_and_update_autostart()
+                    except Exception as e:
+                        print(f"Ошибка проверки обновлений: {e}")
+                
+                thread = threading.Thread(target=check_updates, daemon=True)
+                thread.start()
+            else:
+                print("⏭️ Автообновление отключено в настройках")
+                
+        except ImportError as e:
+            print(f"⚠️ Модуль автообновления не найден: {e}")
+            self.updater = None
+        except Exception as e:
+            print(f"⚠️ Ошибка инициализации автообновления: {e}")
+            self.updater = None
     
     def load_settings(self):
         """Загружает настройки из файла"""
@@ -66,7 +105,8 @@ class MainWindow:
             "language": "ru",
             "save_folder": "mods",
             "hide_content": False,
-            "game_path": ""  # Добавлено - путь к игре
+            "game_path": "",
+            "autoupdate": True  # Добавлена настройка автообновления
         }
 
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
@@ -117,15 +157,15 @@ class MainWindow:
         
         settings_window = ctk.CTkToplevel(self.root)
         settings_window.title(LangT("Настройки"))
-        settings_window.geometry("450x550")  # Увеличил высоту
+        settings_window.geometry("450x650")  # Увеличил высоту для новой настройки
         settings_window.transient(self.root)
         settings_window.grab_set()
         
         # Центрируем окно
         settings_window.update_idletasks()
         x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (450 // 2)
-        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (550 // 2)
-        settings_window.geometry(f"450x550+{x}+{y}")
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (650 // 2)
+        settings_window.geometry(f"450x650+{x}+{y}")
         
         # Основной фрейм с прокруткой
         main_scroll = ctk.CTkScrollableFrame(settings_window, fg_color="transparent")
@@ -219,6 +259,87 @@ class MainWindow:
             font=("Arial", 10),
             text_color="#888888"
         ).pack(pady=(0, 5))
+        
+        # === РАЗДЕЛИТЕЛЬ ===
+        ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
+        
+        # === АВТООБНОВЛЕНИЕ ===
+        autoupdate_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
+        autoupdate_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(
+            autoupdate_frame,
+            text=LangT("Автоматическая проверка обновлений:"),
+            font=("Arial", 14)
+        ).pack(side="left", padx=(0, 10))
+        
+        autoupdate_var = ctk.BooleanVar(value=self.settings.get("autoupdate", True))
+        
+        autoupdate_switch = ctk.CTkSwitch(
+            autoupdate_frame,
+            text=LangT("Вкл") if autoupdate_var.get() else LangT("Выкл"),
+            variable=autoupdate_var,
+            command=lambda: autoupdate_switch.configure(
+                text=LangT("Вкл") if autoupdate_var.get() else LangT("Выкл")
+            ),
+            onvalue=True,
+            offvalue=False,
+            width=60
+        )
+        autoupdate_switch.pack(side="left")
+        
+        ctk.CTkLabel(
+            main_scroll,
+            text=LangT("Включите для автоматической проверки обновлений \n при запуске программы и установки"),
+            font=("Arial", 10),
+            text_color="#888888"
+        ).pack(pady=(0, 5))
+        
+        # Кнопка ручной проверки обновлений
+        def check_updates_now():
+            """Ручная проверка обновлений"""
+            if hasattr(self, 'updater') and self.updater:
+                # Показываем диалог с подтверждением
+                if messagebox.askyesno(
+                    LangT("Проверка обновлений"),
+                    LangT("Проверить наличие обновлений сейчас?")
+                ):
+                    # Запускаем проверку в отдельном потоке
+                    def check_thread():
+                        try:
+                            self.root.after(0, lambda: messagebox.showinfo(
+                                LangT("Проверка обновлений"),
+                                LangT("Проверка обновлений запущена...\nПожалуйста, подождите.")
+                            ))
+                            result = self.updater.check_and_update(show_dialog=True, parent=self.root, check_autoupdate=False)
+                            if not result:
+                                self.root.after(0, lambda: messagebox.showinfo(
+                                    LangT("Проверка обновлений"),
+                                    LangT("Обновлений не найдено или произошла ошибка.")
+                                ))
+                        except Exception as e:
+                            self.root.after(0, lambda: messagebox.showerror(
+                                LangT("Ошибка"),
+                                LangT("Ошибка проверки обновлений: {err}").format(err=str(e))
+                            ))
+                    
+                    thread = threading.Thread(target=check_thread, daemon=True)
+                    thread.start()
+            else:
+                messagebox.showwarning(
+                    LangT("Ошибка"),
+                    LangT("Модуль обновления не инициализирован.")
+                )
+        
+        ctk.CTkButton(
+            main_scroll,
+            text=LangT("🔄 Проверить обновления сейчас"),
+            command=check_updates_now,
+            width=200,
+            height=35,
+            fg_color="#555555",
+            hover_color="#666666"
+        ).pack(pady=10)
         
         # === РАЗДЕЛИТЕЛЬ ===
         ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
@@ -318,8 +439,11 @@ class MainWindow:
             selected_folder_display = display_var.get()
             save_path = folder_options[selected_folder_display]
             
-            # Получаем состояние переключателя
+            # Получаем состояние переключателя показа контента
             hide_content = not hide_content_var.get()
+            
+            # Получаем состояние автообновления
+            autoupdate_enabled = autoupdate_var.get()
             
             # Получаем путь к игре
             game_path = game_path_var.get().strip()
@@ -329,7 +453,15 @@ class MainWindow:
             self.settings["save_folder"] = save_path
             self.settings["hide_content"] = hide_content
             self.settings["game_path"] = game_path
+            self.settings["autoupdate"] = autoupdate_enabled
             self.save_settings()
+            
+            # Обновляем настройку автообновления в updater
+            if hasattr(self, 'updater') and self.updater:
+                try:
+                    self.updater.set_autoupdate(autoupdate_enabled)
+                except Exception as e:
+                    print(f"Ошибка обновления настроек автообновления: {e}")
             
             # Меняем язык в системе
             if selected_lang and selected_lang != get_current_language():
@@ -349,9 +481,10 @@ class MainWindow:
                 
                 messagebox.showinfo(
                     LangT("Успех"),
-                    LangT("Настройки сохранены\nПапка: {save_path}\nПоказ контента: {status}\nПуть к игре: {game_status}").format(
+                    LangT("Настройки сохранены\nПапка: {save_path}\nПоказ контента: {status}\nАвтообновление: {autoupdate_status}\nПуть к игре: {game_status}").format(
                         save_path=save_path,
                         status=LangT("Включен") if not hide_content else LangT("Отключен"),
+                        autoupdate_status=LangT("Включено") if autoupdate_enabled else LangT("Отключено"),
                         game_status=game_status
                     )
                 )
@@ -872,14 +1005,6 @@ class MainWindow:
     def setup_create_mod_panel(self, parent):
         """Панель для создания мода"""
         ctk.CTkLabel(parent, text="Mindustry Java Mod Creator", font=("Arial", 20, "bold")).pack(pady=30)
-        
-        # Показываем информацию о Java
-        #info_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        #info_frame.pack(pady=10)
-        #ctk.CTkLabel(info_frame, text=f"Java JDK 17: {self.java_path}", 
-                    #font=("Arial", 11), text_color="green").pack()
-        #ctk.CTkLabel(info_frame, text=f"Версия: {self.java_version}", 
-                    #font=("Arial", 11), text_color="green").pack()
         
         form_frame = ctk.CTkFrame(parent, fg_color="transparent")
         form_frame.pack(pady=30)

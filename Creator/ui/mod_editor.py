@@ -7,9 +7,17 @@ from pathlib import Path
 from tkinter import messagebox
 import os
 import zipfile
-import io
+import io, sys
 import re
 from Creator.utils.lang_system import LangT
+
+def resource_path(relative_path):
+    """Получить абсолютный путь к ресурсу (работает и в .py, и в .exe)"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class ModEditor:
     def __init__(self, root, mod_folder, main_app):
@@ -74,15 +82,18 @@ class ModEditor:
     def download_template(self):
         def download_thread():
             try:
-                template_url = "https://github.com/Anuken/MindustryModTemplate/archive/refs/heads/master.zip"
-                print(LangT("Скачиваю и распаковываю шаблон..."))
+                # Путь к локальному ZIP-файлу через resource_path
+                template_zip_path = Path(resource_path("template/MindustryJavaModTemplate-master.zip"))
                 
-                response = requests.get(template_url, timeout=60)
-                response.raise_for_status()
+                if not template_zip_path.exists():
+                    print(LangT("Локальный шаблон не найден: {path}").format(path=template_zip_path))
+                    self.root.after(0, lambda: self.show_error(LangT("Файл шаблона не найден в папке template")))
+                    return
                 
-                zip_data = io.BytesIO(response.content)
+                print(LangT("Копирую и распаковываю локальный шаблон..."))
                 
-                with zipfile.ZipFile(zip_data, 'r') as zip_ref:
+                with zipfile.ZipFile(template_zip_path, 'r') as zip_ref:
+                    # Определяем корневую папку в архиве
                     first_file = zip_ref.namelist()[0]
                     root_folder = first_file.split('/')[0]
                     
@@ -115,13 +126,12 @@ class ModEditor:
                 # Удаляем папку example если она существует
                 self.remove_example_folder()
                 
-                # После скачивания запускаем ввод параметров
+                # После распаковки запускаем ввод параметров
                 self.root.after(0, lambda: self.start_parameter_input(edit_existing=False))
                 
             except Exception as e:
                 print(LangT("Ошибка: {error}").format(error=e))
-                self.create_empty_structure()
-                self.root.after(0, lambda: self.start_parameter_input(edit_existing=False))
+                self.root.after(0, lambda: self.show_error(LangT("Ошибка при распаковке шаблона: {error}").format(error=e)))
         
         thread = threading.Thread(target=download_thread, daemon=True)
         thread.start()

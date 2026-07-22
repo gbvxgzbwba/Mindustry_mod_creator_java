@@ -2467,6 +2467,188 @@ class CreatorEditor:
             messagebox.showerror(LangT("Ошибка"), LangT(f"Ошибка при выборе файла:\n{e}"))
             return None
 
+    def edit_file_by_path(self, file_path, src_folder=None, parent_window=None):
+        """
+        Функция для редактирования файла по указанному пути
+        
+        Args:
+            file_path (str или Path): Путь к файлу для редактирования
+            src_folder (Path, optional): Путь к папке src для отображения относительного пути
+            parent_window (Tk, optional): Родительское окно для диалогов
+        """
+        from pathlib import Path
+        from tkinter import messagebox
+        import customtkinter as ctk
+        
+        # Преобразуем в Path если передан строкой
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+        
+        # Проверяем существование файла
+        if not file_path.exists():
+            messagebox.showerror(LangT("Ошибка"), LangT("Файл не найден:\n{file_path}"))
+            return None
+        
+        # Проверяем, что это файл, а не папка
+        if file_path.is_dir():
+            messagebox.showerror(LangT("Ошибка"), LangT("Указан путь к папке, а не к файлу"))
+            return None
+        
+        # Определяем родительское окно
+        if parent_window is None:
+            parent_window = self.root if hasattr(self, 'root') else None
+        
+        # Читаем содержимое файла
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            messagebox.showerror(LangT("Ошибка"), LangT("Не удалось прочитать файл:\n{str(e)}"))
+            return None
+        
+        # Создаем окно редактора
+        editor_window = ctk.CTkToplevel(parent_window)
+        editor_window.title(LangT("Редактор: {file_path}").format(file_path=file_path.name))
+        editor_window.geometry("800x600")
+        editor_window.minsize(600, 400)
+        if parent_window:
+            editor_window.transient(parent_window)
+            editor_window.grab_set()
+        
+        # Основной фрейм
+        main_frame = ctk.CTkFrame(editor_window)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Информация о файле
+        info_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        info_frame.pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=f"📄 {file_path.name}",
+            font=("Arial", 14, "bold"),
+            text_color="#4CAF50"
+        ).pack(side="left")
+        
+        # Путь к файлу
+        if src_folder:
+            try:
+                src_folder = Path(src_folder)
+                rel_path = file_path.relative_to(src_folder)
+                path_text = LangT("Путь: {rel_path}")
+            except:
+                path_text = LangT("Путь: {file_path}").format(file_path=file_path)
+        else:
+            path_text = LangT("Путь: {file_path}").format(file_path=file_path)
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=path_text,
+            font=("Arial", 10),
+            text_color="#888888"
+        ).pack(side="right")
+        
+        # Редактор кода (текстовое поле)
+        text_frame = ctk.CTkFrame(main_frame, fg_color="#1e1e1e", corner_radius=8)
+        text_frame.pack(fill="both", expand=True)
+        
+        text_editor = ctk.CTkTextbox(
+            text_frame,
+            font=("Consolas", 12),
+            fg_color="#1e1e1e",
+            text_color="#d4d4d4",
+            wrap="none",
+            border_width=2,
+            border_color="#404040"
+        )
+        text_editor.pack(fill="both", expand=True, padx=5, pady=5)
+        text_editor.insert("1.0", content)
+        
+        # Подсветка строк
+        def update_line_numbers(event=None):
+            cursor_pos = text_editor.index("insert")
+            line = cursor_pos.split('.')[0]
+            status_label.configure(text=LangT("Строка: {line} | Файл: {file_path}").format(line=line, file_path=file_path.name))
+        
+        text_editor.bind("<KeyRelease>", update_line_numbers)
+        text_editor.bind("<ButtonRelease-1>", update_line_numbers)
+        
+        # Статус бар
+        status_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=30)
+        status_frame.pack(fill="x", pady=(5, 0))
+        
+        status_label = ctk.CTkLabel(
+            status_frame,
+            text=LangT("Файл: {file_path}").format(file_path=file_path.name),
+            font=("Arial", 10),
+            text_color="#888888"
+        )
+        status_label.pack(side="left")
+        
+        # Кнопки внизу
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=10)
+        
+        def save_file():
+            """Сохранение файла"""
+            try:
+                new_content = text_editor.get("1.0", "end-1c")
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+                
+                messagebox.showinfo(LangT("Успех"), LangT("✅ Файл сохранен!"))
+                status_label.configure(text=LangT("✅ Сохранен: {file_path}").format(file_path=file_path.name), text_color="#4CAF50")
+                editor_window.after(2000, lambda: status_label.configure(
+                    text=LangT("Файл: {file_path}").format(file_path=file_path.name), text_color="#888888"))
+                
+            except Exception as e:
+                messagebox.showerror(LangT("Ошибка"), LangT("Не удалось сохранить файл:\n{str(e)}"))
+        
+        def close_editor():
+            if messagebox.askyesno(LangT("Подтверждение"), LangT("Закрыть редактор?")):
+                editor_window.destroy()
+        
+        # Кнопки
+        save_btn = ctk.CTkButton(
+            btn_frame,
+            text=LangT("💾 Сохранить"),
+            command=save_file,
+            height=35,
+            width=120,
+            font=("Arial", 12, "bold"),
+            fg_color="#2E7D32",
+            hover_color="#1B5E20"
+        )
+        save_btn.pack(side="left", padx=5)
+        
+        cancel_btn = ctk.CTkButton(
+            btn_frame,
+            text=LangT("❌ Закрыть"),
+            command=close_editor,
+            height=35,
+            width=120,
+            font=("Arial", 12),
+            fg_color="#AD4038",
+            hover_color="#8B2C2C"
+        )
+        cancel_btn.pack(side="left", padx=5)
+        
+        # Ctrl+S для сохранения
+        def on_ctrl_s(event):
+            save_file()
+            return "break"
+        
+        editor_window.bind("<Control-s>", on_ctrl_s)
+        editor_window.bind("<Control-S>", on_ctrl_s)
+        
+        # Escape для закрытия
+        editor_window.bind("<Escape>", lambda e: close_editor())
+        
+        # Обновляем строку при открытии
+        update_line_numbers()
+        
+        return editor_window
+
     #HDB-B
     def show_blocks_selection(self):
         """Окно выбора типа блока для создания"""
@@ -3288,6 +3470,15 @@ class CreatorEditor:
             height=35,
             font=("Arial", 12),
             command=self.choose_mod_icon_tkinter
+        ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Редактировать 'mod.hjson'"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=lambda:self.edit_file_by_path(self.mod_folder/"mod.hjson")
         ).pack(pady=4)
         
         ctk.CTkButton(
