@@ -83,7 +83,7 @@ class ModEditor:
         def download_thread():
             try:
                 # Путь к локальному ZIP-файлу через resource_path
-                template_zip_path = Path(resource_path("template/MindustryJavaModTemplate-master.zip"))
+                template_zip_path = Path(resource_path("Creator/template/MindustryJavaModTemplate-master.zip"))
                 
                 if not template_zip_path.exists():
                     print(LangT("Локальный шаблон не найден: {path}").format(path=template_zip_path))
