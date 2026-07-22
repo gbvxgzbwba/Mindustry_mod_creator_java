@@ -20,6 +20,7 @@ pyinstaller --onefile ^
     --name "MindustryModCreator" ^
     --noconsole ^
     --add-data "Creator;Creator" ^
+    --add-data "Creator;template" ^
     --add-data "Creator;icons" ^
     --add-data "Creator;utils" ^
     --add-data "Creator;langs" ^
@@ -41,6 +42,7 @@ pyinstaller --onefile ^
 pyinstaller --onefile ^
     --name "MindustryModCreatorConsole" ^
     --add-data "Creator;Creator" ^
+    --add-data "Creator;template" ^
     --add-data "Creator;icons" ^
     --add-data "Creator;utils" ^
     --add-data "Creator;langs" ^
