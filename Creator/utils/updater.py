@@ -50,10 +50,74 @@ class AutoUpdater:
         self.current_exe = os.path.basename(sys.executable) if getattr(sys, 'frozen', False) else None
         self.current_config = self._find_current_config()
         
+        # Загружаем настройки (используем тот же путь, что и в creator_editor.py)
+        self.settings = self._load_settings()
+        
+        # Флаг автообновления (по умолчанию True, если настройка не найдена)
+        self.autoupdate_enabled = self._get_autoupdate_setting()
+        
         print(f"Текущая директория: {self.current_dir}")
         print(f"Текущий EXE: {self.current_exe}")
         print(f"Файл версии: {self.version_path}")
-        
+        print(f"Автообновление: {'Включено' if self.autoupdate_enabled else 'Отключено'}")
+    
+    def _load_settings(self):
+        """Загрузить настройки из файла settings.json в APPDATA"""
+        try:
+            # Используем тот же путь, что и в creator_editor.py
+            appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+            settings_dir = Path(appdata) / "MindustryModCreator"
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = settings_dir / "settings.json"
+            
+            if settings_file.exists():
+                with open(settings_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            else:
+                # Если файла нет, создаем с настройками по умолчанию
+                default_settings = {
+                    "autoupdate": True,
+                    "language": "ru",
+                    "save_folder": "mods",
+                    "hide_content": False,
+                    "game_path": ""
+                }
+                self._save_settings(default_settings)
+                return default_settings
+        except Exception as e:
+            print(f"Ошибка при загрузке настроек: {e}")
+            return {"autoupdate": True}
+    
+    def _save_settings(self, settings):
+        """Сохранить настройки в файл settings.json в APPDATA"""
+        try:
+            appdata = os.getenv('APPDATA') or os.path.expanduser("~")
+            settings_dir = Path(appdata) / "MindustryModCreator"
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = settings_dir / "settings.json"
+            
+            with open(settings_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Ошибка при сохранении настроек: {e}")
+            return False
+    
+    def _get_autoupdate_setting(self):
+        """Получить значение настройки автообновления"""
+        return self.settings.get("autoupdate", True)
+    
+    def set_autoupdate(self, enabled):
+        """Установить настройку автообновления"""
+        self.settings["autoupdate"] = enabled
+        self.autoupdate_enabled = enabled
+        return self._save_settings(self.settings)
+    
+    def toggle_autoupdate(self):
+        """Переключить настройку автообновления"""
+        new_value = not self.autoupdate_enabled
+        return self.set_autoupdate(new_value)
+    
     def _find_current_config(self):
         """Найти конфигурацию для текущего EXE файла"""
         if not self.current_exe:
@@ -65,7 +129,7 @@ class AutoUpdater:
                 return config
         return None
     
-    def get_current_version(self):
+    def get_current_version(self): 
         """Получить текущую версию из файла"""
         try:
             if os.path.exists(self.version_path):
@@ -73,10 +137,10 @@ class AutoUpdater:
                     data = json.load(f)
                     # Если есть несколько версий для разных EXE
                     exe_name = self.current_exe or self.exe_configs[0]['name']
-                    return data.get(exe_name, {}).get('version', '4.4.0')
+                    return data.get(exe_name, {}).get('version', '4.5.0')
         except Exception as e:
             print(f"Ошибка чтения версии: {e}")
-        return '4.4.0'
+        return '4.5.0'
     
     def save_current_version(self, version_str):
         """Сохранить текущую версию в файл"""
@@ -267,8 +331,22 @@ del /f /q "%~f0"
             print(f"Ошибка при обновлении: {e}")
             return False
     
-    def check_and_update(self, show_dialog=False, parent=None):
-        """Проверить наличие обновлений и выполнить обновление если нужно"""
+    def check_and_update(self, show_dialog=False, parent=None, check_autoupdate=True):
+        """
+        Проверить наличие обновлений и выполнить обновление если нужно
+        
+        Args:
+            show_dialog: Показывать ли диалог с запросом подтверждения
+            parent: Родительское окно для диалога
+            check_autoupdate: Проверять ли настройку автообновления
+        """
+        # Проверяем настройку автообновления
+        if check_autoupdate and not self.autoupdate_enabled:
+            print("=" * 50)
+            print("Автообновление отключено в настройках")
+            print("=" * 50)
+            return False
+        
         print("=" * 50)
         print("Проверка обновлений...")
         print("=" * 50)
@@ -347,9 +425,17 @@ del /f /q "%~f0"
         # Выполняем обновление
         return self.perform_update(temp_exe_path, latest_version)
     
+    def check_and_update_autostart(self):
+        """Проверить обновления при автоматическом запуске (с учетом настройки)"""
+        return self.check_and_update(show_dialog=False, check_autoupdate=True)
+    
     def get_all_exe_names(self):
         """Получить список всех доступных EXE файлов"""
         return [config['name'] for config in self.exe_configs]
+    
+    def get_autoupdate_status(self):
+        """Получить статус автообновления"""
+        return self.autoupdate_enabled
 
 
 if __name__ == "__main__":
@@ -371,9 +457,10 @@ if __name__ == "__main__":
     # Выводим информацию о текущем EXE
     print(f"Текущий EXE файл: {updater.current_exe}")
     print(f"Доступные EXE файлы: {updater.get_all_exe_names()}")
+    print(f"Статус автообновления: {'Включено' if updater.autoupdate_enabled else 'Отключено'}")
     
-    # Проверяем обновления
-    if updater.check_and_update():
+    # Проверяем обновления с учетом настройки автообновления
+    if updater.check_and_update_autostart():
         print("Обновление выполнено успешно!")
     else:
-        print("Обновление не требуется или произошла ошибка")
+        print("Обновление не требуется или автообновление отключено")

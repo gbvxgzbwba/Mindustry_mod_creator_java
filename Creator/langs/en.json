@@ -66,9 +66,6 @@
   "Назад": "Back",
   "Скачивание шаблона": "Downloading Template",
   "Скачиваю и распаковываю...": "Downloading and extracting...",
-  "Скачиваю и распаковываю шаблон...": "Downloading and extracting template...",
-  "Извлекаю файлы из {folder}...": "Extracting files from {folder}...",
-  "Шаблон успешно установлен!": "Template successfully installed!",
   "Ошибка: {error}": "Error: {error}",
   "Удаляю папку example: {path}": "Deleting example folder: {path}",
   "Найдено Java файлов в example: {count}": "Found Java files in example: {count}",
@@ -653,5 +650,17 @@
   "❌ Файл не найден!": "❌ File not found!",
   "✅ Файл найден!": "✅ File found!",
   "Выберите Mindustry": "Choose Mindustry",
-  "▶ Запустить игру": "▶ Launch the game"
+  "▶ Запустить игру": "▶ Launch the game",
+  "Автоматическая проверка обновлений:": "Automatic update check:",
+  "Включите для автоматической проверки обновлений \n при запуске программы и установки": "Enable to automatically check for updates \n when the program is launched and installed",
+  "Проверка обновлений": "Checking for updates",
+  "Проверить наличие обновлений сейчас?": "Check for updates now?",
+  "Проверка обновлений запущена...\nПожалуйста, подождите.": "Checking for updates is running...\nPlease wait.",
+  "Обновлений не найдено или произошла ошибка.": "No updates were found or an error occurred.",
+  "Ошибка проверки обновлений: {err}": "Update check error: {err}",
+  "Модуль обновления не инициализирован.": "The update module has not been initialized.",
+  "🔄 Проверить обновления сейчас": "🔄 Check for updates now",
+  "✅ Сохранен: {file_path}": "✅ Saved: {file_path}",
+  "Редактор: {file_path}": "Editor: {file_path}",
+  "Редактировать 'mod.hjson'": "Edit 'mod.hjson'"
 }
