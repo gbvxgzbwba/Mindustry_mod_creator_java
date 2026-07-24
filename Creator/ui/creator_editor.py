@@ -2751,7 +2751,7 @@ class CreatorEditor:
             {
                 "type": "liquid",
                 "class": "Liquid",
-                "path": "src/{mod_name}/init/liquids/ModLiquid.java"
+                "path": "src/{mod_name}/init/liquids/ModLiquids.java"
             },
             # Стены
             {

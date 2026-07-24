@@ -29,6 +29,18 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+def get_exe_dir():
+    """
+    Возвращает папку, где находится исполняемый файл (exe)
+    Работает как для .py, так и для .exe
+    """
+    if getattr(sys, 'frozen', False):
+        # Запущено как .exe
+        return os.path.dirname(sys.executable)
+    else:
+        # Запущено как .py - возвращаем текущую папку
+        return os.getcwd()
+
 class MainWindow:
     def __init__(self):
         self.root = ctk.CTk()
@@ -42,7 +54,6 @@ class MainWindow:
         ctk.set_default_color_theme("blue")
         
         # Загружаем настройки ДО создания UI
-        self.settings_file = None
         self.settings = self.load_settings()
         
         # Устанавливаем язык из настроек ДО создания UI
@@ -99,8 +110,18 @@ class MainWindow:
             print(f"⚠️ Ошибка инициализации автообновления: {e}")
             self.updater = None
     
+    def get_settings_path(self):
+        """
+        Возвращает путь к файлу настроек
+        ТОЛЬКО НАСТРОЙКИ хранятся в папке с exe файлом
+        """
+        exe_dir = get_exe_dir()
+        settings_dir = Path(exe_dir) / "settings"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        return settings_dir / "settings.json"
+    
     def load_settings(self):
-        """Загружает настройки из TXT файла"""
+        """Загружает настройки из JSON файла в папке с exe"""
         default_settings = {
             "language": "ru",
             "save_folder": "mods",
@@ -109,10 +130,7 @@ class MainWindow:
             "autoupdate": True
         }
 
-        appdata = os.getenv('APPDATA') or os.path.expanduser("~")
-        settings_dir = Path(appdata) / "MindustryModCreator"
-        settings_dir.mkdir(parents=True, exist_ok=True)
-        self.settings_file = settings_dir / "settings.txt"  # <-- ТЕПЕРЬ TXT!
+        self.settings_file = self.get_settings_path()
         
         print(f"[load_settings] Путь: {self.settings_file}")
 
@@ -121,36 +139,19 @@ class MainWindow:
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line or line.startswith('#'):
-                            continue
-                        
-                        if ':' in line:
-                            key, value = line.split(':', 1)
-                            key = key.strip()
-                            value = value.strip()
-                            
-                            # Преобразуем типы
-                            if key == 'language':
-                                settings[key] = value
-                            elif key == 'save_folder':
-                                settings[key] = value
-                            elif key == 'game_path':
-                                settings[key] = value
-                            elif key == 'hide_content':
-                                settings[key] = value.lower() == 'true'
-                            elif key == 'autoupdate':
-                                settings[key] = value.lower() == 'true'
-                            else:
-                                settings[key] = value
-                            
-                            print(f"[load_settings] Загружено: {key} = {value}")
+                    loaded = json.load(f)
+                    print(f"[load_settings] Загружено: {loaded}")
+                    
+                    # Обновляем только существующие ключи
+                    for key, value in default_settings.items():
+                        if key in loaded:
+                            settings[key] = loaded[key]
+                            print(f"[load_settings] Ключ {key} = {value}")
                             
             except Exception as e:
                 print(f"[load_settings] Ошибка загрузки: {e}")
                 # Если ошибка, создаём новый файл
-                self._save_to_txt(default_settings)
+                self._save_to_json(default_settings)
                 return default_settings.copy()
         
         # Добавляем недостающие ключи
@@ -162,24 +163,18 @@ class MainWindow:
         self.settings = settings
         return self.settings.copy()
 
-    def _save_to_txt(self, settings):
-        """ВНУТРЕННИЙ метод: сохраняет настройки в TXT файл"""
+    def _save_to_json(self, settings):
+        """ВНУТРЕННИЙ метод: сохраняет настройки в JSON файл"""
         try:
             self.settings_file.parent.mkdir(parents=True, exist_ok=True)
             
             with open(self.settings_file, 'w', encoding='utf-8') as f:
-                f.write("# Настройки Mindustry Mod Creator\n")
-                f.write(f"# Сохранено: {__import__('datetime').datetime.now()}\n\n")
-                
-                for key, value in settings.items():
-                    if isinstance(value, bool):
-                        value = str(value).lower()
-                    f.write(f"{key}: {value}\n")
+                json.dump(settings, f, ensure_ascii=False, indent=4)
             
-            print(f"[_save_to_txt] Сохранено: {settings}")
+            print(f"[_save_to_json] Сохранено: {settings}")
             return True
         except Exception as e:
-            print(f"[_save_to_txt] Ошибка: {e}")
+            print(f"[_save_to_json] Ошибка: {e}")
             return False
 
     def save_settings(self, settings=None):
@@ -189,7 +184,7 @@ class MainWindow:
         else:
             self.settings = settings.copy()
         
-        return self._save_to_txt(self.settings)
+        return self._save_to_json(self.settings)
 
     def open_settings_window(self):
         """Открывает окно настроек"""
@@ -243,6 +238,7 @@ class MainWindow:
         
         appdata_roaming = os.getenv('APPDATA')
         
+        # Пути для сохранения модов (остаются как были)
         folder_options = {
             LangT("Программа"): "mods",
             LangT("Игра Steam"): r"C:\Program Files (x86)\Steam\steamapps\common\Mindustry\saves\mods",
@@ -271,7 +267,7 @@ class MainWindow:
         # === РАЗДЕЛИТЕЛЬ ===
         ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
         
-        # === ПЕРЕКЛЮЧАТЕЛЬ ПОКАЗА КОНТЕНТА (БЕЗ ИНВЕРСИИ) ===
+        # === ПЕРЕКЛЮЧАТЕЛЬ ПОКАЗА КОНТЕНТА ===
         hide_content_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
         hide_content_frame.pack(fill="x", pady=10)
         
@@ -558,16 +554,11 @@ class MainWindow:
        
     def find_and_setup_java(self):
         """Находит или устанавливает Java 17"""
-        #print("\n" + "="*50)
-        #print("ПОИСК JAVA JDK 17")
-        #print("="*50)
-        
         # 1. Проверяем все возможные пути Java
         java_found = self.find_java_17_in_all_paths()
         
         if java_found:
             print(LangT("✓ JDK 17 найдена:") + self.java_path)
-            #print(f"  Версия: {self.java_version}")
             
             # Проверяем JAVA_HOME
             self.check_and_fix_java_home()
@@ -653,7 +644,6 @@ class MainWindow:
         
         # Если JAVA_HOME уже правильный
         if current_java_home == self.java_path:
-            #print(f"✓ JAVA_HOME уже установлен правильно: {self.java_path}")
             return
         
         # Если JAVA_HOME не правильный или отсутствует
@@ -1094,6 +1084,7 @@ class MainWindow:
         scroll_frame = ctk.CTkScrollableFrame(parent, height=500)
         scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
+        # Моды в папке Creator/mods (НЕ МЕНЯЕМ!)
         mods_dir = Path("Creator/mods")
         mods = []
         
@@ -1125,6 +1116,7 @@ class MainWindow:
             messagebox.showerror(LangT("Ошибка"), LangT("Введите имя мода!"))
             return
         
+        # Моды создаются в Creator/mods (НЕ МЕНЯЕМ!)
         mod_dir = Path("Creator/mods") / mod_name
         
         if mod_dir.exists():

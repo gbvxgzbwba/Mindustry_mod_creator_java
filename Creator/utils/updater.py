@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from packaging import version
 
-VERSIONPM = "4.6.0"
+VERSIONPM = "4.6.1"
 class AutoUpdater:
     def __init__(self, repo_url, exe_configs=None, version_file_name="version.json", main_app=None):
         """
