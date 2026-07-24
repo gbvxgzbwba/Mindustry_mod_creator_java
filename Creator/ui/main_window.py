@@ -100,64 +100,107 @@ class MainWindow:
             self.updater = None
     
     def load_settings(self):
-        """Загружает настройки из файла"""
+        """Загружает настройки из TXT файла"""
         default_settings = {
             "language": "ru",
             "save_folder": "mods",
             "hide_content": False,
             "game_path": "",
-            "autoupdate": True  # Добавлена настройка автообновления
+            "autoupdate": True
         }
 
         appdata = os.getenv('APPDATA') or os.path.expanduser("~")
         settings_dir = Path(appdata) / "MindustryModCreator"
         settings_dir.mkdir(parents=True, exist_ok=True)
-        self.settings_file = settings_dir / "settings.json"
+        self.settings_file = settings_dir / "settings.txt"  # <-- ТЕПЕРЬ TXT!
         
-        print(f"Загрузка настроек из: {self.settings_file}")
+        print(f"[load_settings] Путь: {self.settings_file}")
 
+        settings = default_settings.copy()
+        
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
-                    settings = json.load(f)
-                    print(f"Загружены настройки: {settings}")
-                    for key, value in default_settings.items():
-                        if key not in settings:
-                            settings[key] = value
-                    return settings
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        
+                        if ':' in line:
+                            key, value = line.split(':', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            # Преобразуем типы
+                            if key == 'language':
+                                settings[key] = value
+                            elif key == 'save_folder':
+                                settings[key] = value
+                            elif key == 'game_path':
+                                settings[key] = value
+                            elif key == 'hide_content':
+                                settings[key] = value.lower() == 'true'
+                            elif key == 'autoupdate':
+                                settings[key] = value.lower() == 'true'
+                            else:
+                                settings[key] = value
+                            
+                            print(f"[load_settings] Загружено: {key} = {value}")
+                            
             except Exception as e:
-                print(f"Ошибка загрузки настроек: {e}")
+                print(f"[load_settings] Ошибка загрузки: {e}")
+                # Если ошибка, создаём новый файл
+                self._save_to_txt(default_settings)
                 return default_settings.copy()
-        else:
-            print("Файл настроек не найден, создаю новый")
-            self.save_settings(default_settings)
-            return default_settings.copy()
-      
-    def save_settings(self, settings=None):
-        """Сохраняет настройки в файл"""
-        if settings is None:
-            settings = self.settings
         
+        # Добавляем недостающие ключи
+        for key, value in default_settings.items():
+            if key not in settings:
+                settings[key] = value
+                print(f"[load_settings] Добавлен ключ: {key} = {value}")
+        
+        self.settings = settings
+        return self.settings.copy()
+
+    def _save_to_txt(self, settings):
+        """ВНУТРЕННИЙ метод: сохраняет настройки в TXT файл"""
         try:
-            # Убедимся, что директория существует
             self.settings_file.parent.mkdir(parents=True, exist_ok=True)
             
             with open(self.settings_file, 'w', encoding='utf-8') as f:
-                json.dump(settings, f, ensure_ascii=False, indent=4)
+                f.write("# Настройки Mindustry Mod Creator\n")
+                f.write(f"# Сохранено: {__import__('datetime').datetime.now()}\n\n")
+                
+                for key, value in settings.items():
+                    if isinstance(value, bool):
+                        value = str(value).lower()
+                    f.write(f"{key}: {value}\n")
             
-            print(f"Настройки сохранены: {settings}")  # Отладка
+            print(f"[_save_to_txt] Сохранено: {settings}")
             return True
         except Exception as e:
-            print(f"Ошибка сохранения настроек: {e}")
+            print(f"[_save_to_txt] Ошибка: {e}")
             return False
-    
+
+    def save_settings(self, settings=None):
+        """Сохраняет настройки (публичный метод)"""
+        if settings is None:
+            settings = self.settings
+        else:
+            self.settings = settings.copy()
+        
+        return self._save_to_txt(self.settings)
+
     def open_settings_window(self):
         """Открывает окно настроек"""
         from Creator.utils.lang_system import get_available_languages, set_language, LangT
         
+        # ПЕРЕЗАГРУЖАЕМ НАСТРОЙКИ ПЕРЕД ОТКРЫТИЕМ
+        self.load_settings()
+        
         settings_window = ctk.CTkToplevel(self.root)
         settings_window.title(LangT("Настройки"))
-        settings_window.geometry("450x650")  # Увеличил высоту для новой настройки
+        settings_window.geometry("450x650")
         settings_window.transient(self.root)
         settings_window.grab_set()
         
@@ -228,7 +271,7 @@ class MainWindow:
         # === РАЗДЕЛИТЕЛЬ ===
         ctk.CTkFrame(main_scroll, height=2, fg_color="#404040").pack(fill="x", pady=15)
         
-        # === ПЕРЕКЛЮЧАТЕЛЬ ПОКАЗА КОНТЕНТА ===
+        # === ПЕРЕКЛЮЧАТЕЛЬ ПОКАЗА КОНТЕНТА (БЕЗ ИНВЕРСИИ) ===
         hide_content_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
         hide_content_frame.pack(fill="x", pady=10)
         
@@ -238,20 +281,22 @@ class MainWindow:
             font=("Arial", 14)
         ).pack(side="left", padx=(0, 10))
         
-        hide_content_var = ctk.BooleanVar(value=not self.settings.get("hide_content", False))
+        # ПРЯМАЯ ЛОГИКА: show_content = not hide_content
+        show_content = not self.settings.get("hide_content", False)
+        show_content_var = ctk.BooleanVar(value=show_content)
         
-        hide_content_switch = ctk.CTkSwitch(
+        show_content_switch = ctk.CTkSwitch(
             hide_content_frame,
-            text=LangT("Вкл") if hide_content_var.get() else LangT("Выкл"),
-            variable=hide_content_var,
-            command=lambda: hide_content_switch.configure(
-                text=LangT("Вкл") if hide_content_var.get() else LangT("Выкл")
+            text=LangT("Вкл") if show_content_var.get() else LangT("Выкл"),
+            variable=show_content_var,
+            command=lambda: show_content_switch.configure(
+                text=LangT("Вкл") if show_content_var.get() else LangT("Выкл")
             ),
             onvalue=True,
             offvalue=False,
             width=60
         )
-        hide_content_switch.pack(side="left")
+        show_content_switch.pack(side="left")
         
         ctk.CTkLabel(
             main_scroll,
@@ -299,12 +344,10 @@ class MainWindow:
         def check_updates_now():
             """Ручная проверка обновлений"""
             if hasattr(self, 'updater') and self.updater:
-                # Показываем диалог с подтверждением
                 if messagebox.askyesno(
                     LangT("Проверка обновлений"),
                     LangT("Проверить наличие обновлений сейчас?")
                 ):
-                    # Запускаем проверку в отдельном потоке
                     def check_thread():
                         try:
                             self.root.after(0, lambda: messagebox.showinfo(
@@ -362,13 +405,12 @@ class MainWindow:
         game_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         
         def browse_game_path():
-            """Открывает диалог выбора файла игры"""
             filetypes = []
             if platform.system() == "Windows":
                 filetypes = [(LangT("Исполняемые файлы"), "*.exe"), (LangT("JAR файлы"), "*.jar"), (LangT("Все файлы"), "*.*")]
-            elif platform.system() == "Darwin":  # macOS
+            elif platform.system() == "Darwin":
                 filetypes = [(LangT("Приложения"), "*.app"), (LangT("JAR файлы"), "*.jar"), (LangT("Все файлы"), "*.*")]
-            else:  # Linux
+            else:
                 filetypes = [(LangT("Все файлы"), "*.*")]
             
             selected_file = filedialog.askopenfilename(
@@ -387,9 +429,7 @@ class MainWindow:
         )
         browse_btn.pack(side="right")
         
-        # Кнопка проверки пути
         def check_game_path():
-            """Проверяет, существует ли файл игры"""
             path = game_path_var.get().strip()
             if not path:
                 messagebox.showwarning(LangT("Предупреждение"), LangT("Путь не указан!"))
@@ -439,8 +479,8 @@ class MainWindow:
             selected_folder_display = display_var.get()
             save_path = folder_options[selected_folder_display]
             
-            # Получаем состояние переключателя показа контента
-            hide_content = not hide_content_var.get()
+            # Получаем состояние переключателя показа контента (ПРЯМАЯ ЛОГИКА)
+            hide_content = not show_content_var.get()
             
             # Получаем состояние автообновления
             autoupdate_enabled = autoupdate_var.get()
@@ -471,7 +511,6 @@ class MainWindow:
             try:
                 Path(save_path).mkdir(parents=True, exist_ok=True)
                 
-                # Проверяем путь к игре
                 game_status = LangT("Не указан")
                 if game_path:
                     if os.path.exists(game_path):

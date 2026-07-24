@@ -239,4 +239,4 @@ def get_available_languages_display():
     return lang_system.get_available_languages_display()
 
 def get_language_display_name(lang_code):
-    return lang_system.get_language_display_name(lang_code)
+    return lang_system.get_language_display_name(lang_code)     

@@ -11943,7 +11943,7 @@ public class {NAME} {{
         self.build_items = []
         self.research_items = []
         self.fuel_liquids_with_amount = []
-            
+
 #----------ФУНКЦИИ 2----------
     def open_editor_with_target(self, selected_var, item_type, target):
         """
@@ -14341,7 +14341,7 @@ public class {NAME} {{
             editor_window.destroy()
         
         editor_window.protocol("WM_DELETE_WINDOW", on_closing)
-     
+      
 def create_block_creator(editor_instance):
     """
     Создает экземпляр BlockCreator

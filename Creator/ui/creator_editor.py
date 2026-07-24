@@ -52,6 +52,14 @@ class CreatorEditor:
         except ImportError as e:
             print(f"Ошибка импорта block_creator: {e}")
             self.block_creator = None
+        
+        # Инициализация создания руд
+        try:
+            from .ore_creator import OreBlockCreator
+            self.ore_creator = OreBlockCreator(self)
+        except ImportError as e:
+            print(f"Ошибка импорта ore_creator: {e}")
+            self.ore_creator = None
 
     def load_image(self, filename, size=(80, 80)):
         """
@@ -192,7 +200,7 @@ class CreatorEditor:
         "consume_generators", "walls", "solar_panels",
         "batterys", "beam_nodes", "power_nodes", "shield_walls",
         "generic_crafter", "bridges", "conveyors", "storage_block",
-        "bridges_liquid", "solid_pump"
+        "bridges_liquid", "solid_pump", "environment/ores"
     ]
     
     # Функции-обертки для блоков
@@ -291,6 +299,12 @@ class CreatorEditor:
     def create_solid_pump(self):
         if self.block_creator:
             self.block_creator.create_solid_pump()
+        else:
+            print("Ошибка: block_creator не инициализирован")
+    
+    def create_ore(self):
+        if self.ore_creator:
+            self.ore_creator.create_ore()
         else:
             print("Ошибка: block_creator не инициализирован")
             
@@ -836,7 +850,8 @@ class CreatorEditor:
         
         self.setup_actions_panel(left_frame)
         self.setup_content_panel(right_frame)
-
+   
+#item
     def create_item(self):
         """Создает или добавляет новый предмет в ModItems.java"""
 
@@ -1100,6 +1115,50 @@ class CreatorEditor:
             placeholder_text_color="#888888"
         )
         entry_radioactivity.pack(fill="x")
+        
+        # Метка и поле для hex
+        hex_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        hex_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+
+        hex_label = ctk.CTkLabel(
+            hex_frame,
+            text=LangT("Hex цвет (без #):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        hex_label.pack(anchor="w", pady=(0, 5))
+
+        # Функция валидации для hex
+        def validate_hex_input(value):
+            """Проверяет, является ли значение допустимым hex-кодом (6 символов, 0-9, A-F, a-f)"""
+            if value == "":
+                return True
+            
+            # Разрешаем только 6 символов
+            if len(value) > 6:
+                return False
+            
+            # Разрешаем только hex символы
+            pattern = r'^[0-9A-Fa-f]*$'
+            return re.match(pattern, value) is not None
+
+        # Регистрируем функцию валидации для hex
+        hex_vcmd = (self.root.register(validate_hex_input), '%P')
+
+        entry_hex_color = ctk.CTkEntry(
+            hex_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("123456"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=hex_vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_hex_color.pack(fill="x")
 
         # Привязываем форматирование при потере фокуса
         def on_focus_out_charge(event):
@@ -1288,6 +1347,7 @@ class CreatorEditor:
             flammability_value = entry_flammability.get().strip() or "0"
             explosiveness_value = entry_explosiveness.get().strip() or "0"
             radioactivity_value = entry_radioactivity.get().strip() or "0"
+            hex_color = entry_hex_color.get().strip() or "123456"
             
             charge_value = format_float(charge_value)
             flammability_value = format_float(flammability_value)
@@ -1306,6 +1366,7 @@ class CreatorEditor:
                 explosiveness = {explosiveness_value}f;
                 radioactivity = {radioactivity_value}f;
                 alwaysUnlocked = {always_unlocked_value};
+                color = Color.valueOf("{hex_color}");
                 
                 localizedName = Core.bundle.get("{var_name}.name", "OH NO");
                 description = Core.bundle.get("{var_name}.description", "OH NO");"""
@@ -1557,9 +1618,9 @@ class CreatorEditor:
             wraplength=450
         )
         tips_label.pack()
-
+#liquid
     def create_liquid(self):
-        """Создает или добавляет новую жидкость в ModLiquid.java"""
+        """Создает или добавляет новую жидкость в ModLiquids.java"""
 
         PATEH_FOLDER = self.PATEH_FOLDER
         
@@ -1567,7 +1628,7 @@ class CreatorEditor:
         self.clear_window()
         
         # Основной фрейм с прокруткой
-        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")  # Темный фон
+        main_frame = ctk.CTkFrame(self.root, fg_color="#2b2b2b")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
         # Фрейм для прокрутки
@@ -1575,7 +1636,7 @@ class CreatorEditor:
             main_frame,
             width=500,
             height=600,
-            fg_color="#2b2b2b"  # Темный фон
+            fg_color="#2b2b2b"
         )
         scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
@@ -1587,7 +1648,7 @@ class CreatorEditor:
             title_frame,
             text=LangT("Создание жидкости"),
             font=("Arial", 24, "bold"),
-            text_color="#2196F3"  # Синий цвет для жидкости
+            text_color="#4CAF50"
         )
         title_label.pack(pady=10)
         
@@ -1596,8 +1657,8 @@ class CreatorEditor:
             scroll_frame,
             corner_radius=15,
             border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
+            border_color="#404040",
+            fg_color="#363636"
         )
         info_card.pack(fill="x", pady=(0, 20))
         
@@ -1606,7 +1667,7 @@ class CreatorEditor:
             info_card,
             text=LangT("Основная информация"),
             font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         card_title.pack(pady=(15, 10), padx=20, anchor="w")
         
@@ -1618,7 +1679,7 @@ class CreatorEditor:
             name_frame,
             text=LangT("Название жидкости (английское, можно пробел, первая буква маленькая):"),
             font=("Arial", 16),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         name_label.pack(anchor="w", pady=(0, 5))
         
@@ -1630,10 +1691,10 @@ class CreatorEditor:
             font=("Arial", 15),
             border_width=2,
             corner_radius=8,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_name.pack(fill="x", pady=(0, 5))
         
@@ -1644,27 +1705,23 @@ class CreatorEditor:
             if not words:
                 return ""
             
-            # Первое слово в нижнем регистре
             result = words[0].lower()
             
-            # Остальные слова с заглавной буквы
             for word in words[1:]:
                 result += word.capitalize()
             
             return result
-
-        # Функция валидации для обычных значений (0-5000)
+        
+        # Функция валидации для float
         def validate_float_input(value):
-            """Проверяет, является ли значение допустимым float с максимум 2 знаками после точки (0-5000)"""
+            """Проверяет, является ли значение допустимым float с максимум 2 знаками после точки"""
             if value == "" or value == ".":
                 return True
             
-            # Проверяем формат числа
             pattern = r'^\d*\.?\d{0,2}$'
             if not re.match(pattern, value):
                 return False
             
-            # Проверяем максимальное значение
             try:
                 num = float(value)
                 if num > 5000.00:
@@ -1674,28 +1731,7 @@ class CreatorEditor:
             
             return True
 
-        # Функция валидации для вязкости (0-1)
-        def validate_viscosity_input(value):
-            """Проверяет, является ли значение допустимым float для вязкости (0-1)"""
-            if value == "" or value == ".":
-                return True
-            
-            # Проверяем формат числа
-            pattern = r'^\d*\.?\d{0,2}$'
-            if not re.match(pattern, value):
-                return False
-            
-            # Проверяем диапазон значения (0-1)
-            try:
-                num = float(value)
-                if num < 0 or num > 1.0:
-                    return False
-            except ValueError:
-                return False
-            
-            return True
-
-        # Функция форматирования для обычных значений
+        # Функция форматирования float
         def format_float(value):
             """Форматирует значение до 2 знаков после точки"""
             if not value:
@@ -1703,11 +1739,8 @@ class CreatorEditor:
             
             try:
                 num = float(value)
-                # Ограничиваем максимальное значение
                 num = min(num, 5000.00)
-                # Форматируем до 2 знаков
                 formatted = f"{num:.2f}"
-                # Убираем лишние нули
                 if formatted.endswith(".00"):
                     formatted = formatted[:-3]
                 elif formatted.endswith(".0"):
@@ -1716,38 +1749,31 @@ class CreatorEditor:
             except ValueError:
                 return value
 
-        # Функция форматирования для вязкости
-        def format_viscosity(value):
-            """Форматирует значение вязкости до 2 знаков после точки (0-1)"""
-            if not value:
-                return "0"  # Вязкость по умолчанию 0
+        # Функция валидации для hex
+        def validate_hex_input(value):
+            """Проверяет, является ли значение допустимым hex-кодом (6 символов, 0-9, A-F, a-f)"""
+            if value == "":
+                return True
             
-            try:
-                num = float(value)
-                # Ограничиваем диапазон 0-1
-                num = max(0.0, min(num, 1.0))
-                # Форматируем до 2 знаков
-                formatted = f"{num:.2f}"
-                # Убираем лишние нули
-                if formatted.endswith(".00"):
-                    formatted = formatted[:-3]
-                elif formatted.endswith("0"):
-                    formatted = formatted[:-1]
-                return formatted
-            except ValueError:
-                return "0"
+            # Разрешаем только 6 символов
+            if len(value) > 6:
+                return False
+            
+            # Разрешаем только hex символы
+            pattern = r'^[0-9A-Fa-f]*$'
+            return re.match(pattern, value) is not None
 
         # Регистрируем функции валидации
-        vcmd_float = (self.root.register(validate_float_input), '%P')
-        vcmd_viscosity = (self.root.register(validate_viscosity_input), '%P')
+        vcmd = (self.root.register(validate_float_input), '%P')
+        hex_vcmd = (self.root.register(validate_hex_input), '%P')
 
-        # Карточка для свойств жидкости
+        # Карточка для свойств
         properties_card = ctk.CTkFrame(
             scroll_frame,
             corner_radius=15,
             border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
+            border_color="#404040",
+            fg_color="#363636"
         )
         properties_card.pack(fill="x", pady=(0, 20))
 
@@ -1756,7 +1782,7 @@ class CreatorEditor:
             properties_card,
             text=LangT("Свойства жидкости"),
             font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         properties_title.pack(pady=(15, 10), padx=20, anchor="w")
 
@@ -1764,96 +1790,42 @@ class CreatorEditor:
         properties_grid = ctk.CTkFrame(properties_card, fg_color="transparent")
         properties_grid.pack(fill="x", padx=20, pady=(0, 15))
 
-        # Метка и поле для воспламеняемости
-        flammability_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        flammability_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-        
-        flammability_label = ctk.CTkLabel(
-            flammability_frame,
-            text=LangT("🔥 Воспламеняемость (flammability):"),
-            font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
-        )
-        flammability_label.pack(anchor="w", pady=(0, 5))
-        
-        entry_flammability = ctk.CTkEntry(
-            flammability_frame,
-            width=180,
-            height=38,
-            placeholder_text=LangT("0.00"),
-            font=("Arial", 14),
-            validate="key",
-            validatecommand=vcmd_float,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
-        )
-        entry_flammability.pack(fill="x")
-
-        # Метка и поле для взрывоопасности
-        explosiveness_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        explosiveness_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-        
-        explosiveness_label = ctk.CTkLabel(
-            explosiveness_frame,
-            text=LangT("💥 Взрывоопасность (explosiveness):"),
-            font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
-        )
-        explosiveness_label.pack(anchor="w", pady=(0, 5))
-        
-        entry_explosiveness = ctk.CTkEntry(
-            explosiveness_frame,
-            width=180,
-            height=38,
-            placeholder_text=LangT("0.00"),
-            font=("Arial", 14),
-            validate="key",
-            validatecommand=vcmd_float,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
-        )
-        entry_explosiveness.pack(fill="x")
-
         # Метка и поле для температуры
-        temperature_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        temperature_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        temp_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        temp_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
         
-        temperature_label = ctk.CTkLabel(
-            temperature_frame,
+        temp_label = ctk.CTkLabel(
+            temp_frame,
             text=LangT("🌡️ Температура (temperature):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
-        temperature_label.pack(anchor="w", pady=(0, 5))
+        temp_label.pack(anchor="w", pady=(0, 5))
         
-        entry_temperature = ctk.CTkEntry(
-            temperature_frame,
+        entry_temp = ctk.CTkEntry(
+            temp_frame,
             width=180,
             height=38,
             placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
-            validatecommand=vcmd_float,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
-        entry_temperature.pack(fill="x")
-        
-        # Метка и поле для вязкости (0-1)
+        entry_temp.pack(fill="x")
+
+        # Метка и поле для вязкости
         viscosity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
-        viscosity_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        viscosity_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         
         viscosity_label = ctk.CTkLabel(
             viscosity_frame,
             text=LangT("💧 Вязкость (viscosity):"),
             font=("Arial", 15),
-            text_color="#BDBDBD"  # Серый текст
+            text_color="#BDBDBD"
         )
         viscosity_label.pack(anchor="w", pady=(0, 5))
         
@@ -1864,90 +1836,96 @@ class CreatorEditor:
             placeholder_text=LangT("0.00"),
             font=("Arial", 14),
             validate="key",
-            validatecommand=vcmd_viscosity,
-            fg_color="#424242",  # Темный фон поля ввода
-            border_color="#555555",  # Цвет границы
-            text_color="#FFFFFF",  # Белый текст
-            placeholder_text_color="#888888"  # Серый placeholder
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
         )
         entry_viscosity.pack(fill="x")
 
-        # Привязываем форматирование при потере фокуса
-        def on_focus_out_flammability(event):
-            value = entry_flammability.get()
-            formatted = format_float(value)
-            if formatted != value:
-                entry_flammability.delete(0, "end")
-                entry_flammability.insert(0, formatted)
-
-        entry_flammability.bind("<FocusOut>", on_focus_out_flammability)
-
-        def on_focus_out_explosiveness(event):
-            value = entry_explosiveness.get()
-            formatted = format_float(value)
-            if formatted != value:
-                entry_explosiveness.delete(0, "end")
-                entry_explosiveness.insert(0, formatted)
-
-        entry_explosiveness.bind("<FocusOut>", on_focus_out_explosiveness)
-
-        def on_focus_out_temperature(event):
-            value = entry_temperature.get()
-            formatted = format_float(value)
-            if formatted != value:
-                entry_temperature.delete(0, "end")
-                entry_temperature.insert(0, formatted)
-
-        entry_temperature.bind("<FocusOut>", on_focus_out_temperature)
+        # Метка и поле для теплопроводности
+        conductivity_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        conductivity_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
+        conductivity_label = ctk.CTkLabel(
+            conductivity_frame,
+            text=LangT("🔥 Теплопроводность (heatConductivity):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        conductivity_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_conductivity = ctk.CTkEntry(
+            conductivity_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("0.00"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_conductivity.pack(fill="x")
+
+        # Метка и поле для hex
+        hex_frame = ctk.CTkFrame(properties_grid, fg_color="transparent")
+        hex_frame.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        hex_label = ctk.CTkLabel(
+            hex_frame,
+            text=LangT("Hex цвет (без #):"),
+            font=("Arial", 15),
+            text_color="#BDBDBD"
+        )
+        hex_label.pack(anchor="w", pady=(0, 5))
+        
+        entry_hex_color = ctk.CTkEntry(
+            hex_frame,
+            width=180,
+            height=38,
+            placeholder_text=LangT("123456"),
+            font=("Arial", 14),
+            validate="key",
+            validatecommand=hex_vcmd,
+            fg_color="#424242",
+            border_color="#555555",
+            text_color="#FFFFFF",
+            placeholder_text_color="#888888"
+        )
+        entry_hex_color.pack(fill="x")
+
+        # Привязываем форматирование при потере фокуса
+        def on_focus_out_temp(event):
+            value = entry_temp.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_temp.delete(0, "end")
+                entry_temp.insert(0, formatted)
+
+        entry_temp.bind("<FocusOut>", on_focus_out_temp)
+
         def on_focus_out_viscosity(event):
             value = entry_viscosity.get()
-            formatted = format_viscosity(value)
+            formatted = format_float(value)
             if formatted != value:
                 entry_viscosity.delete(0, "end")
                 entry_viscosity.insert(0, formatted)
 
         entry_viscosity.bind("<FocusOut>", on_focus_out_viscosity)
 
-        # Карточка для дополнительных опций
-        options_card = ctk.CTkFrame(
-            scroll_frame,
-            corner_radius=15,
-            border_width=2,
-            border_color="#404040",  # Темная граница
-            fg_color="#363636"  # Серый фон карточки
-        )
-        options_card.pack(fill="x", pady=(0, 20))
+        def on_focus_out_conductivity(event):
+            value = entry_conductivity.get()
+            formatted = format_float(value)
+            if formatted != value:
+                entry_conductivity.delete(0, "end")
+                entry_conductivity.insert(0, formatted)
 
-        # Заголовок карточки опций
-        options_title = ctk.CTkLabel(
-            options_card,
-            text=LangT("Дополнительные опции"),
-            font=("Arial", 18, "bold"),
-            text_color="#E0E0E0"  # Светло-серый текст
-        )
-        options_title.pack(pady=(15, 10), padx=20, anchor="w")
+        entry_conductivity.bind("<FocusOut>", on_focus_out_conductivity)
 
-        # Чекбокс для alwaysUnlocked
-        always_unlocked_var = ctk.BooleanVar(value=False)
-        
-        always_unlocked_frame = ctk.CTkFrame(options_card, fg_color="transparent")
-        always_unlocked_frame.pack(fill="x", padx=20, pady=(0, 15))
-        
-        always_unlocked_checkbox = ctk.CTkCheckBox(
-            always_unlocked_frame,
-            text=LangT("🔓 Always Unlocked"),
-            variable=always_unlocked_var,
-            font=("Arial", 15),
-            text_color="#BDBDBD",  # Серый текст
-            border_width=2,
-            corner_radius=6,
-            fg_color="#2196F3",  # Синий цвет для жидкости
-            hover_color="#1976D2",
-            border_color="#555555"  # Цвет границы
-        )
-        always_unlocked_checkbox.pack(anchor="w", pady=5)
-            
         # Метка для статуса
         status_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         status_frame.pack(fill="x", pady=(0, 20))
@@ -1958,7 +1936,7 @@ class CreatorEditor:
             font=("Arial", 14),
             wraplength=450,
             justify="left",
-            text_color="#E0E0E0"  # Светло-серый текст
+            text_color="#E0E0E0"
         )
         status_label.pack()
         
@@ -1966,48 +1944,20 @@ class CreatorEditor:
         button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         button_frame.pack(fill="x", pady=20)
         
-        def check_if_name_exists(name):
-            """Проверяет, существует ли имя по текстурам в sprites"""
-            # Форматируем имя для проверки
-            formatted_name = format_to_lower_camel(name)
-            
-            # Проверяем существование текстуры в разных местах
-            name_lower = formatted_name
-            
-            # Пути для проверки
-            check_paths = [
-                Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{name_lower}.png",
-                Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{name_lower}.png",
-                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}.png",
-                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}" / f"{name_lower}.png",
-            ]
-            
-            for path in check_paths:
-                if path.exists():
-                    return True
-            
-            return False
-        
-        def copy_liquid_icon(liquid_name):
+        def copy_icon_liquid(liquid_name):
             """
-            Копирует иконку из creator/icons/liquids/ 
-            в assets/sprites/liquids/ с именем жидкости
+            Копирует иконку для жидкости из creator/icons/liquids
+            в assets/sprites/liquids/
             """
             try:
-                # Форматируем имя для текстуры
                 formatted_name = format_to_lower_camel(liquid_name)
                 
-                # Путь к папке с иконками
                 icons_dir = Path(resource_path("Creator/icons/liquids"))
                 
-                # Проверяем существование папки
                 if not icons_dir.exists():
                     print(LangT("Папка с иконками не найдена: {icons_dir}").format(icons_dir=icons_dir))
-                    # Создаем папку, если ее нет
-                    icons_dir.mkdir(parents=True, exist_ok=True)
                     return False
                 
-                # Получаем список всех файлов изображений
                 image_extensions = ['.png', '.jpg', '.jpeg']
                 image_files = []
                 
@@ -2018,32 +1968,43 @@ class CreatorEditor:
                     print(LangT("Нет изображений в папке: {icons_dir}").format(icons_dir=icons_dir))
                     return False
                 
-                # Выбираем иконку (water.png или первый доступный)
-                icon_path = icons_dir / "water.png"
-                if not icon_path.exists():
-                    icon_path = image_files[0]  # Берем первую доступную
+                # Используем первую найденную иконку
+                icon = image_files[0] if image_files else None
                 
-                # Путь назначения в папке мода
-                # Используем отформатированное имя в нижнем регистре
+                if not icon:
+                    return False
+                
                 target_name = formatted_name + ".png"
                 target_dir = Path(self.mod_folder) / "assets" / "sprites" / "liquids"
                 target_dir.mkdir(parents=True, exist_ok=True)
                 
                 target_path = target_dir / target_name
                 
-                # Проверяем, не существует ли уже такая текстура
-                if target_path.exists():
-                    return False  # Не копируем, если уже существует
+                shutil.copy2(icon, target_path)
                 
-                # Копируем файл
-                shutil.copy2(icon_path, target_path)
-                
-                print(LangT("Иконка скопирована: {icon_path} -> {target_path}").format(icon_path=icon_path, target_path=target_path))
+                print(LangT("Иконка скопирована: {icon} -> {target_path}").format(icon=icon, target_path=target_path))
                 return True
                 
             except Exception as e:
                 print(LangT("Ошибка при копировании иконки: {e}").format(e=e))
                 return False
+
+        def check_if_name_exists(name):
+            """Проверяет, существует ли имя по текстурам в sprites"""
+            formatted_name = format_to_lower_camel(name)
+            name_lower = formatted_name
+            
+            check_paths = [
+                Path(self.mod_folder) / "assets" / "sprites" / "liquids" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "items" / f"{name_lower}.png",
+                Path(self.mod_folder) / "assets" / "sprites" / "blocks" / f"{PATEH_FOLDER}" / f"{name_lower}.png",
+            ]
+            
+            for path in check_paths:
+                if path.exists():
+                    return True
+            
+            return False
 
         def process_liquid():
             """Обрабатывает создание жидкости"""
@@ -2052,11 +2013,10 @@ class CreatorEditor:
             if not original_name:
                 status_label.configure(
                     text=LangT("❌ Ошибка: Введите имя жидкости!"), 
-                    text_color="#F44336"  # Красный цвет для ошибки
+                    text_color="#F44336"
                 )
                 return
             
-            # Форматируем имя для использования в коде
             constructor_name = format_to_lower_camel(original_name)
             
             if not constructor_name:
@@ -2065,8 +2025,7 @@ class CreatorEditor:
                     text_color="#F44336"
                 )
                 return
-            
-            # Проверка имени по текстурам
+
             if check_if_name_exists(original_name):
                 status_label.configure(
                     text=LangT("❌ Ошибка: Имя '{constructor_name}' уже используется (текстура существует)!").format(constructor_name=constructor_name), 
@@ -2074,222 +2033,162 @@ class CreatorEditor:
                 )
                 return
             
-            # Копируем иконку
-            icon_copied = copy_liquid_icon(original_name)
+            icon_copied = copy_icon_liquid(original_name)
             icon_status = LangT("✅ Иконка создана") if icon_copied else LangT("⚠️ Иконка не создана")
             
-            # Получаем значения свойств
-            flammability_value = entry_flammability.get().strip() or "0"
-            explosiveness_value = entry_explosiveness.get().strip() or "0"
-            temperature_value = entry_temperature.get().strip() or "0"
-            viscosity_value = entry_viscosity.get().strip() or "0"  # По умолчанию 0
+            temp_value = entry_temp.get().strip() or "0"
+            viscosity_value = entry_viscosity.get().strip() or "0"
+            conductivity_value = entry_conductivity.get().strip() or "0"
+            hex_color = entry_hex_color.get().strip() or "123456"
             
-            # Форматируем значения
-            flammability_value = format_float(flammability_value)
-            explosiveness_value = format_float(explosiveness_value)
-            temperature_value = format_float(temperature_value)
-            viscosity_value = format_viscosity(viscosity_value)
-            
-            # Получаем значение alwaysUnlocked
-            always_unlocked_value = "true" if always_unlocked_var.get() else "false"
+            temp_value = format_float(temp_value)
+            viscosity_value = format_float(viscosity_value)
+            conductivity_value = format_float(conductivity_value)
 
-            # Имя переменной (с заглавной буквы - UpperCamelCase)
             if constructor_name and len(constructor_name) > 0:
                 var_name = constructor_name[0].lower() + constructor_name[1:] if constructor_name else ""
             else:
                 var_name = ""
             
-            # Создаем properties строку с правильными значениями
-            properties = f"""    flammability = {flammability_value}f;
-                    explosiveness = {explosiveness_value}f;
-                    temperature = {temperature_value}f;
+            properties = f"""    temperature = {temp_value}f;
                     viscosity = {viscosity_value}f;
-                    alwaysUnlocked = {always_unlocked_value};
-                    
-                    localizedName = Core.bundle.get("{var_name}.name", "OH NO");
-                    description = Core.bundle.get("{var_name}.description", "OH NO");"""
+                    heatConductivity = {conductivity_value}f;
+                    color = Color.valueOf("{hex_color}");"""
             
-            # Путь к файлу ModLiquid.java
             mod_name_lower = self.mod_name.lower() if self.mod_name else self.mod_name
-            liquid_registration_path = f"{self.mod_folder}/src/{mod_name_lower}/init/liquids/ModLiquid.java"
+            liquid_registration_path = f"{self.mod_folder}/src/{mod_name_lower}/init/liquids/ModLiquids.java"
             
-            # Путь к главному файлу мода
             main_mod_path = f"{self.mod_folder}/src/{mod_name_lower}/{self.mod_name}JavaMod.java"
             
-            # Создаем директории, если их нет
             os.makedirs(os.path.dirname(liquid_registration_path), exist_ok=True)
             
-            # Читаем или создаем файл ModLiquid.java
             try:
                 with open(liquid_registration_path, 'r', encoding='utf-8') as file:
                     content = file.read()
             except FileNotFoundError:
-                # Базовый шаблон файла
                 content = f"""package {mod_name_lower}.init.liquids;
 
     import arc.graphics.Color;
     import mindustry.type.Liquid;
     import arc.Core;
 
-    public class ModLiquid {{
+    public class ModLiquids {{
         public static Liquid;
-                                            
+                                        
         public static void Load() {{
             // Регистрация жидкостей
         }}
     }}"""
             
-            # Проверяем, есть ли уже эта жидкость
-            liquid_exists = False
-            if f'new Liquid("{constructor_name}")' in content or f'Liquid {var_name}' in content:
-                liquid_exists = True
+            item_exists = var_name in content
             
-            if not liquid_exists:
-                # 1. Добавляем в объявления (public static Liquid)
+            if not item_exists:
                 if "public static Liquid;" in content:
-                    # Заменяем на первое объявление
                     content = content.replace(
                         "public static Liquid;",
                         f"public static Liquid {var_name};"
                     )
                 elif "public static Liquid " in content:
-                    # Находим строку с объявлениями
                     lines = content.split('\n')
                     for i, line in enumerate(lines):
                         if "public static Liquid " in line and var_name not in line:
-                            # Добавляем через запятую
                             lines[i] = line.rstrip(';') + f", {var_name};"
                             content = '\n'.join(lines)
                             break
                 
-                # 2. Добавляем инициализацию в метод Load()
-                # Находим метод Load()
                 load_start = content.find("public static void Load() {")
                 if load_start != -1:
-                    # Находим открывающую скобку метода
                     open_brace = content.find('{', load_start)
                     if open_brace != -1:
-                        # Вставляем после открывающей скобки с правильными отступами
                         insert_pos = open_brace + 1
-                        indent = "        "  # 8 пробелов
+                        indent = "        "
                         
-                        # Создаем код жидкости с properties
-                        # В кавычках используем отформатированное имя constructor_name
-                        liquid_code = f'\n{indent}{var_name} = new Liquid("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
+                        item_code = f'\n{indent}{var_name} = new Liquid("{constructor_name}"){{{{\n{indent}{properties}\n{indent}}}}};'
                         
-                        content = content[:insert_pos] + liquid_code + content[insert_pos:]
+                        content = content[:insert_pos] + item_code + content[insert_pos:]
                 
-                # Записываем файл ModLiquid.java
                 with open(liquid_registration_path, 'w', encoding='utf-8') as file:
                     file.write(content)
                 
-                # Теперь работаем с главным файлом мода
                 try:
                     with open(main_mod_path, 'r', encoding='utf-8') as file:
                         main_content = file.read()
                     
-                    original_main_content = main_content  # Сохраняем оригинал для сравнения
+                    original_main_content = main_content
                     modified = False
                     import_added = False
                     registration_added = False
                     
-                    # Проверяем наличие импорта ModLiquid
-                    import_statement = f"import {mod_name_lower}.init.liquids.ModLiquid;"
+                    import_statement = f"import {mod_name_lower}.init.liquids.ModLiquids;"
                     
                     if import_statement not in main_content:
-                        # Ищем маркер //import_add
                         import_add_pos = main_content.find("//import_add")
                         
                         if import_add_pos != -1:
-                            # Находим позицию после маркера (учитываем новую строку)
                             insert_pos = import_add_pos + len("//import_add")
-                            # Проверяем, есть ли перевод строки после маркера
                             if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
-                                # Уже есть перевод строки, просто добавляем импорт
                                 main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
                             else:
-                                # Добавляем перевод строки и импорт
                                 main_content = main_content[:insert_pos] + f"\n{import_statement}" + main_content[insert_pos:]
                             import_added = True
                             modified = True
                         else:
-                            # Ищем последний импорт перед public class
                             class_declaration = f"public class {self.mod_name}JavaMod extends Mod{{"
                             class_pos = main_content.find(class_declaration)
                             
                             if class_pos != -1:
-                                # Ищем последний import перед классом
                                 last_import_pos = main_content.rfind("import", 0, class_pos)
                                 
                                 if last_import_pos != -1:
-                                    # Находим конец строки этого импорта
                                     line_end = main_content.find("\n", last_import_pos)
                                     if line_end == -1:
                                         line_end = len(main_content)
                                     
-                                    # Вставляем новый импорт после последнего импорта
                                     main_content = main_content[:line_end] + f"\n{import_statement}" + main_content[line_end:]
                                     import_added = True
                                     modified = True
                     
-                    # Проверяем наличие регистрации ModLiquid.Load()
-                    load_statement = "ModLiquid.Load();"
+                    load_statement = "ModLiquids.Load();"
                     
                     if load_statement not in main_content:
-                        # Ищем маркер //Registration_add
                         registration_add_pos = main_content.find("//Registration_add")
                         
                         if registration_add_pos != -1:
-                            # Находим позицию после маркера
                             insert_pos = registration_add_pos + len("//Registration_add")
-                            # Проверяем, есть ли перевод строки после маркера
                             if insert_pos < len(main_content) and main_content[insert_pos] == '\n':
-                                # Уже есть перевод строки, просто добавляем регистрацию
                                 main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
                             else:
-                                # Добавляем перевод строки и регистрацию
                                 main_content = main_content[:insert_pos] + f"\n        {load_statement}" + main_content[insert_pos:]
                             registration_added = True
                             modified = True
                         else:
-                            # Ищем метод loadContent()
                             load_content_pos = main_content.find("public void loadContent()")
                             
                             if load_content_pos != -1:
-                                # Находим открывающую скобку метода
                                 open_brace = main_content.find('{', load_content_pos)
                                 
                                 if open_brace != -1:
-                                    # Находим закрывающую скобку метода
                                     close_brace = main_content.find('}', open_brace)
                                     
                                     if close_brace != -1:
-                                        # Ищем позицию перед закрывающей скобкой
-                                        # Пропускаем пустые строки и комментарии
                                         insert_pos = close_brace
-                                        
-                                        # Добавляем перед закрывающей скобкой
-                                        indent = "        "  # 8 пробелов
+                                        indent = "        "
                                         main_content = main_content[:insert_pos] + f"\n{indent}{load_statement}" + main_content[insert_pos:]
                                         registration_added = True
                                         modified = True
                     
-                    # Если были изменения, сохраняем главный файл
                     if modified:
                         with open(main_mod_path, 'w', encoding='utf-8') as file:
                             file.write(main_content)
                     
-                    # Формируем статус с информацией о добавленных элементах
                     status_messages = [
                         LangT("✅ Жидкость '{var_name}' успешно создана!").format(var_name=var_name),
                         LangT('📋 Имя в игре: "{constructor_name}"').format(constructor_name=constructor_name),
                         LangT("🖼️ {icon_status} (имя текстуры: {texture_name}.png)").format(icon_status=icon_status, texture_name=constructor_name.lower()),
-                        LangT("🔧 Always Unlocked: {always_unlocked_value}").format(always_unlocked_value=always_unlocked_value),
                         LangT("📊 Свойства жидкости:"),
-                        LangT("  • 🔥 Воспламеняемость: {flammability_value}").format(flammability_value=flammability_value),
-                        LangT("  • 💥 Взрывоопасность: {explosiveness_value}").format(explosiveness_value=explosiveness_value),
-                        LangT("  • 🌡️ Температура: {temperature_value}").format(temperature_value=temperature_value),
-                        LangT("  • 💧 Вязкость: {viscosity_value}").format(viscosity_value=viscosity_value)
+                        LangT("  • 🌡️ Температура: {temp_value}").format(temp_value=temp_value),
+                        LangT("  • 💧 Вязкость: {viscosity_value}").format(viscosity_value=viscosity_value),
+                        LangT("  • 🔥 Теплопроводность: {conductivity_value}").format(conductivity_value=conductivity_value)
                     ]
                     
                     if import_added:
@@ -2303,7 +2202,7 @@ class CreatorEditor:
                         status_messages.append(LangT("ℹ️ Регистрация уже присутствует в главном файле"))
                     
                     status_text = "\n".join(status_messages)
-                    status_label.configure(text=status_text, text_color="#2196F3")
+                    status_label.configure(text=status_text, text_color="#4CAF50")
                     
                 except FileNotFoundError:
                     print(LangT("Главный файл мода не найден: {main_mod_path}").format(main_mod_path=main_mod_path))
@@ -2311,16 +2210,13 @@ class CreatorEditor:
         📋 Имя в игре: '{constructor_name}'
         🖼️ {icon_status}
         ⚠️ Главный файл мода не найден: {main_mod_path}
-        🔧 Always Unlocked: {always_unlocked_value}
         📊 Свойства жидкости:
-        • 🔥 Воспламеняемость: {flammability_value}
-        • 💥 Взрывоопасность: {explosiveness_value}
-        • 🌡️ Температура: {temperature_value}
-        • 💧 Вязкость: {viscosity_value}""").format(
-            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
-            main_mod_path=main_mod_path, always_unlocked_value=always_unlocked_value,
-            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
-            temperature_value=temperature_value, viscosity_value=viscosity_value
+        • 🌡️ Температура: {temp_value}
+        • 💧 Вязкость: {viscosity_value}
+        • 🔥 Теплопроводность: {conductivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            main_mod_path=main_mod_path, temp_value=temp_value,
+            viscosity_value=viscosity_value, conductivity_value=conductivity_value
         )
                     status_label.configure(text=status_text, text_color="#FF9800")
                 except Exception as e:
@@ -2329,16 +2225,13 @@ class CreatorEditor:
         📋 Имя в игре: '{constructor_name}'
         🖼️ {icon_status}
         ⚠️ Ошибка при обновлении главного файла: {e}
-        🔧 Always Unlocked: {always_unlocked_value}
         📊 Свойства жидкости:
-        • 🔥 Воспламеняемость: {flammability_value}
-        • 💥 Взрывоопасность: {explosiveness_value}
-        • 🌡️ Температура: {temperature_value}
-        • 💧 Вязкость: {viscosity_value}""").format(
-            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status,
-            e=e, always_unlocked_value=always_unlocked_value,
-            flammability_value=flammability_value, explosiveness_value=explosiveness_value,
-            temperature_value=temperature_value, viscosity_value=viscosity_value
+        • 🌡️ Температура: {temp_value}
+        • 💧 Вязкость: {viscosity_value}
+        • 🔥 Теплопроводность: {conductivity_value}""").format(
+            var_name=var_name, constructor_name=constructor_name, icon_status=icon_status, 
+            e=e, temp_value=temp_value,
+            viscosity_value=viscosity_value, conductivity_value=conductivity_value
         )
                     status_label.configure(text=status_text, text_color="#FF9800")
             else:
@@ -2347,7 +2240,6 @@ class CreatorEditor:
                     text_color="#FF9800"
                 )
             
-            # Очищаем статус через 5 секунд
             self.root.after(5000, lambda: status_label.configure(text=""))
 
         def back_to_main():
@@ -2366,11 +2258,11 @@ class CreatorEditor:
             height=45,
             width=200,
             font=("Arial", 16, "bold"),
-            fg_color="#1565C0",
-            hover_color="#0D47A1",
+            fg_color="#2E7D32",
+            hover_color="#1B5E20",
             corner_radius=10,
             border_width=2,
-            border_color="#0D47A1",
+            border_color="#1B5E20",
             text_color="#FFFFFF"
         )
         create_btn.pack(side="left", padx=15)
@@ -2396,13 +2288,13 @@ class CreatorEditor:
         
         tips_label = ctk.CTkLabel(
             tips_frame,
-            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'liquid', 'coolLiquid', 'energyFluid'"),
+            text=LangT("💡 Формат названий: первое слово с маленькой буквы, остальные с большой (без пробелов). Примеры: 'water', 'oil', 'liquid'"),
             font=("Arial", 12),
-            text_color="#9E9E9E",  # Серый текст
+            text_color="#9E9E9E",
             wraplength=450
         )
         tips_label.pack()
-
+    
     def choose_mod_icon_tkinter(self):
         """
         Альтернативная версия через tkinter (кросс-платформенная)
@@ -3417,6 +3309,15 @@ class CreatorEditor:
             font=("Arial", 12),
             command=self.create_liquid
         ).pack(pady=4)
+        
+        ctk.CTkButton(
+            buttons_frame,
+            text=LangT("Создать руду"),
+            width=180,
+            height=35,
+            font=("Arial", 12),
+            command=self.create_ore
+        ).pack(pady=4)
 
         ctk.CTkButton(
             buttons_frame,
@@ -3652,6 +3553,13 @@ class CreatorEditor:
                 "icon": " ",
                 "display": LangT("Помпа"),
                 "sprite_folder": "solid_pump"
+            },
+            "environment/ores": {
+                "paths": [f"{self.mod_folder}/src/{mod_name_lower}/init/blocks/environment/ores/Ores.java"],
+                "class": "OreBlock",
+                "icon": " ",
+                "display": LangT("Руда"),
+                "sprite_folder": "eto_no_kakoeto_prezene_ne_pabotaet"
             }
         }
         
@@ -3680,13 +3588,13 @@ class CreatorEditor:
                                             sprite_paths = [
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}-0-0.png",
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}-0-0.png",
-                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png"
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}-0-0.png",
                                             ]
                                         else:
                                             sprite_paths = [
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / f"{block_name}.png",
                                                 Path(self.mod_folder) / "assets" / "sprites" / "blocks" / sprite_folder / block_name / f"{block_name}.png",
-                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png"
+                                                Path(self.mod_folder) / "assets" / "sprites" / sprite_folder / f"{block_name}.png",
                                             ]
                                         
                                         sprite_found = any(p.exists() for p in sprite_paths)
