@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from packaging import version
 
+VERSIONPM = "4.6.0"
 class AutoUpdater:
     def __init__(self, repo_url, exe_configs=None, version_file_name="version.json", main_app=None):
         """
@@ -186,10 +187,10 @@ class AutoUpdater:
                 with open(self.version_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     exe_name = self.current_exe or self.exe_configs[0]['name']
-                    return data.get(exe_name, {}).get('version', '4.5.0')
+                    return data.get(exe_name, {}).get('version', VERSIONPM)
         except Exception as e:
             print(f"Ошибка чтения версии: {e}")
-        return '4.5.0'
+        return VERSIONPM
     
     def save_current_version(self, version_str):
         """Сохранить текущую версию в файл"""
