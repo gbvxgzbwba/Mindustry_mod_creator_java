@@ -2328,7 +2328,7 @@ class CreatorEditor:
                     return None
                 
                 # Целевой путь: папка мода + mod.png
-                target_path = Path(self.mod_folder) / "assets" / "sprites" / "icon.png"
+                target_path = Path(self.mod_folder) / "assets" / "icon.png"
                 
                 # Если файл уже существует, спрашиваем подтверждение
                 if target_path.exists():
